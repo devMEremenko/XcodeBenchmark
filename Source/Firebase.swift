@@ -22,7 +22,6 @@ import FirebaseRemoteConfig
 public enum Factory {
     
     public static func printAll() {
-        print(FirebaseApp.self)
         print(Storage.self)
         print(Database.self)
         print(Messaging.self)
