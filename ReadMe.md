@@ -35,11 +35,22 @@ I believe the results will help developers to make the right *cost/performance* 
 **Q: What's inside?**
 
 The framework that incudes **42** popular CocoaPods libraries and **70+** dependencies in total.
-Codebase contains **809,607** lines
-- 170,991 Swift (.swift)
-- 418,825 Headers (.h)
-- 199,224 Objective-C (.m)
-- 20,567 Objective-C++ (.mm)
+
+| Language      | files | blank  | comment | code   |
+|---------------|-------|--------|---------|--------|
+| C/C++ Header  | 2785  | 58618  | 143659  | 215644 |
+| C++           | 750   | 24771  | 30788   | 182663 |
+| Objective C   | 882   | 27797  | 23183   | 148244 |
+| Swift         | 1122  | 21821  | 35225   | 113945 |
+| C             | 390   | 15064  | 23319   | 84119  |
+| Objective C++ | 69    | 2980   | 2026    | 15561  |
+| Markdown      | 61    | 4865   | 1       | 15131  |
+| XML           | 144   | 1022   | 10      | 13047  |
+| Bourne Shell  | 3     | 244    | 209     | 1321   |
+| JSON          | 22    | 1      | 0       | 1114   |
+| Pascal        | 2     | 87     | 185     | 180    |
+| YAML          | 1     | 0      | 0       | 5      |
+| SUM:          | 6231  | 157270 | 258605  | 790974 |
 
 **Q: What do the results mean?**
 1. First of all, the project is **huge**. I think the average project does **not** have so many dependencies.
