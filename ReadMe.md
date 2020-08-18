@@ -39,6 +39,6 @@ I believe the results will help developers to make the right *cost/performance* 
 1. First of all, the project is **huge**. I think the average project does **not** have so many dependencies.
 2. The results give an **approximate** performance in ideal conditions.
 
-**Q: Why CocoaPods are included?**
+**Q: Why is CocoaPods not excluded from git-repo?**
 - The project is also used by non-programmers. Let's *keep it simple*.
 
