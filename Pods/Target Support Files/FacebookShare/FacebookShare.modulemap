@@ -1,0 +1,6 @@
+framework module FacebookShare {
+  umbrella header "FacebookShare-umbrella.h"
+
+  export *
+  module * { export * }
+}

@@ -1,0 +1,6 @@
+framework module LoadableViews {
+  umbrella header "LoadableViews-umbrella.h"
+
+  export *
+  module * { export * }
+}

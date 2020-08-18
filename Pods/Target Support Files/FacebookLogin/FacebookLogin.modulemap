@@ -1,0 +1,6 @@
+framework module FacebookLogin {
+  umbrella header "FacebookLogin-umbrella.h"
+
+  export *
+  module * { export * }
+}

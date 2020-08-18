@@ -1,0 +1,6 @@
+framework module Pods_XcodeBenchmark {
+  umbrella header "Pods-XcodeBenchmark-umbrella.h"
+
+  export *
+  module * { export * }
+}

@@ -1,0 +1,6 @@
+framework module Ariadne {
+  umbrella header "Ariadne-umbrella.h"
+
+  export *
+  module * { export * }
+}

@@ -1,0 +1,6 @@
+framework module TRON {
+  umbrella header "TRON-umbrella.h"
+
+  export *
+  module * { export * }
+}

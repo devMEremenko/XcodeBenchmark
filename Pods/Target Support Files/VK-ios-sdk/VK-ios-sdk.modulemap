@@ -1,0 +1,6 @@
+framework module VK_ios_sdk {
+  umbrella header "VK-ios-sdk-umbrella.h"
+
+  export *
+  module * { export * }
+}

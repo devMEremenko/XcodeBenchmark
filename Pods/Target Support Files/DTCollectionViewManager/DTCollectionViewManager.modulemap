@@ -1,0 +1,6 @@
+framework module DTCollectionViewManager {
+  umbrella header "DTCollectionViewManager-umbrella.h"
+
+  export *
+  module * { export * }
+}

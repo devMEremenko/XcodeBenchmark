@@ -1,0 +1,6 @@
+framework module RxBluetoothKit {
+  umbrella header "RxBluetoothKit-umbrella.h"
+
+  export *
+  module * { export * }
+}
