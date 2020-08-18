@@ -16,7 +16,8 @@ I believe the results will help developers to make the right *cost/performance* 
 
 ## Before each test
 
-1. Make sure `XcodeBenchmark.xcworkspace` is closed.
+1. Select `XcodeBenchmark` -> `Generic iOS Device` in the top left corner. 
+2. Close `XcodeBenchmark.xcworkspace` project.
 2. Remove `DerivedData` folder at `/Users/username/Library/Developer/Xcode/DerivedData`.
 3. Reboot and cool down your Mac.
 4. Make sure `Login Items` list is empty: System Preferences -> Users and Groups -> User -> Login Items.
