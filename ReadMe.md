@@ -53,8 +53,8 @@ The framework that incudes **42** popular CocoaPods libraries and **70+** depend
 | SUM:          | 6231  | 157270 | 258605  | 790974 |
 
 **Q: What do the results mean?**
-1. First of all, the project is **huge**. I think the average project does **not** have so many dependencies.
-2. The results give an **approximate** performance in ideal conditions.
+1. First of all, the project is **huge**. I think the majority of projects have a smaller size.
+2. The results show *relative* performance in Xcode compared to other Macs under the same conditions.
 
 **Q: Why is CocoaPods not excluded from git-repo?**
 - The project is also used by non-programmers. Let's *keep it simple*.
