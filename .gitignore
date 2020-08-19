@@ -11,8 +11,8 @@ DerivedData/
 !default.mode2v3
 *.perspectivev3
 !default.perspectivev3
-xcuserdata/
-*.xcuserstate
+# xcuserdata/
+# *.xcuserstate
 
 ## Other
 *.moved-aside
