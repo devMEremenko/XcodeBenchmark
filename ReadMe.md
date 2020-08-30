@@ -7,6 +7,16 @@ You are probably familiar with the following question:
 
 I believe the results will help developers to make the right *cost/performance* trade-off decision when choosing their next Mac.
 
+## Score
+
+|      Device     | Year |         CPU         | RAM | SSD | Xcode |  macOS  | Time(sec) |
+|:---------------:|:----:|:-------------------:|:---:|:---:|:-----:|:-------:|:---------:|
+|     iMac 27"    | 2020 |  i9 3.6 GHz 10-core |  64 | 512 |  11.6 | 10.15.6 |    217    |
+|     iMac 27"    | 2020 |  i7 3.8 GHz 8-core  |  64 | 512 |  11.6 | 10.15.6 |    229    |
+|     iMac 27"    | 2020 |  i7 3.8 GHz 8-core  |  32 | 512 |  11.6 | 10.15.6 |    229    |
+|   iMac Pro 27"  | 2017 | Xeon 3.2 GHz 8-core |  32 | 1TB |  11.6 | 10.15.6 |    263    |
+| MacBook Pro 15" | 2018 |  i7 2,6 GHz 6-Core  |  16 | 512 |  11.6 | 10.15.6 |    440    |
+
 ## Set up
 
 - Download and install [Xcode](https://apps.apple.com/us/app/xcode/id497799835).
@@ -59,3 +69,14 @@ The framework that incudes **42** popular CocoaPods libraries and **70+** depend
 **Q: Why is CocoaPods not excluded from git-repo?**
 - The project is also used by non-programmers. Let's *keep it simple*.
 
+## Contribution
+
+1. Submit a pull request and add a row to the `Score` section. Make sure the `Time` column is still sorted after insertion.
+2. [Open an issue](https://github.com/devMEremenko/XcodeBenchmark/issues/new/choose) and include all info to fill the `Score` section.
+
+**Important**: Please attach a screenshot with the final time displayed in the Xcode progress bar.
+
+## Contributors
+
+- [Maxim Eremenko](https://www.linkedin.com/in/maxim-eremenko/) 
+- [Max Tech](https://www.youtube.com/channel/UCptwuAv0XQHo1OQUSaO6NHw) YouTube channel
