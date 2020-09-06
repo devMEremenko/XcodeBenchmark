@@ -30,10 +30,11 @@ I believe the results will help developers to make the right *cost/performance* 
 
 1. Select `XcodeBenchmark` -> `Generic iOS Device` in the top left corner. 
 2. Close `XcodeBenchmark.xcworkspace` project.
-2. Remove `DerivedData` folder at `/Users/username/Library/Developer/Xcode/DerivedData`.
-3. Reboot and cool down your Mac.
-4. Connect to the power adapter if you use MacBook.
-5. Make sure `Login Items` list is empty: System Preferences -> Users and Groups -> User -> Login Items.
+2. Remove the `DerivedData` folder, by selecting Finder, pressing `shift + command + G` and paste in the path: `~/Library/Developer/Xcode`, select the `DerivedData` folder and delete it.
+3. Disconnect network cable and turn off WiFi and make sure to disable all software running at startup, i.e. Spotify.
+4. Make sure `Login Items` list is empty: System Preferences -> Users and Groups -> User -> Login Items.
+5. Reboot and cool down your Mac.
+6. Connect to the power adapter if you use MacBook.
 
 ## Running a test
 
