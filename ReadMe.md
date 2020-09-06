@@ -76,11 +76,9 @@ The framework that incudes **42** popular CocoaPods libraries and **70+** depend
 1. Submit a pull request and add a row to the `Score` section. Make sure the `Time` column is still sorted after insertion.
 2. [Open an issue](https://github.com/devMEremenko/XcodeBenchmark/issues/new/choose) and include all info to fill the `Score` section.
 
-**Important**: Please attach a screenshot with the final time displayed in the Xcode progress bar.
-
 ## Contributors
 
 - [Maxim Eremenko](https://www.linkedin.com/in/maxim-eremenko/) 
 - [Max Tech](https://www.youtube.com/channel/UCptwuAv0XQHo1OQUSaO6NHw) YouTube channel
-- @bitsmakerde
-- @ivanfeanor
+- [@bitsmakerde](https://github.com/bitsmakerde)
+- [@ivanfeanor](https://github.com/ivanfeanor)
