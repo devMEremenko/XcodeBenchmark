@@ -16,7 +16,9 @@ I believe the results will help developers to make the right *cost/performance* 
 |     iMac 27" 2020    |    i7 3.8 GHz 8-core   |  32 | 512 |  11.6 | 10.15.6 |    229    |
 |   iMac Pro 27" 2017  |   Xeon 3.2 GHz 8-core  |  32 | 1TB |  11.6 | 10.15.6 |    263    |
 | MacBook Pro 16" 2019 |    i9 2,3 GHz 8-core   |  32 | 2TB |  11.6 | 10.15.6 |    328    |
+| Mac Mini 2018        | i5-8500B, 3 GHz 6-core |   8 | 512 |  11.7 | 10.15.6 |    383    |
 |      Hackintosh      | i5-8400 2,8 Ghz 6-core |  32 | 512 |  11.6 | 10.15.6 |    409    |
+| iMac 21.5" 2017      | i7-7700 3.60GHz,4-core |  16 | 1TB |  11.7 | 10.16.6 |    419    |
 | MacBook Pro 15" 2018 |    i7 2,6 GHz 6-core   |  16 | 512 |  11.6 | 10.15.6 |    440    |
 
 ## Set up
