@@ -9,21 +9,21 @@ I believe the results will help developers to make the right *cost/performance* 
 
 ## Score
 
-|        Device        |           CPU          | RAM | SSD | Xcode |  macOS  | Time(sec) |
-|:--------------------:|:----------------------:|:---:|:---:|:-----:|:-------:|:---------:|
-|      Ryzentosh       | R5 3600 3,6 Ghz 6-core |  16 | 1TB |  11.6 | 10.15.6 |    154    |
-|     iMac 27" 2020    |   i9 3.6 GHz 10-core   |  64 | 512 |  11.6 | 10.15.6 |    217    |
-|     iMac 27" 2020    |    i7 3.8 GHz 8-core   |  64 | 512 |  11.6 | 10.15.6 |    229    |
-|     iMac 27" 2020    |    i7 3.8 GHz 8-core   |  32 | 512 |  11.6 | 10.15.6 |    229    |
-|     iMac 27" 2019    |    i9 3.6 GHz 8-core   |  64 | 2TB |  11.6 | 10.15.6 |    252    |
-|   iMac Pro 27" 2017  |   Xeon 3.2 GHz 8-core  |  32 | 1TB |  11.6 | 10.15.6 |    263    |
-| MacBook Pro 16" 2019 |    i9 2,3 GHz 8-core   |  32 | 2TB |  11.6 | 10.15.6 |    328    |
-| MacBook Pro 15" 2016 |    i7 2,7 GHz 4-core   |  16 | 1TB |  11.7 | 10.15.6 |    372    |
-| Mac Mini 2018        | i5-8500B, 3 GHz 6-core |   8 | 512 |  11.7 | 10.15.6 |    383    |
-|      Hackintosh      | i5-8400 2,8 Ghz 6-core |  32 | 512 |  11.6 | 10.15.6 |    409    |
-| iMac 21.5" 2017      | i7-7700 3.60GHz,4-core |  16 | 1TB |  11.7 | 10.16.6 |    419    |
-| MacBook Pro 15" 2018 |    i7 2,6 GHz 6-core   |  16 | 512 |  11.6 | 10.15.6 |    440    |
-| MacBook Pro 15" 2017 |    i7 2,9 GHz 4-core   |  16 | 512 |  11.6 | 10.15.6 |    583    |
+|        Device        |           CPU           | RAM | SSD | Xcode |  macOS  | Time(sec) |                              Comment                             |
+|:--------------------:|:-----------------------:|:---:|:---:|:-----:|:-------:|:---------:|:----------------------------------------------------------------:|
+|       Ryzentosh      |  R5 3600 3.6 Ghz 6-core |  16 | 1TB |  11.6 | 10.15.6 |    154    | [Details](https://github.com/devMEremenko/XcodeBenchmark/pull/8) |
+|     iMac 27" 2020    |    i9 3.6 GHz 10-core   |  64 | 512 |  11.6 | 10.15.6 |    217    |                                                                  |
+|     iMac 27" 2020    |    i7 3.8 GHz 8-core    |  64 | 512 |  11.6 | 10.15.6 |    229    |                                                                  |
+|     iMac 27" 2020    |    i7 3.8 GHz 8-core    |  32 | 512 |  11.6 | 10.15.6 |    229    |                                                                  |
+|     iMac 27" 2019    |    i9 3.6 GHz 8-core    |  64 | 2TB |  11.6 | 10.15.6 |    252    |                                                                  |
+|   iMac Pro 27" 2017  |   Xeon 3.2 GHz 8-core   |  32 | 1TB |  11.6 | 10.15.6 |    263    |                                                                  |
+| MacBook Pro 16" 2019 |    i9 2.3 GHz 8-core    |  32 | 2TB |  11.6 | 10.15.6 |    328    |                                                                  |
+| MacBook Pro 15" 2016 |    i7 2.7 GHz 4-core    |  16 | 1TB |  11.7 | 10.15.6 |    372    |                                                                  |
+|     Mac Mini 2018    | i5-8500B 3.0 GHz 6-core |  8  | 512 |  11.7 | 10.15.6 |    383    |                                                                  |
+|      Hackintosh      |  i5-8400 2.8 Ghz 6-core |  32 | 512 |  11.6 | 10.15.6 |    409    |                                                                  |
+|    iMac 21.5" 2017   |  i7-7700 3.60GHz 4-core |  16 | 1TB |  11.7 | 10.16.6 |    419    |                                                                  |
+| MacBook Pro 15" 2018 |    i7 2.6 GHz 6-core    |  16 | 512 |  11.6 | 10.15.6 |    440    |                                                                  |
+| MacBook Pro 15" 2017 |    i7 2.9 GHz 4-core    |  16 | 512 |  11.6 | 10.15.6 |    583    |                                                                  |
 
 ## Set up
 
@@ -36,9 +36,9 @@ I believe the results will help developers to make the right *cost/performance* 
 
 1. Select `XcodeBenchmark` -> `Generic iOS Device` in the top left corner. 
 2. Close `XcodeBenchmark.xcworkspace` project.
-2. Remove the `DerivedData` folder, by selecting Finder, pressing `shift + command + G` and paste in the path: `~/Library/Developer/Xcode`, select the `DerivedData` folder and delete it.
-3. Disconnect network cable and turn off WiFi and make sure to disable all software running at startup, i.e. Spotify.
-4. Make sure `Login Items` list is empty: System Preferences -> Users and Groups -> User -> Login Items.
+2. Remove the `DerivedData` folder, by selecting Finder, pressing `Shift + Command + G` and paste in the path: `~/Library/Developer/Xcode`, select the `DerivedData` folder and delete it.
+3. Disconnect a network cable and turn off WiFi.
+4. Make sure to disable all software running at startup: `System Preferences` -> `Users and Groups` -> `User` -> `Login Items` and empty the list.
 5. Reboot and cool down your Mac.
 6. Connect to the power adapter if you use MacBook.
 
@@ -80,8 +80,18 @@ The framework that incudes **42** popular CocoaPods libraries and **70+** depend
 
 ## Contribution
 
-1. Submit a pull request and add a row to the `Score` section. Make sure the `Time` column is still sorted after insertion.
-2. [Open an issue](https://github.com/devMEremenko/XcodeBenchmark/issues/new/choose) and include all info to fill the `Score` section.
+[Submit a pull request](https://github.com/devMEremenko/XcodeBenchmark/pulls) and add a row to the `Score` section (preferred).
+
+[Open an issue](https://github.com/devMEremenko/XcodeBenchmark/issues/new/choose) and include all info to fill the `Score` section if you cannot submit a pull request.
+
+Make sure:
+- [All steps](https://github.com/devMEremenko/XcodeBenchmark#before-each-test) are performed
+- `Time` column is still sorted after insertion.
+- You are added to the end of the [Contributors](https://github.com/devMEremenko/XcodeBenchmark#contributors) list.
+- Attach a screenshot of the Xcode progress bar with a compilation time. [Example](https://user-images.githubusercontent.com/1449655/92333170-05f3f200-f073-11ea-94be-e0a41be5aae4.png).
+- The content in cells is centered. You can use [this tool](https://www.tablesgenerator.com/markdown_tables) to edit a table.
+    - File -> Paste table data
+    - Select all cells -> Right click -> Text align -> Center
 
 ## Contributors
 
@@ -89,3 +99,7 @@ The framework that incudes **42** popular CocoaPods libraries and **70+** depend
 - [Max Tech](https://www.youtube.com/channel/UCptwuAv0XQHo1OQUSaO6NHw) YouTube channel
 - [@bitsmakerde](https://github.com/bitsmakerde)
 - [@ivanfeanor](https://github.com/ivanfeanor)
+- [@sverrisson](https://github.com/sverrisson)
+- [@radianttap](https://github.com/radianttap)
+- [@rynaardb](https://github.com/rynaardb)
+- [@ekhodykin](https://github.com/ekhodykin)
