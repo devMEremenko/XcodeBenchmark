@@ -20,6 +20,7 @@ I believe the results will help developers to make the right *cost/performance* 
 |      Hackintosh      | i5-8400 2,8 Ghz 6-core |  32 | 512 |  11.6 | 10.15.6 |    409    |
 | iMac 21.5" 2017      | i7-7700 3.60GHz,4-core |  16 | 1TB |  11.7 | 10.16.6 |    419    |
 | MacBook Pro 15" 2018 |    i7 2,6 GHz 6-core   |  16 | 512 |  11.6 | 10.15.6 |    440    |
+| MacBook Pro 15" 2017 |    i7 2,9 GHz 4-core   |  16 | 512 |  11.6 | 10.15.6 |    583    |
 
 ## Set up
 
