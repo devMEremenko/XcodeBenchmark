@@ -18,6 +18,7 @@ I believe the results will help developers to make the right *cost/performance* 
 | MacBook Pro 16" 2019 |    i9 2,3 GHz 8-core   |  32 | 2TB |  11.6 | 10.15.6 |    328    |
 |      Hackintosh      | i5-8400 2,8 Ghz 6-core |  32 | 512 |  11.6 | 10.15.6 |    409    |
 | MacBook Pro 15" 2018 |    i7 2,6 GHz 6-core   |  16 | 512 |  11.6 | 10.15.6 |    440    |
+| MacBook Pro 15" 2017 |    i7 2,9 GHz 4-core   |  16 | 512 |  11.6 | 10.15.6 |    583    |
 
 ## Set up
 
