@@ -35,20 +35,16 @@ I believe the results will help developers to make the right *cost/performance* 
 
 ## Before each test
 
-1. Select `XcodeBenchmark` -> `Generic iOS Device` in the top left corner. 
-2. Close `XcodeBenchmark.xcworkspace` project.
-2. Remove the `DerivedData` folder, by selecting Finder, pressing `Shift + Command + G` and paste in the path: `~/Library/Developer/Xcode`, select the `DerivedData` folder and delete it.
-3. Disconnect a network cable and turn off WiFi.
-4. Make sure to disable all software running at startup: `System Preferences` -> `Users and Groups` -> `User` -> `Login Items` and empty the list.
-5. Reboot and cool down your Mac.
-6. Connect to the power adapter if you use MacBook.
+1. Change the permits to allow running in Terminal: Go to `XcodeBenchmark` folder `chmod 777 benchmark.sh`.
+2. Disconnect a network cable and turn off WiFi.
+3. Make sure to disable all software running at startup: `System Preferences` -> `Users and Groups` -> `User` -> `Login Items` and empty the list.
+4. Reboot and cool down your Mac.
+5. Connect to the power adapter if you use MacBook.
 
 ## Running a test
 
-1. Open `XcodeBenchmark.xcworkspace` (please do not confuse with `xcproject`).
-2. Press `Command B` to start compilation.
+- In Terminal: Go to `XcodeBenchmark` folder `.\benchmark.sh`. This script will compile the projects and return a time in the end.
 
-**Important: Start compilation as quickly as possible once you opened a project**
 
 ## FAQ
 
