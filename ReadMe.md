@@ -50,7 +50,7 @@ I believe the results will help developers to make the right *cost/performance* 
 
 **Q: What's inside?**
 
-The framework that incudes **42** popular CocoaPods libraries and **70+** dependencies in total.
+A framework that includes **42** popular CocoaPods libraries and **70+** dependencies in total.
 
 | Language      | files | blank  | comment | code   |
 |---------------|-------|--------|---------|--------|
@@ -70,7 +70,7 @@ The framework that incudes **42** popular CocoaPods libraries and **70+** depend
 
 **Q: What do the results mean?**
 1. First of all, the project is **huge**. I think the majority of projects have a smaller size.
-2. The results show *relative* performance in Xcode compared to other Macs under the same conditions.
+2. The results show *relative* performance in Xcode compared to other Macs under similar conditions.
 
 **Q: Why is CocoaPods not excluded from git-repo?**
 - The project is also used by non-programmers. Let's *keep it simple*.
