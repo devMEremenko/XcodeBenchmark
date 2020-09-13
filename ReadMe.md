@@ -39,7 +39,8 @@ I believe the results will help developers to make the right *cost/performance* 
 2. Disconnect a network cable and turn off WiFi.
 3. Make sure to disable all software running at startup: `System Preferences` -> `Users and Groups` -> `User` -> `Login Items` and empty the list.
 4. Reboot and cool down your Mac.
-5. Connect to the power adapter if you use MacBook.
+5. Change `Energy Saver` in `System Preferences` to turn off after 10 min. (or to complete the benchmark run).
+6. Connect to the power adapter if you use MacBook.
 
 ## Running a test
 
