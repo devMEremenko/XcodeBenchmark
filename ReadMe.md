@@ -35,7 +35,7 @@ I believe the results will help developers to make the right *cost/performance* 
 
 ## Before each test
 
-1. Change the permits to allow running in Terminal: Go to `XcodeBenchmark` folder `chmod 777 benchmark.sh`.
+1. Change the permits to allow running in Terminal: Go to `XcodeBenchmark` folder `chmod 777 benchmark.sh` (if you get an error, run this withe elevated permissions: `sudo chmod 777 benchmark.sh`).
 2. Disconnect a network cable and turn off WiFi.
 3. Make sure to disable all software running at startup: `System Preferences` -> `Users and Groups` -> `User` -> `Login Items` and empty the list.
 4. Reboot and cool down your Mac.
@@ -43,7 +43,7 @@ I believe the results will help developers to make the right *cost/performance* 
 
 ## Running a test
 
-- In Terminal: Go to `XcodeBenchmark` folder `.\benchmark.sh`. This script will compile the projects and return a time in the end.
+- In Terminal: Go to `XcodeBenchmark` folder `./benchmark.sh`. This script will compile the projects and return a time in the end.
 
 
 ## FAQ
