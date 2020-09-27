@@ -12,6 +12,7 @@ I believe the results will help developers to make the right *cost/performance* 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
 |     iMac 27" 2020    |    i9 3.6 GHz 10-core   |  64 | 512 |     |  11.6 | 10.15.6 |    217    |
+|   iMac Pro 27" 2017  |  Xeon 3.0 GHz 10-core   |  64 | 1TB |     |  11.7 | 10.15.6 |    222    |
 |     iMac 27" 2020    |    i7 3.8 GHz 8-core    |  64 | 512 |     |  11.6 | 10.15.6 |    229    |
 |     iMac 27" 2020    |    i7 3.8 GHz 8-core    |  32 | 512 |     |  11.6 | 10.15.6 |    229    |
 |     iMac 27" 2019    |    i9 3.6 GHz 8-core    |  64 | 2TB |     |  11.6 | 10.15.6 |    252    |
@@ -22,6 +23,7 @@ I believe the results will help developers to make the right *cost/performance* 
 | MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  11.6 | 10.15.6 |    353    |
 |     Mac Mini 2018    | i5-8500B 3.0 GHz 6-core |  8  | 512 |     |  11.7 | 10.15.6 |    383    |
 |      Hackintosh      |  i5-8400 2.8 Ghz 6-core |  32 | 512 |     |  11.6 | 10.15.6 |    409    |
+|     iMac 27" 2017    |    i7 4.2 GHz 4-core    |  48 | 2TB |     |  11.7 | 10.15.6 |    411    |
 |    iMac 21.5" 2017   |  i7-7700 3.60GHz 4-core |  16 | 1TB |     |  11.7 | 10.16.6 |    419    |
 | MacBook Pro 15" 2018 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  11.6 | 10.15.6 |    440    |
 | MacBook Pro 15" 2017 |    i7 2.9 GHz 4-core    |  16 | 512 |     |  11.6 | 10.15.6 |    583    |
@@ -106,4 +108,6 @@ Make sure:
 - [@rynaardb](https://github.com/rynaardb)
 - [@ekhodykin](https://github.com/ekhodykin)
 - [@N0un](https://github.com/N0un)
+- [Paul Zabelin](https://github.com/paulz)
+- [@theome](https://github.com/Theome)
 - [@Kuluum](https://github.com/Kuluum)
