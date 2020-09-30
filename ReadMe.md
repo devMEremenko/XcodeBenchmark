@@ -12,15 +12,18 @@ I believe the results will help developers to make the right *cost/performance* 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
 |     iMac 27" 2020    |    i9 3.6 GHz 10-core   |  64 | 512 |     |  11.6 | 10.15.6 |    217    |
+|   iMac Pro 27" 2017  |  Xeon 3.0 GHz 10-core   |  64 | 1TB |     |  11.7 | 10.15.6 |    222    |
 |     iMac 27" 2020    |    i7 3.8 GHz 8-core    |  64 | 512 |     |  11.6 | 10.15.6 |    229    |
 |     iMac 27" 2020    |    i7 3.8 GHz 8-core    |  32 | 512 |     |  11.6 | 10.15.6 |    229    |
 |     iMac 27" 2019    |    i9 3.6 GHz 8-core    |  64 | 2TB |     |  11.6 | 10.15.6 |    252    |
 |   iMac Pro 27" 2017  |   Xeon 3.2 GHz 8-core   |  32 | 1TB |     |  11.6 | 10.15.6 |    263    |
+|     Mac Mini 2018    |    i7 3.2 GHz 6-core    |  16 | 512 |     |  11.7 | 10.15.5 |    300    |
 |       Ryzentosh      |  R5 3600 3.6 Ghz 6-core |  16 | 1TB |     |  11.7 | 10.15.6 |    312    |
 | MacBook Pro 16" 2019 |    i9 2.3 GHz 8-core    |  32 | 2TB |     |  11.6 | 10.15.6 |    328    |
 | MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  11.6 | 10.15.6 |    353    |
 |     Mac Mini 2018    | i5-8500B 3.0 GHz 6-core |  8  | 512 |     |  11.7 | 10.15.6 |    383    |
 |      Hackintosh      |  i5-8400 2.8 Ghz 6-core |  32 | 512 |     |  11.6 | 10.15.6 |    409    |
+|     iMac 27" 2017    |    i7 4.2 GHz 4-core    |  48 | 2TB |     |  11.7 | 10.15.6 |    411    |
 |    iMac 21.5" 2017   |  i7-7700 3.60GHz 4-core |  16 | 1TB |     |  11.7 | 10.16.6 |    419    |
 | MacBook Pro 15" 2018 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  11.6 | 10.15.6 |    440    |
 | MacBook Pro 15" 2017 |    i7 2.9 GHz 4-core    |  16 | 512 |     |  11.6 | 10.15.6 |    583    |
@@ -37,7 +40,7 @@ I believe the results will help developers to make the right *cost/performance* 
 
 ## Before each test
 
-1. Select `XcodeBenchmark` -> `Generic iOS Device` in the top left corner. 
+1. Select `XcodeBenchmark` -> `Generic iOS Device` in the top left corner.
 2. Close `XcodeBenchmark.xcworkspace` project.
 2. Remove the `DerivedData` folder, by selecting Finder, pressing `Shift + Command + G` and paste in the path: `~/Library/Developer/Xcode`, select the `DerivedData` folder and delete it.
 3. Disconnect a network cable and turn off WiFi.
@@ -97,7 +100,7 @@ Make sure:
 
 ## Contributors
 
-- [Maxim Eremenko](https://www.linkedin.com/in/maxim-eremenko/) 
+- [Maxim Eremenko](https://www.linkedin.com/in/maxim-eremenko/)
 - [Max Tech](https://www.youtube.com/channel/UCptwuAv0XQHo1OQUSaO6NHw) YouTube channel
 - [@bitsmakerde](https://github.com/bitsmakerde)
 - [@ivanfeanor](https://github.com/ivanfeanor)
@@ -106,4 +109,7 @@ Make sure:
 - [@rynaardb](https://github.com/rynaardb)
 - [@ekhodykin](https://github.com/ekhodykin)
 - [@N0un](https://github.com/N0un)
+- [Paul Zabelin](https://github.com/paulz)
+- [@theome](https://github.com/Theome)
+- [@Kuluum](https://github.com/Kuluum)
 - [@villy21](https://github.com/Villy21)
