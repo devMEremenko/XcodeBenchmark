@@ -11,8 +11,10 @@ I believe the results will help developers to make the right *cost/performance* 
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
+|      Hackintosh      |i7-10700K 4.9 GHz 8-core |  32 | 1TB |     |  11.7 | 10.15.7 |    210    |
 |     iMac 27" 2020    |    i9 3.6 GHz 10-core   |  64 | 512 |     |  11.6 | 10.15.6 |    217    |
 |   iMac Pro 27" 2017  |  Xeon 3.0 GHz 10-core   |  64 | 1TB |     |  11.7 | 10.15.6 |    222    |
+|      Hackintosh      |i7-10700K 3.8 GHz 8-core |  32 | 1TB |     |  11.7 | 10.15.7 |    223    |
 |     iMac 27" 2020    |    i7 3.8 GHz 8-core    |  64 | 512 |     |  11.6 | 10.15.6 |    229    |
 |     iMac 27" 2020    |    i7 3.8 GHz 8-core    |  32 | 512 |     |  11.6 | 10.15.6 |    229    |
 |     iMac 27" 2019    |    i9 3.6 GHz 8-core    |  64 | 2TB |     |  11.6 | 10.15.6 |    252    |
