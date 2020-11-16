@@ -248,7 +248,7 @@ PODS:
   - DTModelStorage/Core (8.1.0)
   - DTTableViewManager (7.2.0):
     - DTModelStorage (~> 8.1.0)
-  - Eureka (5.2.1)
+  - Eureka (5.3.2)
   - FacebookCore (0.9.0):
     - FBSDKCoreKit (~> 5.0)
   - FacebookLogin (0.9.0):
@@ -515,7 +515,7 @@ DEPENDENCIES:
   - CryptoSwift (~> 1.0)
   - DTCollectionViewManager
   - DTTableViewManager
-  - Eureka
+  - Eureka (~> 5.3.2)
   - FacebookCore
   - FacebookLogin
   - FacebookShare
@@ -541,7 +541,7 @@ DEPENDENCIES:
   - ObjectMapper
   - R.swift.Library
   - ReactiveCocoa (~> 10.1)
-  - Realm
+  - Realm (~> 5.3.4)
   - RxBluetoothKit
   - SDWebImage (~> 5.0)
   - SnapKit (~> 5.0.0)
@@ -648,7 +648,7 @@ SPEC CHECKSUMS:
   DTCollectionViewManager: 7a63899c6f917d7d69fa4a186390b77accf91c3c
   DTModelStorage: 4d95b242464719155d5068eebb881d96c707a415
   DTTableViewManager: 67c48a338dfe7a5d1aa54f2bd6116fce22063909
-  Eureka: c883105488e05bc65539f583246ecf9657cabbfe
+  Eureka: 1c2b8b5892bfb0e972d0fe05f8c09fd89f8625ec
   FacebookCore: ba86524b66cfa86d0f8e65d08faa8504a9f732dd
   FacebookLogin: 6cee9fd6e1fe976fe8f7eec199e27b28b14f5d63
   FacebookShare: 85968ad1b1606c4944fb154924e425fd29184ea5
@@ -712,6 +712,6 @@ SPEC CHECKSUMS:
   TRON: 3cb6a8c19230177c97225860d2ff38b618d51a53
   VK-ios-sdk: 62a10b6571fbcda0657f455fedce7fedf55b4cd0
 
-PODFILE CHECKSUM: 9a6e0fecd5578f3201c21d4ef7919630e58eae8a
+PODFILE CHECKSUM: 7f2b3c92cbd3de2bb8b9bfa82069c33fc588fb46
 
-COCOAPODS: 1.8.4
+COCOAPODS: 1.9.3

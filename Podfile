@@ -1,6 +1,7 @@
 source = 'https://github.com/CocoaPods/Specs.git'
+minimum_target = '13.0'
 
-platform :ios, '13.0'
+platform :ios, minimum_target
 
 target 'XcodeBenchmark' do
   use_frameworks!
@@ -24,7 +25,7 @@ target 'XcodeBenchmark' do
   
   # Core
   pod 'SwiftyJSON', '~> 4.0'
-  pod 'Realm'
+  pod 'Realm', '~> 5.3.4'
   pod 'MagicalRecord', :git => 'https://github.com/magicalpanda/MagicalRecord'
   pod 'RxBluetoothKit'
   pod 'ReactiveCocoa', '~> 10.1'
@@ -44,7 +45,7 @@ target 'XcodeBenchmark' do
   # UI
   pod 'Hero'
   pod 'SVProgressHUD'
-  pod 'Eureka'
+  pod 'Eureka', '~> 5.3.2'
   pod 'IQKeyboardManagerSwift'
   pod 'Macaw', '0.9.7'
   
@@ -63,4 +64,12 @@ target 'XcodeBenchmark' do
   pod 'FacebookCore'
   pod 'FacebookLogin'
   pod 'FacebookShare'
+end
+
+post_install do |pi|
+    pi.pods_project.targets.each do |t|
+        t.build_configurations.each do |config|
+            config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = minimum_target
+        end
+    end
 end
