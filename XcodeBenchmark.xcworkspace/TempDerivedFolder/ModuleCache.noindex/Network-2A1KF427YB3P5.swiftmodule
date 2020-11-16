@@ -1,0 +1,44 @@
+---
+path:            '/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphoneos/prebuilt-modules/Network.swiftmodule/arm64-apple-ios.swiftmodule'
+dependencies:
+  - mtime:           1602593683000000000
+    path:            '/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphoneos/prebuilt-modules/Network.swiftmodule/arm64-apple-ios.swiftmodule'
+    size:            205968
+  - mtime:           1602580881000000000
+    path:            'usr/include/Darwin.apinotes'
+    size:            1133
+    sdk_relative:    true
+  - mtime:           1602580881000000000
+    path:            'usr/include/mach-o/dyld.modulemap'
+    size:            71
+    sdk_relative:    true
+  - mtime:           1602580881000000000
+    path:            'usr/include/mach-o/compact_unwind_encoding.modulemap'
+    size:            109
+    sdk_relative:    true
+  - mtime:           1602580885000000000
+    path:            'usr/include/objc/ObjectiveC.apinotes'
+    size:            11147
+    sdk_relative:    true
+  - mtime:           1602573594000000000
+    path:            'System/Library/Frameworks/CoreGraphics.framework/Headers/CoreGraphics.apinotes'
+    size:            54819
+    sdk_relative:    true
+  - mtime:           1602580879000000000
+    path:            'System/Library/Frameworks/Security.framework/Headers/Security.apinotes'
+    size:            162
+    sdk_relative:    true
+  - mtime:           1602573566000000000
+    path:            'System/Library/Frameworks/Foundation.framework/Headers/Foundation.apinotes'
+    size:            80916
+    sdk_relative:    true
+  - mtime:           1602580879000000000
+    path:            'System/Library/Frameworks/Network.framework/Headers/Network.apinotes'
+    size:            213
+    sdk_relative:    true
+  - mtime:           1602580882000000000
+    path:            'usr/lib/swift/Network.swiftmodule/arm64-apple-ios.swiftinterface'
+    size:            55848
+    sdk_relative:    true
+version:         1
+...

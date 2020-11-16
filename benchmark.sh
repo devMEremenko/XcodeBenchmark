@@ -1,19 +1,24 @@
 readonly PATH_TO_PROJECT=$(pwd)/XcodeBenchmark.xcworkspace
+readonly PATH_TO_DERIVED=$(pwd)/DerivedData
+
+clear
 
 echo ""
 echo "Preparing environment"
 
 defaults write com.apple.dt.Xcode ShowBuildOperationDuration YES
-rm -rf ~/Library/Developer/Xcode/DerivedData
 
 if [ -n "$PATH_TO_PROJECT" ]; then 
 
 	echo "Running XcodeBenchmark..."
-	echo "Please do not use your Mac while XcodeBenchmark is in progress\n\n"
+	echo "Please do not use your Mac or move the mouse, while XcodeBenchmark is in progress\n\n"
+
+	mkdir "$PATH_TO_DERIVED"
 
 	xcodebuild -workspace "$PATH_TO_PROJECT" \
 			   -scheme XcodeBenchmark \
 			   -destination generic/platform=iOS \
+			   -derivedDataPath "$PATH_TO_DERIVED" \
 			   build
 
 	echo "System Version:" "$(sw_vers -productVersion)"
@@ -36,13 +41,15 @@ if [ -n "$PATH_TO_PROJECT" ]; then
 	system_profiler SPHardwareDataType | grep "Memory:"
 
 	echo ""
-	echo "✅ XcodeBenchmark is completed"
-	echo "1️⃣  Take a screenshot of this window (Cmd + Shift + 4 + Space), it must include:"
+	echo "✅ XcodeBenchmark has completed"
+	echo "1️⃣  Take a screenshot of this window (Cmd + Shift + 4 + Space) and resize to include:"
 	echo "\t- Build Time (See ** BUILD SUCCEEDED ** [XYZ sec])"
 	echo "\t- System Version"
 	echo "\t- Xcode Version"
 	echo "\t- Hardware Overview"
 	echo "2️⃣  Share your results at https://github.com/devMEremenko/XcodeBenchmark"
+
+	rm -rfd "$PATH_TO_DERIVED"
 else
     echo "XcodeBenchmark.xcworkspace was not found in the current folder"
     echo "Are you running in the XcodeBenchmark folder?"
