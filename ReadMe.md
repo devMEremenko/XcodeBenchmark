@@ -27,6 +27,7 @@ I believe the results will help developers to make the right *cost/performance* 
 |    iMac 21.5" 2017   |  i7-7700 3.60GHz 4-core |  16 | 1TB |     |  11.7 | 10.16.6 |    419    |
 | MacBook Pro 15" 2018 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  11.6 | 10.15.6 |    440    |
 | MacBook Pro 15" 2017 |    i7 2.9 GHz 4-core    |  16 | 512 |     |  11.6 | 10.15.6 |    583    |
+| MacBook Pro 15" 2015 |    i7 2.2 GHz 4-core    |  16 | 265 |     |  11.7 | 10.15.6 |    594    |
 | MacBook Pro 15" 2016 |    i7 2.7 GHz 4-core    |  16 | 1TB |     |  11.7 | 10.15.6 |    642    |
 |     Mac Mini 2014    |    i5 2.6 GHz 2-core    |  8  |     | 1TB |  11.7 | 10.15.6 |    1193   |
 
@@ -111,3 +112,4 @@ Make sure:
 - [Paul Zabelin](https://github.com/paulz)
 - [@theome](https://github.com/Theome)
 - [@Kuluum](https://github.com/Kuluum)
+- [@villy21](https://github.com/Villy21)
