@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1FBFEBAD2562E83E008FCA7D /* EnvironmentCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FBFEBAC2562E83E008FCA7D /* EnvironmentCheck.swift */; };
 		A958866D2F4237612DA49619 /* Pods_XcodeBenchmark.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EC0BAB213E11E7D940C5A0E3 /* Pods_XcodeBenchmark.framework */; };
 		B54D7A4224EC43C300934506 /* Moya.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54D7A4124EC43C300934506 /* Moya.swift */; };
 		B54D7A4424EC440E00934506 /* RxBluetoothKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54D7A4324EC440E00934506 /* RxBluetoothKit.swift */; };
@@ -29,6 +30,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		1FBFEBAC2562E83E008FCA7D /* EnvironmentCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentCheck.swift; sourceTree = "<group>"; };
 		5EAE61E6B695B3E7F03EA62B /* Pods-XcodeBenchmark.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-XcodeBenchmark.debug.xcconfig"; path = "Target Support Files/Pods-XcodeBenchmark/Pods-XcodeBenchmark.debug.xcconfig"; sourceTree = "<group>"; };
 		B54D7A4124EC43C300934506 /* Moya.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Moya.swift; sourceTree = "<group>"; };
 		B54D7A4324EC440E00934506 /* RxBluetoothKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RxBluetoothKit.swift; sourceTree = "<group>"; };
@@ -104,7 +106,7 @@
 		B5C5A7F624EC2989002C0C62 /* Source */ = {
 			isa = PBXGroup;
 			children = (
-				B5C5A7F824EC2989002C0C62 /* Info.plist */,
+				1FBFEBAC2562E83E008FCA7D /* EnvironmentCheck.swift */,
 				B5C5A7FF24EC2B2A002C0C62 /* Firebase.swift */,
 				B54D7A4724EC449E00934506 /* SDWebImage.swift */,
 				B54D7A4524EC446A00934506 /* AFNetworking.swift */,
@@ -123,6 +125,7 @@
 				B54D7A6124EC48F400934506 /* Facebook.swift */,
 				B54D7A6324EC495C00934506 /* Google.swift */,
 				B54D7A5F24EC486D00934506 /* Other.swift */,
+				B5C5A7F824EC2989002C0C62 /* Info.plist */,
 			);
 			path = Source;
 			sourceTree = "<group>";
@@ -263,6 +266,7 @@
 				B54D7A6424EC495C00934506 /* Google.swift in Sources */,
 				B54D7A5224EC472500934506 /* MagicalRecord.swift in Sources */,
 				B54D7A5A24EC47F900934506 /* TRON.swift in Sources */,
+				1FBFEBAD2562E83E008FCA7D /* EnvironmentCheck.swift in Sources */,
 				B54D7A4E24EC45CC00934506 /* SwiftyJSON.swift in Sources */,
 				B54D7A5C24EC481D00934506 /* DTCollectionViewManager.swift in Sources */,
 				B54D7A4224EC43C300934506 /* Moya.swift in Sources */,
