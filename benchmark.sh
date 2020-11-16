@@ -51,8 +51,9 @@ if [ -n "$PATH_TO_PROJECT" ]; then
 	echo "\t- Hardware Overview"
 	echo "2️⃣  Share your results at https://github.com/devMEremenko/XcodeBenchmark"
 
-	echo "\t- Started" START_TIME
-	echo "\t- Ended" `date`
+	echo "\t- Started" "$START_TIME"
+	echo "\t- Ended  " "$(date +"%T")"
+	echo "\t- Date" `date`
 
 	rm -rfd "$PATH_TO_DERIVED"
 else
