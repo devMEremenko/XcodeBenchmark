@@ -36,31 +36,34 @@ I believe the results will help developers to make the right *cost/performance* 
 
 - Download and install [Xcode](https://apps.apple.com/us/app/xcode/id497799835).
 - Open Xcode and install `additional tools` (Xcode should suggest it automatically).
-- Perform `defaults write com.apple.dt.Xcode ShowBuildOperationDuration YES` in `Terminal` to show build time in the Xcode progress bar.
-- Download and unarchive [XcodeBenchmark](https://github.com/devMEremenko/XcodeBenchmark/archive/master.zip) project.
+- [Download](https://github.com/devMEremenko/XcodeBenchmark/archive/master.zip) and unarchive XcodeBenchmark project.
+- Change permissions of `benchmark.sh` to allow running in `Terminal`
+    - Drag & drop `XcodeBenchmark` folder to `Terminal` app
+    - Run `chmod 777 benchmark.sh` in Terminal
 
 ## Before each test
 
-1. Select `XcodeBenchmark` -> `Generic iOS Device` in the top left corner.
-2. Close `XcodeBenchmark.xcworkspace` project.
-2. Remove the `DerivedData` folder, by selecting Finder, pressing `Shift + Command + G` and paste in the path: `~/Library/Developer/Xcode`, select the `DerivedData` folder and delete it.
-3. Disconnect a network cable and turn off WiFi.
-4. Make sure to disable all software running at startup: `System Preferences` -> `Users and Groups` -> `User` -> `Login Items` and empty the list.
-5. Reboot and cool down your Mac.
-6. Connect to the power adapter if you use MacBook.
+1. Disconnect a network cable and turn off WiFi.
+2. Make sure to disable all software running at startup
+    - Go to `System Preferences` -> `Users and Groups` -> `User` -> `Login Items`.
+    - Empty the list.
+3. Update `Energy Saver` settings 
+	- Go to `System Preferences` -> `Energy Saver` -> `Turn display off`  and set 15 min.
+3. Reboot and cool down your Mac.
+4. Connect to the power adapter if you use MacBook.
 
 ## Running a test
 
-1. Open `XcodeBenchmark.xcworkspace` (please do not confuse with `xcproject`).
-2. Press `Command B` to start compilation.
-
-**Important: Start compilation as quickly as possible once you opened a project**
+1. Drag & drop `XcodeBenchmark` folder to `Terminal` app.
+2. Run `sh benchmark.sh` in `Terminal`.
+3. When `XcodeBenchmark` is complited you will see [this information](img/contribution-example.png).
+4. Upload your results, see [Contribution](https://github.com/devMEremenko/XcodeBenchmark#contribution) section.
 
 ## FAQ
 
 **Q: What's inside?**
 
-The framework that incudes **42** popular CocoaPods libraries and **70+** dependencies in total.
+A framework that includes **42** popular CocoaPods libraries and **70+** dependencies in total.
 
 | Language      | files | blank  | comment | code   |
 |---------------|-------|--------|---------|--------|
@@ -80,7 +83,7 @@ The framework that incudes **42** popular CocoaPods libraries and **70+** depend
 
 **Q: What do the results mean?**
 1. First of all, the project is **huge**. I think the majority of projects have a smaller size.
-2. The results show *relative* performance in Xcode compared to other Macs under the same conditions.
+2. The results show *relative* performance in Xcode compared to other Macs under similar conditions.
 
 **Q: Why is CocoaPods not excluded from git-repo?**
 - The project is also used by non-programmers. Let's *keep it simple*.
@@ -94,7 +97,7 @@ Make sure:
 - [All steps](https://github.com/devMEremenko/XcodeBenchmark#before-each-test) are performed
 - `Time` column is still sorted after insertion.
 - You are added to the end of the [Contributors](https://github.com/devMEremenko/XcodeBenchmark#contributors) list.
-- Attach a screenshot of the Xcode progress bar with a compilation time. [Example](https://user-images.githubusercontent.com/1449655/92333170-05f3f200-f073-11ea-94be-e0a41be5aae4.png).
+- Attach a screenshot with a compilation time. [Example](img/contribution-example.png).
 - The content in cells is centered. You can use [this tool](https://www.tablesgenerator.com/markdown_tables) to edit a table.
     - File -> Paste table data
     - Select all cells -> Right click -> Text align -> Center
