@@ -4,7 +4,7 @@ echo ""
 echo "Preparing environment"
 
 defaults write com.apple.dt.Xcode ShowBuildOperationDuration YES
-#rm -rf ~/Library/Developer/Xcode/DerivedData
+rm -rf ~/Library/Developer/Xcode/DerivedData
 
 if [ -n "$PATH_TO_PROJECT" ]; then 
 
@@ -43,7 +43,7 @@ if [ -n "$PATH_TO_PROJECT" ]; then
 	echo "\t- Xcode Version"
 	echo "\t- Hardware Overview"
 	echo "2️⃣  Share your results at https://github.com/devMEremenko/XcodeBenchmark"
-else 
-	echo "XcodeBenchmark.xcworkspace was not found in the current folder"
+else
+    echo "XcodeBenchmark.xcworkspace was not found in the current folder"
     echo "Are you running in the XcodeBenchmark folder?"
 fi
