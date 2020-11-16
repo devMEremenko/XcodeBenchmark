@@ -37,13 +37,10 @@ I believe the results will help developers to make the right *cost/performance* 
 - Download and install [Xcode](https://apps.apple.com/us/app/xcode/id497799835).
 - Open Xcode and install `additional tools` (Xcode should suggest it automatically).
 - [Download](https://github.com/devMEremenko/XcodeBenchmark/archive/master.zip) and unarchive XcodeBenchmark project.
-- Change permissions of `benchmark.sh` to allow running in `Terminal`
-    - Drag & drop `XcodeBenchmark` folder to `Terminal` app
-    - Run `chmod 777 benchmark.sh` in Terminal
 
 ## Before each test
 
-1. Disconnect a network cable and turn off WiFi.
+1. Disconnect the network cable and turn off WiFi.
 2. Make sure to disable all software running at startup
     - Go to `System Preferences` -> `Users and Groups` -> `User` -> `Login Items`.
     - Empty the list.
@@ -54,9 +51,10 @@ I believe the results will help developers to make the right *cost/performance* 
 
 ## Running a test
 
-1. Drag & drop `XcodeBenchmark` folder to `Terminal` app.
+1. Open the `Terminal` app.
+2. Drag & drop `XcodeBenchmark` folder to the `Terminal` app.
 2. Run `sh benchmark.sh` in `Terminal`.
-3. When `XcodeBenchmark` is complited you will see [this information](img/contribution-example.png).
+3. When `XcodeBenchmark` has completed you will see [this information](img/contribution-example.png).
 4. Upload your results, see [Contribution](https://github.com/devMEremenko/XcodeBenchmark#contribution) section.
 
 ## FAQ
@@ -82,8 +80,8 @@ A framework that includes **42** popular CocoaPods libraries and **70+** depende
 | SUM:          | 6231  | 157270 | 258605  | 790974 |
 
 **Q: What do the results mean?**
-1. First of all, the project is **huge**. I think the majority of projects have a smaller size.
-2. The results show *relative* performance in Xcode compared to other Macs under similar conditions.
+1. First of all, the project is **huge**. Most projects are of much smaller size.
+2. The results show *relative* performance in Xcode, compared to other Macs running under similar conditions.
 
 **Q: Why is CocoaPods not excluded from git-repo?**
 - The project is also used by non-programmers. Let's *keep it simple*.
