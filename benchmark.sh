@@ -1,7 +1,10 @@
 readonly PATH_TO_PROJECT=$(pwd)/XcodeBenchmark.xcworkspace
 
-echo ""
+clear
+
 echo "Preparing environment"
+
+START_TIME=$(date +"%T")
 
 defaults write com.apple.dt.Xcode ShowBuildOperationDuration YES
 rm -rf ~/Library/Developer/Xcode/DerivedData
@@ -34,15 +37,22 @@ if [ -n "$PATH_TO_PROJECT" ]; then
 	system_profiler SPHardwareDataType | grep "Hyper-Threading Technology:"
 
 	system_profiler SPHardwareDataType | grep "Memory:"
+	system_profiler SPSerialATADataType | grep "Model:"
 
 	echo ""
-	echo "✅ XcodeBenchmark is completed"
-	echo "1️⃣  Take a screenshot of this window (Cmd + Shift + 4 + Space), it must include:"
+	echo "✅ XcodeBenchmark has completed"
+	echo "1️⃣  Take a screenshot of this window (Cmd + Shift + 4 + Space) and resize to include:"
 	echo "\t- Build Time (See ** BUILD SUCCEEDED ** [XYZ sec])"
 	echo "\t- System Version"
 	echo "\t- Xcode Version"
 	echo "\t- Hardware Overview"
+	
+	echo "\t- Started" "$START_TIME"
+	echo "\t- Ended  " "$(date +"%T")"
+	echo "\t- Date" `date`
+	echo ""
 	echo "2️⃣  Share your results at https://github.com/devMEremenko/XcodeBenchmark"
+
 else
     echo "XcodeBenchmark.xcworkspace was not found in the current folder"
     echo "Are you running in the XcodeBenchmark folder?"
