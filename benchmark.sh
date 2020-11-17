@@ -1,5 +1,4 @@
 readonly PATH_TO_PROJECT=$(pwd)/XcodeBenchmark.xcworkspace
-readonly PATH_TO_DERIVED=$(pwd)/DerivedData
 
 clear
 
@@ -20,7 +19,6 @@ if [ -n "$PATH_TO_PROJECT" ]; then
 	xcodebuild -workspace "$PATH_TO_PROJECT" \
 			   -scheme XcodeBenchmark \
 			   -destination generic/platform=iOS \
-			   -derivedDataPath "$PATH_TO_DERIVED" \
 			   build
 
 	echo "System Version:" "$(sw_vers -productVersion)"
@@ -49,13 +47,13 @@ if [ -n "$PATH_TO_PROJECT" ]; then
 	echo "\t- System Version"
 	echo "\t- Xcode Version"
 	echo "\t- Hardware Overview"
-	echo "2️⃣  Share your results at https://github.com/devMEremenko/XcodeBenchmark"
-
+	echo ""
 	echo "\t- Started" "$START_TIME"
 	echo "\t- Ended  " "$(date +"%T")"
 	echo "\t- Date" `date`
+	echo ""
+	echo "2️⃣  Share your results at https://github.com/devMEremenko/XcodeBenchmark"
 
-	rm -rfd "$PATH_TO_DERIVED"
 else
     echo "XcodeBenchmark.xcworkspace was not found in the current folder"
     echo "Are you running in the XcodeBenchmark folder?"
