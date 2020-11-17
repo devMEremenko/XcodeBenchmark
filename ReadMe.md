@@ -86,6 +86,9 @@ A framework that includes **42** popular CocoaPods libraries and **70+** depende
 **Q: Why is CocoaPods not excluded from git-repo?**
 - The project is also used by non-programmers. Let's *keep it simple*.
 
+**Q: Will it affect my other Xcode projects?**
+- A separate build folder is created for the benchmark run that is then deleted after it finishes. The folder goes to about 2.5GB.
+
 ## Contribution
 
 - **Preferred:** [Submit a pull request](https://github.com/devMEremenko/XcodeBenchmark/pulls) and add a row to the `Score` section.  
