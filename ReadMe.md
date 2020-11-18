@@ -12,6 +12,7 @@ I believe the results will help developers to make the right *cost/performance* 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
 |   NLEstation 2020    |    i9 3.6 GHz 8-core    |  64 | 1TB |     |  12.2 | 10.15.7 |    129    |
+|      Hackintosh      |i7-10700K 3.8 Ghz 8-core |  32 | 1TB |     |  12.2 | 10.15.7 |    130    |
 | MacBook Pro 13" 2020 |      Apple M1 8-core    |  16 | 1TB |     |  12.2 |   11.0  |    133    |
 | MacBook Air 13" 2020 |  Apple M1 8c (7c GPU)   |   8 | 256 |     |  12.2 |  11.0.1 |    137    |
 |     iMac 27" 2020    |    i9 3.6 GHz 10-core   |  64 | 512 |     |  11.6 | 10.15.6 |    217    |
