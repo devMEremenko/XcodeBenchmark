@@ -155,6 +155,5 @@ Make sure:
 - [@euwars](https://twitter.com/euwars)
 - [@samadipour](https://github.com/samadipour)
 - [@dmcrodrigues](https://github.com/dmcrodrigues)
-- [@CasperNEw] (https://github.com/CasperNEw)
 - [@MeshkaniMohammad](https://github.com/MeshkaniMohammad)
 - [@CasperNEw](https://github.com/CasperNEw)
