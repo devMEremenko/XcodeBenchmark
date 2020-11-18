@@ -33,6 +33,7 @@ I believe the results will help developers to make the right *cost/performance* 
 | MacBook Pro 15" 2015 |    i7 2.2 GHz 4-core    |  16 | 265 |     |  11.7 | 10.15.6 |    594    |
 | MacBook Pro 15" 2016 |    i7 2.7 GHz 4-core    |  16 | 1TB |     |  11.7 | 10.15.6 |    642    |
 |     Mac Mini 2014    |    i5 2.6 GHz 2-core    |  8  |     | 1TB |  11.7 | 10.15.6 |    1193   |
+| MacBook Pro 15" mid 2015 |    i7 2.2 GHz 4-core|  16 | 256 |     |  12.1 | 11.0.1  |    324    |
 
 ## Set up
 
