@@ -154,4 +154,4 @@ Make sure:
 - [@euwars](https://twitter.com/euwars)
 - [@samadipour](https://github.com/samadipour)
 - [@dmcrodrigues](https://github.com/dmcrodrigues)
-- [@CasperNEw] (https://github.com/CasperNEw)
+- [@CasperNEw](https://github.com/CasperNEw)
