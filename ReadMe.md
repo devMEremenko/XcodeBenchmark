@@ -22,6 +22,7 @@ I believe the results will help developers to make the right *cost/performance* 
 | MacBook Pro 15" 2015 |    i7 2.2 GHz 4-core    |  16 | 256 |     |  12.1 | 11.0.1  |    324    |
 | MacBook Pro 15" 2015 |    i7 2.2 GHz 4-core    |  16 | 256 |     |  12.1 | 10.15.5 |    334    |
 |     iMac 27" 2011    |    i7 3.4 GHz 4-core    |  16 | 250 |     |  12.1 | 10.15.7 |    378    |
+|    iMac 21.5" 2017   |    i5 3.0 GHz 4-core    |  16 |     | 1TB |  12.2 | 11.0.1  |    725    |
 | MacBook Pro 13" 2016 |    i5 2.9 GHz 2-core    |   8 | 256 |     |  12.2 | 11.0.1  |    518    |
 
 ## Xcode 11
@@ -159,5 +160,6 @@ Make sure:
 - [@dmcrodrigues](https://github.com/dmcrodrigues)
 - [@MeshkaniMohammad](https://github.com/MeshkaniMohammad)
 - [@CasperNEw](https://github.com/CasperNEw)
-- [@iPader](https://github.com/ipader)
 - [@iOSleep](https://github.com/iOSleep)
+- [@iPader](https://github.com/ipader)
+- [@boltomli](https://github.com/boltomli)
