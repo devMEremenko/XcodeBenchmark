@@ -127,7 +127,12 @@ A framework that includes **42** popular CocoaPods libraries and **70+** depende
 ## Contribution
 
 - **Preferred:** [Submit a pull request](https://github.com/devMEremenko/XcodeBenchmark/pulls) and add a row to the `Score` section.  
-- [Open an issue](https://github.com/devMEremenko/XcodeBenchmark/issues/new/choose) and include all info to fill the `Score` section if you cannot submit a pull request.
+- [Open an issue](https://github.com/devMEremenko/XcodeBenchmark/issues/new/choose) and include all info to fill the `Score` section in the following format:
+```
+|        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
+|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
+|     Mac Pro 2019     |  Xeon 2.5 GHz 28-core   |  96 | 4TB |     |  12.2 | 11.0.1  |    90     |
+```
 
 Make sure:
 - [All steps](https://github.com/devMEremenko/XcodeBenchmark#before-each-test) are performed
