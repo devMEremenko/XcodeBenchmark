@@ -19,6 +19,7 @@ I believe the results will help developers to make the right *cost/performance* 
 |     iMac 27" 2019    |    i9 3.6 GHz 8-core    |  40 | 512 |     |  12.2 | 11.0.1  |    163    |
 | MacBook Pro 16" 2019 |    i9 2.4 GHz 8-core    |  32 | 512 |     |  12.2 | 11.0.1  |    176    |
 | MacBook Pro 16" 2019 |    i9 2.3 GHz 8-core    |  32 | 1TB |     |  12.2 | 11.0.1  |    221    |
+|     iMac 27" 2017    |    i7 4.2 GHz 4-core    |  16 | 1TB |     |  12.2 | 11.0.1  |    246    |
 | MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  12.2 | 11.0.1  |    250    |
 | MacBook Pro 13" 2020 |    i5 2.0 GHz 4-core    |  16 | 1TB |     |  12.2 | 11.0.1  |    265    |
 | MacBook Pro 15" 2015 |    i7 2.2 GHz 4-core    |  16 | 256 |     |  12.1 | 11.0.1  |    324    |
@@ -171,3 +172,4 @@ Make sure:
 - [@kotalab](https://github.com/kotalab)
 - [@valeriyvan](https://github.com/valeriyvan)
 - [@twlatl](https://github.com/twlatl)
+- [@ypwhs](https://github.com/ypwhs)
