@@ -9,18 +9,20 @@ I believe the results will help developers to make the right *cost/performance* 
 
 ## Xcode 12
 
-|        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
-|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
-|     Mac Pro 2019     |  Xeon 2.5 GHz 28-core   |  96 | 4TB |     |  12.2 | 11.0.1  |    90     |
-| MacBook Pro 13" 2020 |      Apple M1 8-core    |  16 | 1TB |     |  12.2 |   11.0  |    133    |
-| MacBook Air 13" 2020 |  Apple M1 8c (7c GPU)   |   8 | 256 |     |  12.2 | 11.0.1  |    137    |
-|     iMac 27" 2019    |    i9 3.6 GHz 8-core    |  40 | 512 |     |  12.2 | 11.0.1  |    163    |
-| MacBook Pro 16" 2019 |    i9 2.4 GHz 8-core    |  32 | 512 |     |  12.2 | 11.0.1  |    176    |
-| MacBook Pro 16" 2019 |    i9 2.3 GHz 8-core    |  32 | 1TB |     |  12.2 | 11.0.1  |    221    |
-| MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  12.2 | 11.0.1  |    250    |
-| MacBook Pro 15" 2015 |    i7 2.2 GHz 4-core    |  16 | 256 |     |  12.1 | 11.0.1  |    324    |
-| MacBook Pro 15" 2015 |    i7 2.2 GHz 4-core    |  16 | 265 |     |  12.1 | 10.15.5 |    334    |
-|     iMac 27" 2011    |    i7 3.4 GHz 4-core    |  16 | 250 |     |  12.1 | 10.15.7 |    378    |
+|           Device          |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
+|:-------------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
+|       Mac Pro 2019        |  Xeon 2.5 GHz 28-core   |  96 | 4TB |     |  12.2 | 11.0.1  |    90     |
+|   MacBook Pro 13" 2020    |      Apple M1 8-core    |  16 | 1TB |     |  12.2 |   11.0  |    133    |
+|   MacBook Air 13" 2020    |  Apple M1 8c (7c GPU)   |   8 | 256 |     |  12.2 | 11.0.1  |    137    |
+|       iMac 27" 2019       |    i9 3.6 GHz 8-core    |  40 | 512 |     |  12.2 | 11.0.1  |    163    |
+|   MacBook Pro 16" 2019    |    i9 2.4 GHz 8-core    |  32 | 512 |     |  12.2 | 11.0.1  |    176    |
+|   MacBook Pro 16" 2019    |    i9 2.3 GHz 8-core    |  32 | 1TB |     |  12.2 | 11.0.1  |    221    |
+|   MacBook Pro 16" 2019    |    i7 2.6 GHz 6-core    |  16 | 512 |     |  12.2 | 11.0.1  |    250    |
+|   MacBook Pro 15" 2015    |    i7 2.2 GHz 4-core    |  16 | 256 |     |  12.1 | 11.0.1  |    324    |
+|   MacBook Pro 15" 2015    |    i7 2.2 GHz 4-core    |  16 | 265 |     |  12.1 | 10.15.5 |    334    |
+| MacBook Pro 15" Late 2013 |    i7 2.3 GHz 4-core    |  16 | 512 |     |  12.2 | 10.15.7 |    374    |
+|       iMac 27" 2011       |    i7 3.4 GHz 4-core    |  16 | 250 |     |  12.1 | 10.15.7 |    378    |
+
 
 ## Xcode 11
 
@@ -157,3 +159,4 @@ Make sure:
 - [@dmcrodrigues](https://github.com/dmcrodrigues)
 - [@MeshkaniMohammad](https://github.com/MeshkaniMohammad)
 - [@CasperNEw](https://github.com/CasperNEw)
+- [@valeriyvan](https://github.com/valeriyvan)
