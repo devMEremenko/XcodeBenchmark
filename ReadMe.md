@@ -7,7 +7,23 @@ You are probably familiar with the following question:
 
 I believe the results will help developers to make the right *cost/performance* trade-off decision when choosing their next Mac.
 
-## Score
+## Xcode 12
+
+|        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
+|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
+|     Mac Pro 2019     |  Xeon 2.5 GHz 28-core   |  96 | 4TB |     |  12.2 | 11.0.1  |    90     |
+| MacBook Pro 13" 2020 |      Apple M1 8-core    |  16 | 1TB |     |  12.2 |   11.0  |    133    |
+| MacBook Air 13" 2020 |  Apple M1 8c (7c GPU)   |   8 | 256 |     |  12.2 | 11.0.1  |    137    |
+|     iMac 27" 2019    |    i9 3.6 GHz 8-core    |  40 | 512 |     |  12.2 | 11.0.1  |    163    |
+| MacBook Pro 16" 2019 |    i9 2.4 GHz 8-core    |  32 | 512 |     |  12.2 | 11.0.1  |    176    |
+| MacBook Pro 16" 2019 |    i9 2.3 GHz 8-core    |  32 | 1TB |     |  12.2 | 11.0.1  |    221    |
+| MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  12.2 | 11.0.1  |    250    |
+| MacBook Pro 13" 2020 |    i5 2.0 GHz 4-core    |  16 | 1TB |     |  12.2 | 11.0.1  |    265    |
+| MacBook Pro 15" 2015 |    i7 2.2 GHz 4-core    |  16 | 256 |     |  12.1 | 11.0.1  |    324    |
+| MacBook Pro 15" 2015 |    i7 2.2 GHz 4-core    |  16 | 265 |     |  12.1 | 10.15.5 |    334    |
+|     iMac 27" 2011    |    i7 3.4 GHz 4-core    |  16 | 250 |     |  12.1 | 10.15.7 |    378    |
+
+## Xcode 11
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
@@ -18,12 +34,9 @@ I believe the results will help developers to make the right *cost/performance* 
 |     iMac 27" 2019    |    i9 3.6 GHz 8-core    |  64 | 2TB |     |  11.6 | 10.15.6 |    252    |
 |   iMac Pro 27" 2017  |   Xeon 3.2 GHz 8-core   |  32 | 1TB |     |  11.6 | 10.15.6 |    263    |
 |     Mac Mini 2018    |    i7 3.2 GHz 6-core    |  16 | 512 |     |  11.7 | 10.15.5 |    300    |
-|       Ryzentosh      |  R5 3600 3.6 Ghz 6-core |  16 | 1TB |     |  11.7 | 10.15.6 |    312    |
 | MacBook Pro 16" 2019 |    i9 2.3 GHz 8-core    |  32 | 2TB |     |  11.6 | 10.15.6 |    328    |
 | MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  11.6 | 10.15.6 |    353    |
 |     Mac Mini 2018    | i5-8500B 3.0 GHz 6-core |  8  | 512 |     |  11.7 | 10.15.6 |    383    |
-| MacBook Pro 13" 2020 |i5-1038NG7 2.0 GHz 4-core|  16 | 1TB |     |  12.2 | 11.0.1  |    384    |
-|      Hackintosh      |  i5-8400 2.8 Ghz 6-core |  32 | 512 |     |  11.6 | 10.15.6 |    409    |
 |     iMac 27" 2017    |    i7 4.2 GHz 4-core    |  48 | 2TB |     |  11.7 | 10.15.6 |    411    |
 |    iMac 21.5" 2017   |  i7-7700 3.6 GHz 4-core |  16 | 1TB |     |  11.7 | 10.16.6 |    419    |
 | MacBook Pro 15" 2018 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  11.6 | 10.15.6 |    440    |
@@ -33,35 +46,52 @@ I believe the results will help developers to make the right *cost/performance* 
 | MacBook Pro 15" 2016 |    i7 2.7 GHz 4-core    |  16 | 1TB |     |  11.7 | 10.15.6 |    642    |
 |     Mac Mini 2014    |    i5 2.6 GHz 2-core    |  8  |     | 1TB |  11.7 | 10.15.6 |    1193   |
 
+## Custom Hardware - Xcode 12
+
+|        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
+|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
+|   NLEstation 2020    |    i9 3.6 GHz 8-core    |  64 | 1TB |     |  12.2 | 10.15.7 |    129    |
+|      Hackintosh      |i7-10700K 3.8 Ghz 8-core |  32 | 1TB |     |  12.2 | 10.15.7 |    130    |
+|      Hackintosh      |  i5-9400 2.9 Ghz 6-core |  32 | 512 | 2TB |  12.1 | 10.15.7 |    191    |
+|      Hackintosh      | i3-10100 3.6 Ghz 4-core |  32 | 1TB |     |  12.1 | 10.15.7 |    233    |
+
+## Custom Hardware - Xcode 11
+
+|        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
+|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
+|      Hackintosh      |  i5-8400 2.8 Ghz 6-core |  32 | 512 |     |  11.6 | 10.15.6 |    409    |
+|       Ryzentosh      |  R5 3600 3.6 Ghz 6-core |  16 | 1TB |     |  11.7 | 10.15.6 |    312    |
+
 ## Set up
 
 - Download and install [Xcode](https://apps.apple.com/us/app/xcode/id497799835).
 - Open Xcode and install `additional tools` (Xcode should suggest it automatically).
-- Perform `defaults write com.apple.dt.Xcode ShowBuildOperationDuration YES` in `Terminal` to show build time in the Xcode progress bar.
-- Download and unarchive [XcodeBenchmark](https://github.com/devMEremenko/XcodeBenchmark/archive/master.zip) project.
+- [Download](https://github.com/devMEremenko/XcodeBenchmark/archive/master.zip) and unarchive XcodeBenchmark project.
 
 ## Before each test
 
-1. Select `XcodeBenchmark` -> `Generic iOS Device` in the top left corner.
-2. Close `XcodeBenchmark.xcworkspace` project.
-2. Remove the `DerivedData` folder, by selecting Finder, pressing `Shift + Command + G` and paste in the path: `~/Library/Developer/Xcode`, select the `DerivedData` folder and delete it.
-3. Disconnect a network cable and turn off WiFi.
-4. Make sure to disable all software running at startup: `System Preferences` -> `Users and Groups` -> `User` -> `Login Items` and empty the list.
-5. Reboot and cool down your Mac.
-6. Connect to the power adapter if you use MacBook.
+1. Disconnect the network cable and turn off WiFi.
+2. Make sure to disable all software running at startup
+    - Go to `System Preferences` -> `Users and Groups` -> `User` -> `Login Items`.
+    - Empty the list.
+3. Update `Energy Saver` settings 
+	- Go to `System Preferences` -> `Energy Saver` -> `Turn display off`  and set 15 min.
+3. Reboot and cool down your Mac.
+4. Connect to the power adapter if you use MacBook.
 
 ## Running a test
 
-1. Open `XcodeBenchmark.xcworkspace` (please do not confuse with `xcproject`).
-2. Press `Command B` to start compilation.
-
-**Important: Start compilation as quickly as possible once you opened a project**
+1. Open the `Terminal` app.
+2. Write `cd ` and drag & drop `XcodeBenchmark` folder to the `Terminal` app to form `cd path/to/xcode-benchmark`.
+2. Run `sh benchmark.sh` in `Terminal`.
+3. When `XcodeBenchmark` has completed you will see [this information](img/contribution-example.png).
+4. Upload your results, see [Contribution](https://github.com/devMEremenko/XcodeBenchmark#contribution) section.
 
 ## FAQ
 
 **Q: What's inside?**
 
-The framework that incudes **42** popular CocoaPods libraries and **70+** dependencies in total.
+A framework that includes **42** popular CocoaPods libraries and **70+** dependencies in total.
 
 | Language      | files | blank  | comment | code   |
 |---------------|-------|--------|---------|--------|
@@ -80,8 +110,8 @@ The framework that incudes **42** popular CocoaPods libraries and **70+** depend
 | SUM:          | 6231  | 157270 | 258605  | 790974 |
 
 **Q: What do the results mean?**
-1. First of all, the project is **huge**. I think the majority of projects have a smaller size.
-2. The results show *relative* performance in Xcode compared to other Macs under the same conditions.
+1. First of all, the project is **huge**. Most projects are of a much smaller size.
+2. The results show *relative* performance in Xcode, compared to other Macs running under similar conditions.
 
 **Q: Why is CocoaPods not excluded from git-repo?**
 - The project is also used by non-programmers. Let's *keep it simple*.
@@ -95,7 +125,7 @@ Make sure:
 - [All steps](https://github.com/devMEremenko/XcodeBenchmark#before-each-test) are performed
 - `Time` column is still sorted after insertion.
 - You are added to the end of the [Contributors](https://github.com/devMEremenko/XcodeBenchmark#contributors) list.
-- Attach a screenshot of the Xcode progress bar with a compilation time. [Example](https://user-images.githubusercontent.com/1449655/92333170-05f3f200-f073-11ea-94be-e0a41be5aae4.png).
+- Attach a screenshot with a compilation time. [Example](img/contribution-example.png).
 - The content in cells is centered. You can use [this tool](https://www.tablesgenerator.com/markdown_tables) to edit a table.
     - File -> Paste table data
     - Select all cells -> Right click -> Text align -> Center
@@ -116,3 +146,15 @@ Make sure:
 - [@Kuluum](https://github.com/Kuluum)
 - [@villy21](https://github.com/Villy21)
 - [@zhi6w](https://github.com/zhi6w)
+- [@soorinpark](https://github.com/soorinpark)
+- [@igorkulman](https://github.com/igorkulman)
+- [@matopeto](https://github.com/matopeto)
+- [@morid1n](https://twitter.com/morid1n)
+- [@passatgt](https://github.com/passatgt)
+- [@ignatovsa](https://github.com/ignatovsa)
+- [@azonov](https://github.com/azonov)
+- [@euwars](https://twitter.com/euwars)
+- [@samadipour](https://github.com/samadipour)
+- [@dmcrodrigues](https://github.com/dmcrodrigues)
+- [@MeshkaniMohammad](https://github.com/MeshkaniMohammad)
+- [@CasperNEw](https://github.com/CasperNEw)
