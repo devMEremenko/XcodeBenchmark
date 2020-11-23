@@ -12,6 +12,7 @@ I believe the results will help developers to make the right *cost/performance* 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
 |     Mac Pro 2019     |  Xeon 2.5 GHz 28-core   |  96 | 4TB |     |  12.2 | 11.0.1  |    90     |
+|     Mac mini 2020    |      Apple M1 8-core    |  16 | 1TB |     |  12.2 |   11.0  |    116    |
 | MacBook Pro 13" 2020 |      Apple M1 8-core    |  16 | 1TB |     |  12.2 |   11.0  |    119    |
 | MacBook Air 13" 2020 |  Apple M1 8c (8c GPU)   |  16 | 512 |     |  12.2 | 11.0.1  |    128    |
 | MacBook Air 13" 2020 |  Apple M1 8c (7c GPU)   |   8 | 256 |     |  12.2 | 11.0.1  |    137    |
