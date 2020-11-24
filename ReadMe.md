@@ -32,6 +32,7 @@ I believe the results will help developers to make the right *cost/performance* 
 | MacBook Pro 13" 2017 |    i5 2.3 GHz 2-core    |  16 | 256 |     |  12.2 | 11.0.1  |    448    |
 |    iMac 21.5" 2017   |    i5 3.0 GHz 4-core    |  16 |     | 1TB |  12.2 | 11.0.1  |    725    |
 | MacBook Pro 13" 2016 |    i5 2.9 GHz 2-core    |   8 | 256 |     |  12.2 | 11.0.1  |    518    |
+| MacBook Air 13" 2020 |    i3 1.1 GHz 2-core    |   8 | 256 |     |  12.2 | 11.0.1  |    700    |
 
 ## Xcode 11
 
@@ -184,3 +185,4 @@ Make sure:
 - [@valeriyvan](https://github.com/valeriyvan)
 - [@twlatl](https://github.com/twlatl)
 - [@ypwhs](https://github.com/ypwhs)
+- [@thisura98](https://github.com/Thisura98)
