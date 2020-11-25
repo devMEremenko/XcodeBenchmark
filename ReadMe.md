@@ -28,6 +28,7 @@ I believe the results will help developers to make the right *cost/performance* 
 | MacBook Pro 15" 2017 |    i7 2.8 GHz 4-core    |  16 | 256 |     |  12.2 | 11.0.1  |    282    |
 | MacBook Pro 15" 2015 |    i7 2.2 GHz 4-core    |  16 | 256 |     |  12.1 | 11.0.1  |    324    |
 | MacBook Pro 15" 2015 |    i7 2.2 GHz 4-core    |  16 | 256 |     |  12.1 | 10.15.5 |    334    |
+| MacBook Pro 15" 2014 |    i7 2.5 GHz 4-core    |  16 | 256 |     |  12.2 | 10.5.7  |    343    |
 | MacBook Pro 15" 2013 |    i7 2.3 GHz 4-core    |  16 | 512 |     |  12.2 | 10.15.7 |    374    |
 |     iMac 27" 2011    |    i7 3.4 GHz 4-core    |  16 | 250 |     |  12.1 | 10.15.7 |    378    |
 | MacBook Pro 13" 2017 |    i5 2.3 GHz 2-core    |  16 | 256 |     |  12.2 | 11.0.1  |    448    |
@@ -188,3 +189,4 @@ Make sure:
 - [@ypwhs](https://github.com/ypwhs)
 - [@bariscck](https://github.com/bariscck)
 - [@thisura98](https://github.com/Thisura98)
+- [@vitallii-t](https://github.com/vitallii-t)
