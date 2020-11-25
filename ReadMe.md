@@ -18,6 +18,7 @@ I believe the results will help developers to make the right *cost/performance* 
 | MacBook Air 13" 2020 |  Apple M1 8c (7c GPU)   |   8 | 256 |     |  12.2 | 11.0.1  |    137    |
 |     iMac 27" 2019    |    i9 3.6 GHz 8-core    |  64 | 2TB |     |  12.1 | 11.0.1  |    145    |
 |     iMac 27" 2020    |    i9 3.6 GHz 10-core   | 128 | 1TB |     |  12.2 | 11.0.1  |    146    |
+|   iMac Pro 27" 2017  |   Xeon 3.2 GHz 8-Core   |  32 | 1TB |     |  12.2 | 10.15.7 |    158    |
 |     iMac 27" 2019    |    i9 3.6 GHz 8-core    |  40 | 512 |     |  12.2 | 11.0.1  |    163    |
 | MacBook Pro 16" 2019 |    i9 2.4 GHz 8-core    |  32 | 512 |     |  12.2 | 11.0.1  |    176    |
 | MacBook Pro 16" 2019 |    i9 2.3 GHz 8-core    |  32 | 1TB |     |  12.2 | 11.0.1  |    221    |
@@ -192,3 +193,4 @@ Make sure:
 - [@bariscck](https://github.com/bariscck)
 - [@thisura98](https://github.com/Thisura98)
 - [@vitallii-t](https://github.com/vitallii-t)
+- [@kenji21](https://github.com/kenji21)
