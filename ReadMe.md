@@ -17,7 +17,7 @@ I believe the results will help developers to make the right *cost/performance* 
 | MacBook Air 13" 2020 |  Apple M1 8c (8c GPU)   |  16 | 512 |     |  12.2 | 11.0.1  |    128    |
 | MacBook Air 13" 2020 |  Apple M1 8c (7c GPU)   |   8 | 256 |     |  12.2 | 11.0.1  |    137    |
 |     iMac 27" 2019    |    i9 3.6 GHz 8-core    |  64 | 2TB |     |  12.1 | 11.0.1  |    145    |
-|     iMac 27" 2020    |    i9 3.6 GHz 10-core   | 128 | 1TB |     |  12.2 |  11.0.1 |    146    |
+|     iMac 27" 2020    |    i9 3.6 GHz 10-core   | 128 | 1TB |     |  12.2 | 11.0.1  |    146    |
 |     iMac 27" 2019    |    i9 3.6 GHz 8-core    |  40 | 512 |     |  12.2 | 11.0.1  |    163    |
 | MacBook Pro 16" 2019 |    i9 2.4 GHz 8-core    |  32 | 512 |     |  12.2 | 11.0.1  |    176    |
 | MacBook Pro 16" 2019 |    i9 2.3 GHz 8-core    |  32 | 1TB |     |  12.2 | 11.0.1  |    221    |
@@ -25,13 +25,16 @@ I believe the results will help developers to make the right *cost/performance* 
 |     iMac 27" 2017    |    i7 4.2 GHz 4-core    |  16 | 1TB |     |  12.2 | 11.0.1  |    246    |
 | MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  12.2 | 11.0.1  |    250    |
 | MacBook Pro 13" 2020 |    i5 2.0 GHz 4-core    |  16 | 1TB |     |  12.2 | 11.0.1  |    265    |
+| MacBook Pro 15" 2017 |    i7 2.8 GHz 4-core    |  16 | 256 |     |  12.2 | 11.0.1  |    282    |
 | MacBook Pro 15" 2015 |    i7 2.2 GHz 4-core    |  16 | 256 |     |  12.1 | 11.0.1  |    324    |
 | MacBook Pro 15" 2015 |    i7 2.2 GHz 4-core    |  16 | 256 |     |  12.1 | 10.15.5 |    334    |
+| MacBook Pro 15" 2014 |    i7 2.5 GHz 4-core    |  16 | 256 |     |  12.2 | 10.15.7 |    343    |
 | MacBook Pro 15" 2013 |    i7 2.3 GHz 4-core    |  16 | 512 |     |  12.2 | 10.15.7 |    374    |
 |     iMac 27" 2011    |    i7 3.4 GHz 4-core    |  16 | 250 |     |  12.1 | 10.15.7 |    378    |
 | MacBook Pro 13" 2017 |    i5 2.3 GHz 2-core    |  16 | 256 |     |  12.2 | 11.0.1  |    448    |
-|    iMac 21.5" 2017   |    i5 3.0 GHz 4-core    |  16 |     | 1TB |  12.2 | 11.0.1  |    725    |
 | MacBook Pro 13" 2016 |    i5 2.9 GHz 2-core    |   8 | 256 |     |  12.2 | 11.0.1  |    518    |
+| MacBook Air 13" 2020 |    i3 1.1 GHz 2-core    |   8 | 256 |     |  12.2 | 11.0.1  |    700    |
+|    iMac 21.5" 2017   |    i5 3.0 GHz 4-core    |  16 |     | 1TB |  12.2 | 11.0.1  |    725    |
 
 ## Xcode 11
 
@@ -186,3 +189,6 @@ Make sure:
 - [@twlatl](https://github.com/twlatl)
 - [@ypwhs](https://github.com/ypwhs)
 - [@freeubi](https://github.com/freeubi)
+- [@bariscck](https://github.com/bariscck)
+- [@thisura98](https://github.com/Thisura98)
+- [@vitallii-t](https://github.com/vitallii-t)
