@@ -71,6 +71,7 @@ I believe the results will help developers to make the right *cost/performance* 
 |       Ryzentosh      | R9 3900 3.8 Ghz 12-core |  32 | 512 |     |  12.1 | 10.15.4 |    161    |                |
 |      Hackintosh      |  i5-9400 2.9 Ghz 6-core |  32 | 512 | 2TB |  12.1 | 10.15.7 |    191    |                |
 |      Hackintosh      | i3-10100 3.6 Ghz 4-core |  32 | 1TB |     |  12.1 | 10.15.7 |    233    |                |
+|       QEMU VM        |   Xeon 1.8 Ghz 4-core   |  8  | 32  |     |  12.2 | 10.15.7 |    775    |                |
 
 ## Custom Hardware - Xcode 11
 
@@ -198,3 +199,4 @@ Make sure:
 - [@kenji21](https://github.com/kenji21)
 - [@hornmichaels](https://github.com/hornmichaels)
 - [@sahilsatralkar](https://github.com/sahilsatralkar)
+- [@vm-tester](https://github.com/vm-tester)
