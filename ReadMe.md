@@ -34,6 +34,7 @@ I believe the results will help developers to make the right *cost/performance* 
 |     iMac 27" 2011    |    i7 3.4 GHz 4-core    |  16 | 250 |     |  12.1 | 10.15.7 |    378    |
 | MacBook Pro 13" 2017 |    i5 2.3 GHz 2-core    |  16 | 256 |     |  12.2 | 11.0.1  |    448    |
 | MacBook Pro 13" 2016 |    i5 2.9 GHz 2-core    |   8 | 256 |     |  12.2 | 11.0.1  |    518    |
+| MacBook Pro 13" 2016 |    i5 2.0 GHz 2-core    |   8 | 256 |     |  12.2 | 11.0.1  |    574    |
 | MacBook Pro 13" 2015 |    i5 2.7 Ghz 2-core    |   8 | 512 |     |  12.2 | 10.15.7 |    597    |
 | MacBook Air 13" 2020 |    i3 1.1 GHz 2-core    |   8 | 256 |     |  12.2 | 11.0.1  |    700    |
 |    iMac 21.5" 2017   |    i5 3.0 GHz 4-core    |  16 |     | 1TB |  12.2 | 11.0.1  |    725    |
@@ -66,6 +67,7 @@ I believe the results will help developers to make the right *cost/performance* 
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |    Comments    |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|----------------|
+|      Hackintosh      |i9-10850K 3.6 Ghz 10-core|  64 | 1TB |     |  12.2 | 10.15.7 |    113    |                |
 |   NLEstation 2020    |    i9 3.6 GHz 8-core    |  64 | 1TB |     |  12.2 | 10.15.7 |    129    |                |
 |      Hackintosh      |i7-10700K 3.8 Ghz 8-core |  32 | 1TB |     |  12.2 | 10.15.7 |    130    |                |
 |       Ryzentosh      | R9 3900 3.8 Ghz 12-core |  32 | 512 |     |  12.1 | 10.15.4 |    161    |                |
@@ -198,3 +200,4 @@ Make sure:
 - [@kenji21](https://github.com/kenji21)
 - [@hornmichaels](https://github.com/hornmichaels)
 - [@sahilsatralkar](https://github.com/sahilsatralkar)
+- [@LightFocus](https://github.com/lightfocus)
