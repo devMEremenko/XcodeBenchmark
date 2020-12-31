@@ -76,6 +76,7 @@ I believe the results will help developers to make the right *cost/performance* 
 |       Ryzentosh      | R9 3900 3.8 Ghz 12-core |  32 | 512 |     |  12.1 | 10.15.4 |    161    |                |
 |      Hackintosh      |  i5-9400 2.9 Ghz 6-core |  32 | 512 | 2TB |  12.1 | 10.15.7 |    191    |                |
 |      Hackintosh      | i3-10100 3.6 Ghz 4-core |  32 | 1TB |     |  12.1 | 10.15.7 |    233    |                |
+|      Hackintosh      | i7-4770K 3.5 Ghz 4-core |  16 | 2TB | 8TB |  12.2 | 10.15.7 |    276    |                |
 
 ## Custom Hardware - Xcode 11
 
@@ -207,3 +208,4 @@ Make sure:
 - [@vincentneo](https://github.com/vincentneo)
 - [@BradPatras](https://github.com/BradPatras)
 - [@LightFocus](https://github.com/lightfocus)
+- [@pablosichert](https://github.com/pablosichert)
