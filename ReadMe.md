@@ -15,6 +15,7 @@ I believe the results will help developers to make the right *cost/performance* 
 |     Mac mini 2020    |      Apple M1 8-core    |  16 | 1TB |     |  12.2 |   11.0  |    116    |
 | MacBook Pro 13" 2020 |      Apple M1 8-core    |  16 | 1TB |     |  12.2 |   11.0  |    119    |
 | MacBook Air 13" 2020 |  Apple M1 8c (8c GPU)   |  16 | 512 |     |  12.2 | 11.0.1  |    128    |
+|     Mac mini 2020    |      Apple M1 8-core    |   8 | 256 |     |  12.2 | 11.0.1  |    130    |
 | MacBook Air 13" 2020 |  Apple M1 8c (7c GPU)   |   8 | 256 |     |  12.2 | 11.0.1  |    137    |
 |     iMac 27" 2019    |    i9 3.6 GHz 8-core    |  64 | 2TB |     |  12.1 | 11.0.1  |    145    |
 |     iMac 27" 2020    |    i9 3.6 GHz 10-core   | 128 | 1TB |     |  12.2 | 11.0.1  |    146    |
@@ -199,4 +200,5 @@ Make sure:
 - [@kenji21](https://github.com/kenji21)
 - [@hornmichaels](https://github.com/hornmichaels)
 - [@sahilsatralkar](https://github.com/sahilsatralkar)
+- [@idevid](https://github.com/idevid)
 - [@vincentneo](https://github.com/vincentneo)
