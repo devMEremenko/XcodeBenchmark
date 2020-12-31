@@ -142,6 +142,11 @@ A framework that includes **42** popular CocoaPods libraries and **70+** depende
 **Q: Why is CocoaPods not excluded from git-repo?**
 - The project is also used by non-programmers. Let's *keep it simple*.
 
+## YouTubers and bloggers
+
+You are free to use these results in your videos and articles as well as to run XcodeBenchmark to compare Macs.
+Please make sure to add [the link](https://github.com/devMEremenko/XcodeBenchmark/) to this repository.
+
 ## Contribution
 
 - **If you have any non-Apple hardware components - submit your results to the `Custom Hardware` table.**
