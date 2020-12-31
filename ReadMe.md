@@ -71,6 +71,7 @@ I believe the results will help developers to make the right *cost/performance* 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |    Comments    |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|----------------|
 |      Hackintosh      |i9-10850K 3.6 Ghz 10-core|  64 | 1TB |     |  12.2 | 10.15.7 |    113    |                |
+|      Hackintosh      |i9-10900k 3.7 Ghz 10-core|  64 | 512 | 6TB |  12.2 | 11.0.1  |    122    |                |
 |   NLEstation 2020    |    i9 3.6 GHz 8-core    |  64 | 1TB |     |  12.2 | 10.15.7 |    129    |                |
 |      Hackintosh      |i7-10700K 3.8 Ghz 8-core |  32 | 1TB |     |  12.2 | 10.15.7 |    130    |                |
 |       Ryzentosh      | R9 3900 3.8 Ghz 12-core |  32 | 512 |     |  12.1 | 10.15.4 |    161    |                |
@@ -211,3 +212,4 @@ Make sure:
 - [@LightFocus](https://github.com/lightfocus)
 - [@pablosichert](https://github.com/pablosichert)
 - [@vm-tester](https://github.com/vm-tester)
+- [@rursache](https://github.com/rursache)
