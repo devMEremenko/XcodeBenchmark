@@ -76,8 +76,8 @@ I believe the results will help developers to make the right *cost/performance* 
 |    Hackintosh   |  i7-10700K 3.8 Ghz 8-core |  32 | 1TB |     |  12.2 | 10.15.7 |    130    |          |
 |    Hackintosh   |  AMD 3800x 4.2 Ghz 8-core |  64 | 1TB |     |  12.2 | 10.15.6 |    137    |          |
 |    Ryzentosh    |  R9 3900 3.8 Ghz 12-core  |  32 | 512 |     |  12.1 | 10.15.4 |    161    |          |
+|    Hackintosh   |  i5-10400F 2.9 Ghz 6-core |  32 | 512 |     |  12.3 | 10.15.7 |    165    |          |
 |    Ryzentosh    |   R5 3600 3.6 Ghz 6-core  |  16 | 512 |     |  12.3 | 10.15.7 |    175    |          |
-|    Hackintosh   |  i5-10400F 2.9 Ghz 6-core |  32 | 512 |     |  12.3 | 10.15.7 |    180    |          |
 |    Hackintosh   |   i5-9400 2.9 Ghz 6-core  |  32 | 512 | 2TB |  12.1 | 10.15.7 |    191    |          |
 |    Hackintosh   |  i3-10100 3.6 Ghz 4-core  |  32 | 1TB |     |  12.1 | 10.15.7 |    233    |          |
 |    Hackintosh   |  i7-4770K 3.5 Ghz 4-core  |  16 | 2TB | 8TB |  12.2 | 10.15.7 |    276    |          |
