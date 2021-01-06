@@ -68,19 +68,20 @@ I believe the results will help developers to make the right *cost/performance* 
 
 ## Custom Hardware - Xcode 12
 
-|        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |    Comments    |
-|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|----------------|
-|      Hackintosh      |i9-10850K 3.6 Ghz 10-core|  64 | 1TB |     |  12.2 | 10.15.7 |    113    |                |
-|      Hackintosh      |i9-10900k 3.7 Ghz 10-core|  64 | 512 | 6TB |  12.2 | 11.0.1  |    122    |                |
-|   NLEstation 2020    |    i9 3.6 GHz 8-core    |  64 | 1TB |     |  12.2 | 10.15.7 |    129    |                |
-|      Hackintosh      |i7-10700K 3.8 Ghz 8-core |  32 | 1TB |     |  12.2 | 10.15.7 |    130    |                |
-|      Hackintosh      |AMD 3800x 4.2 Ghz 8-core |  64 | 1TB |     |  12.2 | 10.15.6 |    137    |                |
-|       Ryzentosh      | R9 3900 3.8 Ghz 12-core |  32 | 512 |     |  12.1 | 10.15.4 |    161    |                |
-|       Ryzentosh      |  R5 3600 3.6 Ghz 6-core |  16 | 512 |     |  12.3 | 10.15.7 |    175    |                |
-|      Hackintosh      |  i5-9400 2.9 Ghz 6-core |  32 | 512 | 2TB |  12.1 | 10.15.7 |    191    |                |
-|      Hackintosh      | i3-10100 3.6 Ghz 4-core |  32 | 1TB |     |  12.1 | 10.15.7 |    233    |                |
-|      Hackintosh      | i7-4770K 3.5 Ghz 4-core |  16 | 2TB | 8TB |  12.2 | 10.15.7 |    276    |                |
-|       QEMU VM        |   Xeon 1.8 Ghz 4-core   |  8  | 32  |     |  12.2 | 10.15.7 |    775    |                |
+|      Device     |            CPU            | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) | Comments |
+|:---------------:|:-------------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|:--------:|
+|    Hackintosh   | i9-10850K 3.6 Ghz 10-core |  64 | 1TB |     |  12.2 | 10.15.7 |    113    |          |
+|    Hackintosh   | i9-10900k 3.7 Ghz 10-core |  64 | 512 | 6TB |  12.2 |  11.0.1 |    122    |          |
+| NLEstation 2020 |     i9 3.6 GHz 8-core     |  64 | 1TB |     |  12.2 | 10.15.7 |    129    |          |
+|    Hackintosh   |  i7-10700K 3.8 Ghz 8-core |  32 | 1TB |     |  12.2 | 10.15.7 |    130    |          |
+|    Hackintosh   |  AMD 3800x 4.2 Ghz 8-core |  64 | 1TB |     |  12.2 | 10.15.6 |    137    |          |
+|    Ryzentosh    |  R9 3900 3.8 Ghz 12-core  |  32 | 512 |     |  12.1 | 10.15.4 |    161    |          |
+|    Hackintosh   |  i5-10400F 2.9 Ghz 6-core |  32 | 512 |     |  12.3 | 10.15.7 |    165    |          |
+|    Ryzentosh    |   R5 3600 3.6 Ghz 6-core  |  16 | 512 |     |  12.3 | 10.15.7 |    175    |          |
+|    Hackintosh   |   i5-9400 2.9 Ghz 6-core  |  32 | 512 | 2TB |  12.1 | 10.15.7 |    191    |          |
+|    Hackintosh   |  i3-10100 3.6 Ghz 4-core  |  32 | 1TB |     |  12.1 | 10.15.7 |    233    |          |
+|    Hackintosh   |  i7-4770K 3.5 Ghz 4-core  |  16 | 2TB | 8TB |  12.2 | 10.15.7 |    276    |          |
+|     QEMU VM     |    Xeon 1.8 Ghz 4-core    |  8  |  32 |     |  12.2 | 10.15.7 |    775    |          |
 
 ## Custom Hardware - Xcode 11
 
@@ -101,7 +102,7 @@ I believe the results will help developers to make the right *cost/performance* 
 2. Make sure to disable all software running at startup
     - Go to `System Preferences` -> `Users and Groups` -> `User` -> `Login Items`.
     - Empty the list.
-3. Update `Energy Saver` settings 
+3. Update `Energy Saver` settings
 	- Go to `System Preferences` -> `Energy Saver` -> `Turn display off`  and set 15 min.
 3. Reboot and cool down your Mac.
 4. Connect to the power adapter if you use MacBook.
@@ -151,7 +152,7 @@ Please make sure to add [the link](https://github.com/devMEremenko/XcodeBenchmar
 ## Contribution
 
 - **If you have any non-Apple hardware components - submit your results to the `Custom Hardware` table.**
-- **Preferred:** [Submit a pull request](https://github.com/devMEremenko/XcodeBenchmark/pulls) and add a row to the `Score` section.  
+- **Preferred:** [Submit a pull request](https://github.com/devMEremenko/XcodeBenchmark/pulls) and add a row to the `Score` section.
 - [Open an issue](https://github.com/devMEremenko/XcodeBenchmark/issues/new/choose) and include all info in the following format:
 ```
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |    Comments    |
@@ -222,3 +223,4 @@ Make sure:
 - [@rursache](https://github.com/rursache)
 - [@wendyliga](https://github.com/wendyliga)
 - [@mlch911](https://github.com/mlch911)
+- [@w0203j](https://github.com/w0203j)
