@@ -75,6 +75,7 @@ I believe the results will help developers to make the right *cost/performance* 
 |   NLEstation 2020    |    i9 3.6 GHz 8-core    |  64 | 1TB |     |  12.2 | 10.15.7 |    129    |                |
 |      Hackintosh      |i7-10700K 3.8 Ghz 8-core |  32 | 1TB |     |  12.2 | 10.15.7 |    130    |                |
 |      Hackintosh      |AMD 3800x 4.2 Ghz 8-core |  64 | 1TB |     |  12.2 | 10.15.6 |    137    |                |
+|      Hackintosh      | i9-9900K 3.6 Ghz 8-core |  32 | 1TB |     |  12.3 |  11.2   |    157    |                |
 |       Ryzentosh      | R9 3900 3.8 Ghz 12-core |  32 | 512 |     |  12.1 | 10.15.4 |    161    |                |
 |       Ryzentosh      |  R5 3600 3.6 Ghz 6-core |  16 | 512 |     |  12.3 | 10.15.7 |    175    |                |
 |      Hackintosh      |  i5-9400 2.9 Ghz 6-core |  32 | 512 | 2TB |  12.1 | 10.15.7 |    191    |                |
@@ -222,3 +223,4 @@ Make sure:
 - [@rursache](https://github.com/rursache)
 - [@wendyliga](https://github.com/wendyliga)
 - [@mlch911](https://github.com/mlch911)
+- [@ispiropoulos](https://github.com/ispiropoulos)
