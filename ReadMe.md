@@ -60,6 +60,7 @@ I believe the results will help developers to make the right *cost/performance* 
 |     iMac 27" 2017    |    i7 4.2 GHz 4-core    |  48 | 2TB |     |  11.7 | 10.15.6 |    411    |
 |    iMac 21.5" 2017   |  i7-7700 3.6 GHz 4-core |  16 | 1TB |     |  11.7 | 10.16.6 |    419    |
 | MacBook Pro 15" 2018 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  11.6 | 10.15.6 |    440    |
+| MacBook Pro 15" 2018 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  11.6 |  11.1   |    228    |
 |     Mac Pro 2013     |E5-1650 v2 3.5 GHz 6-core|  32 | 1TB |     |  11.7 | 10.15.6 |    518    |
 | MacBook Pro 15" 2017 |    i7 2.9 GHz 4-core    |  16 | 512 |     |  11.6 | 10.15.6 |    583    |
 | MacBook Pro 15" 2015 |    i7 2.2 GHz 4-core    |  16 | 265 |     |  11.7 | 10.15.6 |    594    |
