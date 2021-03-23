@@ -25,6 +25,7 @@ I believe the results will help developers to make the right *cost/performance* 
 |     Mac mini 2018    |    i7 3.2 GHz 6-core    |  32 | 512 |     |  12.2 | 11.0.1  |    192    |
 | MacBook Pro 16" 2019 |    i9 2.3 GHz 8-core    |  32 | 1TB |     |  12.2 | 11.0.1  |    221    |
 |     Mac mini 2018    |    i7 3.2 GHz 6-core    |  16 | 1TB |     |  12.0 | 10.15.5 |    228    |
+| MacBook Pro 13" 2018 |    i5 2.3 GHz 4-Core    |   8 | 256 |	   |  12.2 | 10.15.7 |	  420	 |
 |     iMac 27" 2017    |    i7 4.2 GHz 4-core    |  16 | 1TB |     |  12.2 | 11.0.1  |    246    |
 | MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  12.2 | 11.0.1  |    250    |
 | MacBook Pro 13" 2020 |    i5 2.0 GHz 4-core    |  16 | 1TB |     |  12.2 | 11.0.1  |    265    |
