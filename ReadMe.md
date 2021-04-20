@@ -35,6 +35,7 @@ I believe the results will help developers to make the right *cost/performance* 
 | MacBook Pro 15" 2013 |    i7 2.3 GHz 4-core    |  16 | 512 |     |  12.2 | 10.15.7 |    374    |
 |     iMac 27" 2011    |    i7 3.4 GHz 4-core    |  16 | 250 |     |  12.1 | 10.15.7 |    378    |
 | MacBook Pro 13" 2017 |    i5 2.3 GHz 2-core    |  16 | 256 |     |  12.2 | 11.0.1  |    448    |
+| MacBook Pro 13" 2017 |    i5 3.1 GHz 2-core    |   8 | 256 |     |  12.4 |   11.3  |    472    |
 | MacBook Pro 13" 2016 |    i5 2.9 GHz 2-core    |   8 | 256 |     |  12.2 | 11.0.1  |    518    |
 | MacBook Pro 13" 2016 |    i5 2.0 GHz 2-core    |   8 | 256 |     |  12.2 | 11.0.1  |    574    |
 | MacBook Pro 13" 2015 |    i5 2.7 Ghz 2-core    |   8 | 512 |     |  12.2 | 10.15.7 |    597    |
