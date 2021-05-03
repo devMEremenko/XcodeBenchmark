@@ -95,7 +95,7 @@ open class SingleSectionStorage<T: EntityIdentifiable> : BaseUpdateDeliveringSto
     /// Array of items, that section contains.
     open var items : [T] {
         get { return section.items(ofType: T.self) }
-        set { section.setItems(newValue) }
+        set { section.items = newValue }
     }
     
     /// Internal representation of a single section
@@ -106,7 +106,7 @@ open class SingleSectionStorage<T: EntityIdentifiable> : BaseUpdateDeliveringSto
     /// - Parameter items: array of starting items in section.
     public init(items: [T]) {
         let sectionModel = SectionModel()
-        sectionModel.setItems(items)
+        sectionModel.items = items
         section = sectionModel
     }
     
@@ -161,7 +161,7 @@ open class SingleSectionStorage<T: EntityIdentifiable> : BaseUpdateDeliveringSto
     func collectChanges(_ changes: [SingleSectionOperation], to new: [T]) {
         let update = StorageUpdate()
         update.enqueueDatasourceUpdate { [weak self] _ in
-            self?.section.setItems(new)
+            self?.section.items = new
         }
         for diff in changes {
             switch diff {

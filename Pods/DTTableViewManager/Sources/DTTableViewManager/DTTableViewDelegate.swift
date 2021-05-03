@@ -24,6 +24,7 @@
 // THE SOFTWARE.
 
 import UIKit
+import DTModelStorage
 
 /// Object, that implements `UITableViewDelegate` for `DTTableViewManager`.
 open class DTTableViewDelegate : DTTableViewDelegateWrapper, UITableViewDelegate {
@@ -37,21 +38,21 @@ open class DTTableViewDelegate : DTTableViewDelegateWrapper, UITableViewDelegate
     {
         defer { (delegate as? UITableViewDelegate)?.tableView?(tableView, willDisplay: cell, forRowAt: indexPath) }
         guard let model = storage?.item(at: indexPath) else { return }
-        _ = tableViewEventReactions.performReaction(of: .cell, signature: EventMethodSignature.willDisplayCellForRowAtIndexPath.rawValue, view: cell, model: model, location: indexPath)
+        _ = EventReaction.performReaction(from: viewFactory?.mappings ?? [], signature: EventMethodSignature.willDisplayCellForRowAtIndexPath.rawValue, view: cell, model: model, location: indexPath)
     }
     
     /// Implementation for `UITableViewDelegate` protocol
     open func tableView(_ tableView: UITableView, willDisplayHeaderView view: UIView, forSection section: Int) {
         defer { (delegate as? UITableViewDelegate)?.tableView?(tableView, willDisplayHeaderView: view, forSection: section) }
         guard let model = headerModel(forSection: section) else { return }
-        _ = tableViewEventReactions.performReaction(of: .supplementaryView(kind: DTTableViewElementSectionHeader), signature: EventMethodSignature.willDisplayHeaderForSection.rawValue, view: view, model: model, location: IndexPath(item: 0, section: section))
+        _ = EventReaction.performReaction(from: viewFactory?.mappings ?? [], signature: EventMethodSignature.willDisplayHeaderForSection.rawValue, view: view, model: model, location: IndexPath(row: 0, section: section), supplementaryKind: DTTableViewElementSectionHeader)
     }
     
     /// Implementation for `UITableViewDelegate` protocol
     open func tableView(_ tableView: UITableView, willDisplayFooterView view: UIView, forSection section: Int) {
         defer { (delegate as? UITableViewDelegate)?.tableView?(tableView, willDisplayFooterView: view, forSection: section) }
         guard let model = footerModel(forSection: section) else { return }
-        _ = tableViewEventReactions.performReaction(of: .supplementaryView(kind: DTTableViewElementSectionFooter), signature: EventMethodSignature.willDisplayFooterForSection.rawValue, view: view, model: model, location: IndexPath(item: 0, section: section))
+        _ = EventReaction.performReaction(from: viewFactory?.mappings ?? [], signature: EventMethodSignature.willDisplayFooterForSection.rawValue, view: view, model: model, location: IndexPath(row: 0, section: section), supplementaryKind: DTTableViewElementSectionFooter)
     }
     
     /// Implementation for `UITableViewDelegate` protocol
@@ -59,12 +60,13 @@ open class DTTableViewDelegate : DTTableViewDelegateWrapper, UITableViewDelegate
         if configuration?.sectionHeaderStyle == .title { return nil }
         let viewKind = ViewType.supplementaryView(kind: DTTableViewElementSectionHeader)
         if let model = headerModel(forSection:section) {
-            if let createdView = viewFactory?.headerFooterView(of: viewKind, model: model, atIndexPath: IndexPath(index: section))
+            if let createdView = viewFactory?.headerFooterView(of: viewKind, model: model, atIndexPath: IndexPath(row: 0, section: section))
             {
-                _ = tableViewEventReactions.performReaction(of: viewKind,
+                _ = EventReaction.performReaction(from: viewFactory?.mappings ?? [],
                                                             signature: EventMethodSignature.configureHeader.rawValue,
                                                             view: createdView, model: model,
-                                                            location: IndexPath(item: 0, section: section))
+                                                            location: IndexPath(item: 0, section: section),
+                                                            supplementaryKind: DTTableViewElementSectionHeader)
                 return createdView
             }
         } else {
@@ -83,11 +85,13 @@ open class DTTableViewDelegate : DTTableViewDelegateWrapper, UITableViewDelegate
         if configuration?.sectionFooterStyle == .title { return nil }
         let viewKind = ViewType.supplementaryView(kind: DTTableViewElementSectionFooter)
         if let model = footerModel(forSection: section) {
-            if let createdView = viewFactory?.headerFooterView(of: viewKind, model: model, atIndexPath: IndexPath(index: section))
+            if let createdView = viewFactory?.headerFooterView(of: viewKind, model: model, atIndexPath: IndexPath(row: 0, section: section))
             {
-                _ = tableViewEventReactions.performReaction(of: viewKind,
+                _ = EventReaction.performReaction(from: viewFactory?.mappings ?? [],
                                                             signature: EventMethodSignature.configureFooter.rawValue,
-                                                            view: createdView, model: model, location: IndexPath(item: 0, section: section))
+                                                            view: createdView, model: model,
+                                                            location: IndexPath(item: 0, section: section),
+                                                            supplementaryKind: DTTableViewElementSectionFooter)
                 return createdView
             }
         } else {
@@ -135,14 +139,14 @@ open class DTTableViewDelegate : DTTableViewDelegateWrapper, UITableViewDelegate
     
     /// Implementation for `UITableViewDelegate` protocol
     open func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
-        guard shouldDisplayFooterView(forSection: section) else {
-            return configuration?.minimalFooterHeightForTableView(tableView) ?? .zero
-        }
         if let height = performFooterReaction(.heightForFooterInSection, location: section, provideView: false) as? CGFloat {
             return height
         }
         if let height = (delegate as? UITableViewDelegate)?.tableView?(tableView, heightForFooterInSection: section) {
             return height
+        }
+        guard shouldDisplayFooterView(forSection: section) else {
+            return configuration?.minimalFooterHeightForTableView(tableView) ?? .zero
         }
         if configuration?.sectionFooterStyle == .title {
             if let _ = footerModel(forSection:section) {
@@ -275,21 +279,21 @@ open class DTTableViewDelegate : DTTableViewDelegateWrapper, UITableViewDelegate
     open func tableView(_ tableView: UITableView, didEndDisplaying cell: UITableViewCell, forRowAt indexPath: IndexPath) {
         defer { (delegate as? UITableViewDelegate)?.tableView?(tableView, didEndDisplaying: cell, forRowAt: indexPath) }
         guard let model = storage?.item(at: indexPath) else { return }
-        _ = tableViewEventReactions.performReaction(of: .cell, signature: EventMethodSignature.didEndDisplayingCellForRowAtIndexPath.rawValue, view: cell, model: model, location: indexPath)
+        _ = EventReaction.performReaction(from: viewFactory?.mappings ?? [], signature: EventMethodSignature.didEndDisplayingCellForRowAtIndexPath.rawValue, view: cell, model: model, location: indexPath)
     }
     
     /// Implementation for `UITableViewDelegate` protocol
     open func tableView(_ tableView: UITableView, didEndDisplayingHeaderView view: UIView, forSection section: Int) {
         defer { (delegate as? UITableViewDelegate)?.tableView?(tableView, didEndDisplayingHeaderView: view, forSection: section) }
         guard let model = headerModel(forSection: section) else { return }
-        _ = tableViewEventReactions.performReaction(of: .supplementaryView(kind: DTTableViewElementSectionHeader), signature: EventMethodSignature.didEndDisplayingHeaderViewForSection.rawValue, view: view, model: model, location: IndexPath(item: 0, section: section))
+        _ = EventReaction.performReaction(from: viewFactory?.mappings ?? [], signature: EventMethodSignature.didEndDisplayingHeaderViewForSection.rawValue, view: view, model: model, location: IndexPath(item: 0, section: section), supplementaryKind: DTTableViewElementSectionHeader)
     }
     
     /// Implementation for `UITableViewDelegate` protocol
     open func tableView(_ tableView: UITableView, didEndDisplayingFooterView view: UIView, forSection section: Int) {
         defer { (delegate as? UITableViewDelegate)?.tableView?(tableView, didEndDisplayingFooterView: view, forSection: section) }
         guard let model = footerModel(forSection: section) else { return }
-        _ = tableViewEventReactions.performReaction(of: .supplementaryView(kind: DTTableViewElementSectionFooter), signature: EventMethodSignature.didEndDisplayingFooterViewForSection.rawValue, view: view, model: model, location: IndexPath(item: 0, section: section))
+        _ = EventReaction.performReaction(from: viewFactory?.mappings ?? [], signature: EventMethodSignature.didEndDisplayingFooterViewForSection.rawValue, view: view, model: model, location: IndexPath(item: 0, section: section), supplementaryKind: DTTableViewElementSectionFooter)
     }
     
     @available(iOS, deprecated: 13.0)
@@ -422,7 +426,7 @@ open class DTTableViewDelegate : DTTableViewDelegateWrapper, UITableViewDelegate
     
     /// Implementation for `UITableViewDelegate` protocol
     open func indexPathForPreferredFocusedView(in tableView: UITableView) -> IndexPath? {
-        if let reaction = tableViewEventReactions.first(where: { $0.methodSignature == EventMethodSignature.indexPathForPreferredFocusedViewInTableView.rawValue }) {
+        if let reaction = unmappedReactions.first(where: { $0.methodSignature == EventMethodSignature.indexPathForPreferredFocusedViewInTableView.rawValue }) {
             return reaction.performWithArguments((0, 0, 0)) as? IndexPath
         }
         return (delegate as? UITableViewDelegate)?.indexPathForPreferredFocusedView?(in: tableView)
@@ -455,11 +459,11 @@ open class DTTableViewDelegate : DTTableViewDelegateWrapper, UITableViewDelegate
     @available(iOS 13.0, *)
     /// Implementation for `UITableViewDelegate` protocol
     open func tableView(_ tableView: UITableView, contextMenuConfigurationForRowAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
-        if let configuration = perform4ArgumentCellReaction(.contextMenuConfigurationForRowAtIndexPath,
-                                                            argument: point,
-                                                            location: indexPath,
-                                                            provideCell: true) as? UIContextMenuConfiguration {
-            return configuration
+        if let _ = cellReaction(.contextMenuConfigurationForRowAtIndexPath, location: indexPath) as? FourArgumentsEventReaction {
+            return perform4ArgumentCellReaction(.contextMenuConfigurationForRowAtIndexPath,
+                                                argument: point,
+                                                location: indexPath,
+                                                provideCell: true) as? UIContextMenuConfiguration
         }
         return (delegate as? UITableViewDelegate)?.tableView?(tableView,
                                                               contextMenuConfigurationForRowAt: indexPath,
@@ -469,8 +473,8 @@ open class DTTableViewDelegate : DTTableViewDelegateWrapper, UITableViewDelegate
     @available(iOS 13.0, *)
     /// Implementation for `UITableViewDelegate` protocol
     open func tableView(_ tableView: UITableView, previewForHighlightingContextMenuWithConfiguration configuration: UIContextMenuConfiguration) -> UITargetedPreview? {
-        if let preview = performNonCellReaction(.previewForHighlightingContextMenu, argument: configuration) as? UITargetedPreview {
-            return preview
+        if unmappedReactions.contains(where: { $0.methodSignature == EventMethodSignature.previewForHighlightingContextMenu.rawValue }) {
+            return performNonCellReaction(.previewForHighlightingContextMenu, argument: configuration) as? UITargetedPreview
         }
         return (delegate as? UITableViewDelegate)?.tableView?(tableView, previewForHighlightingContextMenuWithConfiguration: configuration)
     }
@@ -478,8 +482,8 @@ open class DTTableViewDelegate : DTTableViewDelegateWrapper, UITableViewDelegate
     @available(iOS 13.0, *)
     /// Implementation for `UITableViewDelegate` protocol
     open func tableView(_ tableView: UITableView, previewForDismissingContextMenuWithConfiguration configuration: UIContextMenuConfiguration) -> UITargetedPreview? {
-        if let preview = performNonCellReaction(.previewForDismissingContextMenu, argument: configuration) as? UITargetedPreview {
-            return preview
+        if unmappedReactions.contains(where: { $0.methodSignature == EventMethodSignature.previewForDismissingContextMenu.rawValue }) {
+            return performNonCellReaction(.previewForDismissingContextMenu, argument: configuration) as? UITargetedPreview
         }
         return (delegate as? UITableViewDelegate)?.tableView?(tableView, previewForDismissingContextMenuWithConfiguration: configuration)
     }

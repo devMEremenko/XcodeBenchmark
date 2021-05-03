@@ -1,5 +1,5 @@
 source = 'https://github.com/CocoaPods/Specs.git'
-minimum_target = '13.0'
+minimum_target = '14.0'
 
 platform :ios, minimum_target
 
@@ -34,8 +34,8 @@ target 'XcodeBenchmark' do
   pod 'ObjectMapper'
   
   pod 'TRON', '~> 5.0.0'
-  pod 'DTCollectionViewManager'
-  pod 'DTTableViewManager'
+  pod 'DTCollectionViewManager', '~> 8.0.0'
+  pod 'DTTableViewManager', '~> 8.0.0'
   pod 'Ariadne'
   pod 'LoadableViews'
   
