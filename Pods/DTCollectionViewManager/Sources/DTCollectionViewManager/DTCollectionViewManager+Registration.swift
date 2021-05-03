@@ -27,101 +27,142 @@ import UIKit
 import DTModelStorage
 
 extension DTCollectionViewManager {
-    /// Registers mapping from model class to `cellClass`.
-    ///
-    /// Method will automatically check for nib with the same name as `cellClass`. If it exists - nib will be registered instead of class. If not - it is assumed that cell is registered in storyboard.
-    /// - Note: If you need to create cell interface from code, use `registerNibless(_:)` method
-    open func register<T:ModelTransfer>(_ cellClass:T.Type, mappingBlock: ((ViewModelMapping) -> Void)? = nil) where T: UICollectionViewCell
+    /// Registers mapping for `cellClass`. Mapping will automatically check for nib with the same name as `cellClass` and register it, if it is found. If cell is designed in storyboard, please set `mapping.cellRegisteredByStoryboard` property to `true` inside of `mapping` closure.
+    /// - Parameters:
+    ///   - cellClass: UICollectionViewCell subclass type, conforming to `ModelTransfer` protocol.
+    ///   - mapping: mapping configuration closure, executed before any registration or dequeue is performed.
+    ///   - handler: configuration closure, that is run when cell is dequeued.
+    /// - Note: `handler` closure is called before `update(with:)` method.
+    open func register<T:ModelTransfer>(_ cellClass:T.Type, mapping: ((ViewModelMapping<T, T.ModelType>) -> Void)? = nil,
+                                        handler: @escaping (T, T.ModelType, IndexPath) -> Void = { _, _, _ in }) where T: UICollectionViewCell
     {
-        viewFactory.registerCellClass(cellClass, mappingBlock: mappingBlock)
+        viewFactory.registerCellClass(T.self, handler: handler, mapping: mapping)
     }
     
-    /// Registers mapping from model class to `cellClass`.
-    open func registerNibless<T:ModelTransfer>(_ cellClass:T.Type, mappingBlock: ((ViewModelMapping) -> Void)? = nil) where T: UICollectionViewCell
+    /// Registers mapping from `modelType` to `cellClass`. Mapping will automatically check for nib with the same name as `cellClass` and register it, if it is found. If cell is designed in storyboard, please set `mapping.cellRegisteredByStoryboard` property to `true` inside of `mapping` closure.
+    /// - Parameters:
+    ///   - cellClass: UICollectionViewCell to register
+    ///   - modelType: Model type, which is mapped to `cellClass`.
+    ///   - mapping: mapping configuration closure, executed before any registration or dequeue is performed.
+    ///   - handler: configuration closure, that is run when cell is dequeued.
+    open func register<Cell: UICollectionViewCell, Model>(_ cellClass: Cell.Type, for modelType: Model.Type, mapping: ((ViewModelMapping<Cell, Model>) -> Void)? = nil, handler: @escaping (Cell, Model, IndexPath) -> Void) {
+        viewFactory.registerCellClass(cellClass, modelType, handler: handler, mapping: mapping)
+    }
+
+    /// Registers mapping for `headerClass`. `UICollectionView.elementKindSectionHeader` is used as a supplementary kind. Mapping will automatically check for nib with the same name as `headerClass` and register it, if it is found.
+    /// If supplementary view is designed in storyboard, please set `mapping.supplementaryRegisteredByStoryboard` property to `true` inside of `mapping` closure.
+    /// - Parameters:
+    ///   - headerClass: UICollectionReusableView class to register
+    ///   - modelType: Model type, which is mapped to `headerClass`.
+    ///   - mapping: mapping configuration closure, executed before any registration or dequeue is performed.
+    ///   - handler: configuration closure, that is run when supplementary view is dequeued.
+    /// - Note: `handler` closure is called before `update(with:)` method.
+    open func registerHeader<View:ModelTransfer>(_ headerClass : View.Type,
+                                              mapping: ((ViewModelMapping<View, View.ModelType>) -> Void)? = nil,
+                                              handler: @escaping (View, View.ModelType, IndexPath) -> Void = { _, _, _ in }) where View: UICollectionReusableView
     {
-        viewFactory.registerNiblessCellClass(cellClass, mappingBlock: mappingBlock)
+        viewFactory.registerSupplementaryClass(View.self,
+                                               ofKind: UICollectionView.elementKindSectionHeader,
+                                               handler: handler,
+                                               mapping: mapping)
     }
     
-    /// Registers nib with `nibName` mapping from model class to `cellClass`.
-    open func registerNibNamed<T:ModelTransfer>(_ nibName: String, for cellClass: T.Type, mappingBlock: ((ViewModelMapping) -> Void)? = nil) where T: UICollectionViewCell
+    /// Registers mapping from `modelType` to `headerClass`. `UICollectionView.elementKindSectionHeader` is used as a supplementary kind. Mapping will automatically check for nib with the same name as `headerClass` and register it, if it is found.
+    /// If header is designed in storyboard, please set `mapping.supplementaryRegisteredByStoryboard` property to `true` inside of `mapping` closure.
+    /// - Parameters:
+    ///   - headerClass: UICollectionReusableView class to register
+    ///   - modelType: Model type, which is mapped to `headerClass`.
+    ///   - mapping: mapping configuration closure, executed before any registration or dequeue is performed.
+    ///   - handler: configuration closure, that is run when header is dequeued.
+    open func registerHeader<View:UICollectionReusableView, Model>(_ headerClass: View.Type,
+                                                                   for modelType: Model.Type,
+                                                                   mapping: ((ViewModelMapping<View, Model>) -> Void)? = nil,
+                                                                   handler: @escaping (View, Model, IndexPath) -> Void = { _, _, _ in }) {
+        registerSupplementary(View.self, for: Model.self, ofKind: UICollectionView.elementKindSectionHeader, mapping: mapping, handler: handler)
+    }
+    
+    /// Registers mapping for `footerClass`. `UICollectionView.elementKindSectionFooter` is used as a supplementary kind. Mapping will automatically check for nib with the same name as `footerClass` and register it, if it is found.
+    /// If supplementary view is designed in storyboard, please set `mapping.supplementaryRegisteredByStoryboard` property to `true` inside of `mapping` closure.
+    /// - Parameters:
+    ///   - footerClass: UICollectionReusableView class to register
+    ///   - modelType: Model type, which is mapped to `footerClass`.
+    ///   - mapping: mapping configuration closure, executed before any registration or dequeue is performed.
+    ///   - handler: configuration closure, that is run when supplementary view is dequeued.
+    /// - Note: `handler` closure is called before `update(with:)` method.
+    open func registerFooter<View:ModelTransfer>(_ footerClass: View.Type,
+                                              mapping: ((ViewModelMapping<View, View.ModelType>) -> Void)? = nil,
+                                              handler: @escaping (View, View.ModelType, IndexPath) -> Void = { _, _, _ in }) where View:UICollectionReusableView
     {
-        viewFactory.registerNibNamed(nibName, forCellClass: cellClass, mappingBlock: mappingBlock)
+        viewFactory.registerSupplementaryClass(View.self,
+                                               ofKind: UICollectionView.elementKindSectionFooter,
+                                               handler: handler,
+                                               mapping: mapping)
     }
     
-    /// Registers mapping from model class to suppplementary view of `headerClass` type for UICollectionElementKindSectionHeader.
-    ///
-    /// Method will automatically check for nib with the same name as `headerClass`. If it exists - nib will be registered instead of class.
-    open func registerHeader<T:ModelTransfer>(_ headerClass : T.Type, mappingBlock: ((ViewModelMapping) -> Void)? = nil) where T: UICollectionReusableView
+    /// Registers mapping from `modelType` to `footerClass`. `UICollectionView.elementKindSectionFooter` is used as a supplementary kind. Mapping will automatically check for nib with the same name as `footerClass` and register it, if it is found.
+    /// If footer is designed in storyboard, please set `mapping.supplementaryRegisteredByStoryboard` property to `true` inside of `mapping` closure.
+    /// - Parameters:
+    ///   - footerClass: UICollectionReusableView class to register
+    ///   - modelType: Model type, which is mapped to `footerClass`.
+    ///   - mapping: mapping configuration closure, executed before any registration or dequeue is performed.
+    ///   - handler: configuration closure, that is run when footer is dequeued.
+    open func registerFooter<View:UICollectionReusableView, Model>(_ footerClass: View.Type,
+                                                                   for modelType: Model.Type,
+                                                                   mapping: ((ViewModelMapping<View, Model>) -> Void)? = nil,
+                                                                   handler: @escaping (View, Model, IndexPath) -> Void = { _, _, _ in })
     {
-        viewFactory.registerSupplementaryClass(T.self, forKind: UICollectionView.elementKindSectionHeader, mappingBlock: mappingBlock)
+        registerSupplementary(View.self, for: Model.self, ofKind: UICollectionView.elementKindSectionFooter, mapping: mapping, handler: handler)
     }
     
-    /// Registers mapping from model class to suppplementary view of `footerClass` type for UICollectionElementKindSectionFooter.
-    ///
-    /// Method will automatically check for nib with the same name as `footerClass`. If it exists - nib will be registered instead of class.
-    open func registerFooter<T:ModelTransfer>(_ footerClass: T.Type, mappingBlock: ((ViewModelMapping) -> Void)? = nil) where T:UICollectionReusableView
+    /// Registers mapping for `footerClass`.  Mapping will automatically check for nib with the same name as `supplementaryClass` and register it, if it is found.
+    /// If supplementary view is designed in storyboard, please set `mapping.supplementaryRegisteredByStoryboard` property to `true` inside of `mapping` closure.
+    /// - Parameters:
+    ///   - supplementaryClass: UICollectionReusableView class to register
+    ///   - kind: supplementary view kind
+    ///   - mapping: mapping configuration closure, executed before any registration or dequeue is performed.
+    ///   - handler: configuration closure, that is run when supplementary view is dequeued.
+    /// - Note: `handler` closure is called before `update(with:)` method.
+    open func registerSupplementary<View:ModelTransfer>(_ supplementaryClass: View.Type,
+                                                     ofKind kind: String,
+                                                     mapping: ((ViewModelMapping<View, View.ModelType>) -> Void)? = nil,
+                                                     handler: @escaping (View, View.ModelType, IndexPath) -> Void = { _, _, _ in }) where View:UICollectionReusableView
     {
-        viewFactory.registerSupplementaryClass(T.self, forKind: UICollectionView.elementKindSectionFooter, mappingBlock: mappingBlock)
+        viewFactory.registerSupplementaryClass(View.self, ofKind: kind, handler: handler, mapping: mapping)
     }
     
-    /// Registers mapping from model class to supplementary view of `headerClass` type with `nibName` for UICollectionElementKindSectionHeader.
-    open func registerNibNamed<T:ModelTransfer>(_ nibName: String, forHeader headerClass: T.Type, mappingBlock: ((ViewModelMapping) -> Void)? = nil) where T:UICollectionReusableView
+    /// Registers mapping from `modelType` to `supplementaryClass`. Mapping will automatically check for nib with the same name as `supplementaryClass` and register it, if it is found.
+    /// If supplementary view is designed in storyboard, please set `mapping.supplementaryRegisteredByStoryboard` property to `true` inside of `mapping` closure.
+    /// - Parameters:
+    ///   - footerClass: UICollectionReusableView class to register
+    ///   - modelType: Model type, which is mapped to `supplementaryClass`.
+    ///   - mapping: mapping configuration closure, executed before any registration or dequeue is performed.
+    ///   - handler: configuration closure, that is run when supplementary view is dequeued.
+    open func registerSupplementary<View:UICollectionReusableView, Model>(_ supplementaryClass: View.Type,
+                                                                          for modelType: Model.Type,
+                                                                          ofKind kind: String,
+                                                                          mapping: ((ViewModelMapping<View, Model>) -> Void)? = nil,
+                                                                          handler: @escaping (View, Model, IndexPath) -> Void = { _, _, _ in })
     {
-        viewFactory.registerNibNamed(nibName, forSupplementaryClass: T.self, forKind: UICollectionView.elementKindSectionHeader, mappingBlock: mappingBlock)
-    }
-    
-    /// Registers mapping from model class to supplementary view of `footerClass` type with `nibName` for UICollectionElementKindSectionFooter.
-    open func registerNibNamed<T:ModelTransfer>(_ nibName: String, forFooter footerClass: T.Type, mappingBlock: ((ViewModelMapping) -> Void)? = nil) where T:UICollectionReusableView
-    {
-        viewFactory.registerNibNamed(nibName, forSupplementaryClass: T.self, forKind: UICollectionView.elementKindSectionFooter, mappingBlock: mappingBlock)
-    }
-    
-    /// Registers mapping from model class to suppplementary view of `supplementaryClass` type for supplementary `kind`.
-    ///
-    /// Method will automatically check for nib with the same name as `supplementaryClass`. If it exists - nib will be registered instead of class.
-    open func registerSupplementary<T:ModelTransfer>(_ supplementaryClass: T.Type, forKind kind: String, mappingBlock: ((ViewModelMapping) -> Void)? = nil) where T:UICollectionReusableView
-    {
-        viewFactory.registerSupplementaryClass(T.self, forKind: kind, mappingBlock: mappingBlock)
-    }
-    
-    /// Registers mapping from model class to supplementary view of `supplementaryClass` type with `nibName` for supplementary `kind`.
-    open func registerNibNamed<T:ModelTransfer>(_ nibName: String, forSupplementary supplementaryClass: T.Type, ofKind kind: String, mappingBlock: ((ViewModelMapping) -> Void)? = nil) where T:UICollectionReusableView
-    {
-        viewFactory.registerNibNamed(nibName, forSupplementaryClass: T.self, forKind: kind, mappingBlock: mappingBlock)
-    }
-    
-    /// Registers mapping from model class to supplementary view of `supplementaryClass` type for supplementary `kind`.
-    open func registerNiblessSupplementary<T:ModelTransfer>(_ supplementaryClass: T.Type, forKind kind: String, mappingBlock: ((ViewModelMapping) -> Void)? = nil) where T:UICollectionReusableView {
-        viewFactory.registerNiblessSupplementaryClass(supplementaryClass, forKind: kind, mappingBlock: mappingBlock)
-    }
-    
-    /// Registers mapping from model class to header view of `headerClass` type for `UICollectionElementKindSectionHeader`.
-    open func registerNiblessHeader<T:ModelTransfer>(_ headerClass: T.Type, mappingBlock: ((ViewModelMapping) -> Void)? = nil) where T:UICollectionReusableView {
-        registerNiblessSupplementary(T.self, forKind: UICollectionView.elementKindSectionHeader)
-    }
-    
-    /// Registers mapping from model class to footer view of `footerClass` type for `UICollectionElementKindSectionFooter`.
-    open func registerNiblessFooter<T:ModelTransfer>(_ footerClass: T.Type, mappingBlock: ((ViewModelMapping) -> Void)? = nil) where T:UICollectionReusableView {
-        registerNiblessSupplementary(T.self, forKind: UICollectionView.elementKindSectionFooter)
+        viewFactory.registerSupplementaryClass(supplementaryClass, modelType, ofKind: kind, handler: handler, mapping: mapping)
     }
     
     /// Unregisters `cellClass` from `DTCollectionViewManager` and `UICollectionView`.
-    open func unregister<T:ModelTransfer>(_ cellClass: T.Type) where T: UICollectionViewCell {
-        viewFactory.unregisterCellClass(T.self)
+    open func unregister<Cell:ModelTransfer>(_ cellClass: Cell.Type) where Cell: UICollectionViewCell {
+        viewFactory.unregisterCellClass(Cell.self)
     }
     
     /// Unregisters `headerClass` from `DTCollectionViewManager` and `UICollectionView`.
-    open func unregisterHeader<T:ModelTransfer>(_ headerClass: T.Type) where T:UICollectionReusableView {
-        unregisterSupplementary(T.self, forKind: UICollectionView.elementKindSectionHeader)
+    open func unregisterHeader<View:ModelTransfer>(_ headerClass: View.Type) where View:UICollectionReusableView {
+        unregisterSupplementary(View.self, ofKind: UICollectionView.elementKindSectionHeader)
     }
     
     /// Unregisters `footerClass` from `DTCollectionViewManager` and `UICollectionView`.
-    open func unregisterFooter<T:ModelTransfer>(_ headerClass: T.Type) where T:UICollectionReusableView {
-        unregisterSupplementary(T.self, forKind: UICollectionView.elementKindSectionFooter)
+    open func unregisterFooter<View:ModelTransfer>(_ headerClass: View.Type) where View:UICollectionReusableView {
+        unregisterSupplementary(View.self, ofKind: UICollectionView.elementKindSectionFooter)
     }
     
     /// Unregisters `supplementaryClass` of `kind` from `DTCollectionViewManager` and `UICollectionView`.
-    open func unregisterSupplementary<T:ModelTransfer>(_ supplementaryClass: T.Type, forKind kind: String) where T:UICollectionReusableView {
-        viewFactory.unregisterSupplementaryClass(T.self, forKind: kind)
+    open func unregisterSupplementary<View:ModelTransfer>(_ supplementaryClass: View.Type, ofKind kind: String) where View:UICollectionReusableView {
+        viewFactory.unregisterSupplementaryClass(View.self, ofKind: kind)
     }
 }

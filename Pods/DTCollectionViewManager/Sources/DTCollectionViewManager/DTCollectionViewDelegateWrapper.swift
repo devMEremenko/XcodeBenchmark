@@ -44,7 +44,7 @@ open class DTCollectionViewDelegateWrapper : NSObject {
     
     /// Array of `DTCollectionViewManager` reactions
     /// - SeeAlso: `EventReaction`.
-    final var collectionViewReactions = ContiguousArray<EventReaction>()  {
+    final var unmappedReactions = [EventReaction]()  {
         didSet {
             delegateWasReset()
         }
@@ -77,120 +77,130 @@ open class DTCollectionViewDelegateWrapper : NSObject {
                                              closure: @escaping (T, T.ModelType, IndexPath) -> U)
         where T: ModelTransfer, T:UICollectionViewCell
     {
-        let reaction = EventReaction(signature: signature.rawValue, viewType: .cell, viewClass: T.self)
-        reaction.makeReaction(closure)
-        collectionViewReactions.append(reaction)
+        let reaction = EventReaction(viewType: T.self, modelType: T.ModelType.self, signature: signature.rawValue, closure)
+        appendMappedReaction(viewType: .cell, type: T.self, reaction: reaction, signature: signature)
         manager?.verifyViewEvent(for: T.self, methodName: methodName)
     }
     
-    final internal func append4ArgumentReaction<CellClass, Argument, Result>
-        (for cellClass: CellClass.Type,
+    final internal func append4ArgumentReaction<Cell, Argument, Result>
+        (for cellClass: Cell.Type,
          signature: EventMethodSignature,
          methodName: String = #function,
-         closure: @escaping (Argument, CellClass, CellClass.ModelType, IndexPath) -> Result)
-        where CellClass: ModelTransfer, CellClass: UICollectionViewCell
+         closure: @escaping (Argument, Cell, Cell.ModelType, IndexPath) -> Result)
+        where Cell: ModelTransfer, Cell: UICollectionViewCell
     {
-        let reaction = FourArgumentsEventReaction(signature: signature.rawValue,
-                                                  viewType: .cell,
-                                                  viewClass: CellClass.self)
-        reaction.make4ArgumentsReaction(closure)
-        collectionViewReactions.append(reaction)
-        manager?.verifyViewEvent(for: CellClass.self, methodName: methodName)
+        let reaction = FourArgumentsEventReaction(Cell.self,
+                                                  modelType: Cell.ModelType.self,
+                                                  argument: Argument.self,
+                                                  signature: signature.rawValue,
+                                                  closure)
+        appendMappedReaction(viewType: .cell, type: Cell.self, reaction: reaction, signature: signature)
+        manager?.verifyViewEvent(for: Cell.self, methodName: methodName)
     }
     
-    final internal func append5ArgumentReaction<CellClass, ArgumentOne, ArgumentTwo, Result>
-        (for cellClass: CellClass.Type,
+    final internal func append5ArgumentReaction<Cell, ArgumentOne, ArgumentTwo, Result>
+        (for cellClass: Cell.Type,
          signature: EventMethodSignature,
          methodName: String = #function,
-         closure: @escaping (ArgumentOne, ArgumentTwo, CellClass, CellClass.ModelType, IndexPath) -> Result)
-        where CellClass: ModelTransfer, CellClass: UICollectionViewCell
+         closure: @escaping (ArgumentOne, ArgumentTwo, Cell, Cell.ModelType, IndexPath) -> Result)
+        where Cell: ModelTransfer, Cell: UICollectionViewCell
     {
-        let reaction = FiveArgumentsEventReaction(signature: signature.rawValue,
-                                                  viewType: .cell,
-                                                  viewClass: CellClass.self)
-        reaction.make5ArgumentsReaction(closure)
-        collectionViewReactions.append(reaction)
-        manager?.verifyViewEvent(for: CellClass.self, methodName: methodName)
+        let reaction = FiveArgumentsEventReaction(Cell.self,
+                                                  modelType: Cell.ModelType.self,
+                                                  argumentOne: ArgumentOne.self,
+                                                  argumentTwo: ArgumentTwo.self,
+                                                  signature: signature.rawValue,
+                                                  closure)
+        appendMappedReaction(viewType: .cell, type: Cell.self, reaction: reaction, signature: signature)
+        manager?.verifyViewEvent(for: Cell.self, methodName: methodName)
     }
     
-    final internal func appendReaction<T, U>(for modelClass: T.Type,
+    final internal func appendReaction<Model, ReturnType>(viewType: ViewType,
+                                             for modelClass: Model.Type,
                                              signature: EventMethodSignature,
                                              methodName: String = #function,
-                                             closure: @escaping (T, IndexPath) -> U)
+                                             closure: @escaping (Model, IndexPath) -> ReturnType)
     {
-        let reaction = EventReaction(signature: signature.rawValue, viewType: .cell, modelType: T.self)
-        reaction.makeReaction(closure)
-        collectionViewReactions.append(reaction)
-        manager?.verifyItemEvent(for: T.self, methodName: methodName)
+        let reaction = EventReaction(modelType: Model.self, signature: signature.rawValue, closure)
+        appendMappedReaction(viewType: viewType, modelType: Model.self, reaction: reaction, signature: signature)
+        manager?.verifyItemEvent(for: Model.self, methodName: methodName)
     }
     
-    final func appendReaction<T, U>(forSupplementaryKind kind: String,
-                                    supplementaryClass: T.Type,
+    final func appendReaction<View, ReturnType>(forSupplementaryKind kind: String,
+                                    supplementaryClass: View.Type,
                                     signature: EventMethodSignature,
                                     methodName: String = #function,
-                                    closure: @escaping (T, T.ModelType, IndexPath) -> U) where T: ModelTransfer, T: UICollectionReusableView {
-        let reaction = EventReaction(signature: signature.rawValue, viewType: .supplementaryView(kind: kind), viewClass: T.self)
-        reaction.makeReaction(closure)
-        collectionViewReactions.append(reaction)
-        manager?.verifyViewEvent(for: T.self, methodName: methodName)
+                                    closure: @escaping (View, View.ModelType, IndexPath) -> ReturnType) where View: ModelTransfer, View: UICollectionReusableView
+    {
+        let reaction = EventReaction(viewType: View.self, modelType: View.ModelType.self,
+                                     signature: signature.rawValue,
+                                     closure)
+        appendMappedReaction(viewType: .supplementaryView(kind: kind), type: View.self, reaction: reaction, signature: signature)
+        manager?.verifyViewEvent(for: View.self, methodName: methodName)
     }
     
-    final func appendReaction<T, U>(forSupplementaryKind kind: String,
-                                    modelClass: T.Type,
-                                    signature: EventMethodSignature,
-                                    methodName: String = #function,
-                                    closure: @escaping (T, IndexPath) -> U) {
-        let reaction = EventReaction(signature: signature.rawValue, viewType: .supplementaryView(kind: kind), modelType: T.self)
-        reaction.makeReaction(closure)
-        collectionViewReactions.append(reaction)
-        manager?.verifyItemEvent(for: T.self, methodName: methodName)
+    final private func appendMappedReaction<View:UIView>(viewType: ViewType, type: View.Type, reaction: EventReaction, signature: EventMethodSignature) {
+        let compatibleMappings = (viewFactory?.mappings ?? []).filter {
+            (($0.viewClass as? UIView.Type)?.isSubclass(of: View.self) ?? false) &&
+                $0.viewType == viewType
+        }
+        
+        if compatibleMappings.count == 0 {
+            manager?.anomalyHandler.reportAnomaly(.eventRegistrationForUnregisteredMapping(viewClass: String(describing: View.self), signature: signature.rawValue))
+        }
+        
+        compatibleMappings.forEach { mapping in
+            mapping.reactions.append(reaction)
+        }
+        
+        delegateWasReset()
+    }
+    
+    final private func appendMappedReaction<Model>(viewType: ViewType, modelType: Model.Type, reaction: EventReaction, signature: EventMethodSignature) {
+        let compatibleMappings = (viewFactory?.mappings ?? []).filter {
+            $0.viewType == viewType && $0.modelTypeTypeCheckingBlock(Model.self)
+        }
+        
+        if compatibleMappings.count == 0 {
+            manager?.anomalyHandler.reportAnomaly(.eventRegistrationForUnregisteredMapping(viewClass: String(describing: Model.self), signature: signature.rawValue))
+        }
+        
+        compatibleMappings.forEach { mapping in
+            mapping.reactions.append(reaction)
+        }
+        
+        delegateWasReset()
     }
     
     final func appendNonCellReaction(_ signature: EventMethodSignature, closure: @escaping () -> Any) {
-        let reaction = EventReaction(signature: signature.rawValue, viewType: .cell, modelType: Any.self)
-        reaction.reaction = { _, _, _ in
-            return closure()
-        }
-        collectionViewReactions.append(reaction)
+        unmappedReactions.append(EventReaction(signature: signature.rawValue, closure))
     }
     
     final func appendNonCellReaction<Arg>(_ signature: EventMethodSignature, closure: @escaping (Arg) -> Any) {
-        let reaction = EventReaction(signature: signature.rawValue, viewType: .cell, modelType: Any.self)
-        reaction.reaction = { arg, _, _ in
-            guard let arg = arg as? Arg else { return nil as Any? as Any }
-            return closure(arg)
-        }
-        collectionViewReactions.append(reaction)
+        unmappedReactions.append(EventReaction(argument: Arg.self, signature: signature.rawValue, closure))
     }
     
     final func appendNonCellReaction<Arg1, Arg2, Result>(_ signature: EventMethodSignature, closure: @escaping (Arg1, Arg2) -> Result) {
-        let reaction = EventReaction(signature: signature.rawValue, viewType: .cell, modelType: Any.self)
-        reaction.reaction = { arg1, arg2, _ in
-            guard let arg1 = arg1 as? Arg1,
-                let arg2 = arg2 as? Arg2
-                else { return nil as Any? as Any }
-            return closure(arg1, arg2)
-        }
-        collectionViewReactions.append(reaction)
+        unmappedReactions.append(EventReaction(argumentOne: Arg1.self, argumentTwo: Arg2.self, signature: signature.rawValue, closure))
     }
     
     final func performCellReaction(_ signature: EventMethodSignature, location: IndexPath, provideCell: Bool) -> Any? {
         var cell : UICollectionViewCell?
         if provideCell { cell = collectionView?.cellForItem(at: location) }
         guard let model = storage?.item(at: location) else { return nil }
-        return collectionViewReactions.performReaction(of: .cell, signature: signature.rawValue, view: cell, model: model, location: location)
+        return EventReaction.performReaction(from: viewFactory?.mappings ?? [], signature: signature.rawValue, view: cell, model: model, location: location)
     }
     
     final func perform4ArgumentCellReaction(_ signature: EventMethodSignature, argument: Any, location: IndexPath, provideCell: Bool) -> Any? {
         var cell : UICollectionViewCell?
         if provideCell { cell = collectionView?.cellForItem(at: location) }
         guard let model = storage?.item(at: location) else { return nil }
-        return collectionViewReactions.perform4ArgumentsReaction(of: .cell,
-                                                                 signature: signature.rawValue,
-                                                                 argument: argument,
-                                                                 view: cell,
-                                                                 model: model,
-                                                                 location: location)
+        return EventReaction.perform4ArgumentsReaction(from: viewFactory?.mappings ?? [],
+                                                     signature: signature.rawValue,
+                                                     argument: argument,
+                                                     view: cell,
+                                                     model: model,
+                                                     location: location)
     }
     
     final func perform5ArgumentCellReaction(_ signature: EventMethodSignature,
@@ -201,7 +211,7 @@ open class DTCollectionViewDelegateWrapper : NSObject {
         var cell : UICollectionViewCell?
         if provideCell { cell = collectionView?.cellForItem(at: location) }
         guard let model = storage?.item(at: location) else { return nil }
-        return collectionViewReactions.perform5ArgumentsReaction(of: .cell,
+        return EventReaction.perform5ArgumentsReaction(from: viewFactory?.mappings ?? [],
                                                                  signature: signature.rawValue,
                                                                  firstArgument: argumentOne,
                                                                  secondArgument: argumentTwo,
@@ -219,27 +229,24 @@ open class DTCollectionViewDelegateWrapper : NSObject {
     
     final func cellReaction(_ signature: EventMethodSignature, location: IndexPath) -> EventReaction? {
         guard let model = storage?.item(at: location) else { return nil }
-        return collectionViewReactions.reaction(of: .cell, signature: signature.rawValue, forModel: model, view: nil)
+        return EventReaction.reaction(from: viewFactory?.mappings ?? [], signature: signature.rawValue, forModel: model, at: location, view: nil)
     }
     
     func performNonCellReaction(_ signature: EventMethodSignature) -> Any? {
-        return collectionViewReactions.first(where: { $0.methodSignature == signature.rawValue })?
-            .performWithArguments((0, 0, 0))
+        EventReaction.performUnmappedReaction(from: unmappedReactions, signature.rawValue)
     }
     
     func performNonCellReaction<T>(_ signature: EventMethodSignature, argument: T) -> Any? {
-        return collectionViewReactions.first(where: { $0.methodSignature == signature.rawValue })?
-            .performWithArguments((argument, 0, 0))
+        EventReaction.performUnmappedReaction(from: unmappedReactions, signature.rawValue, argument: argument)
     }
     
     func performNonCellReaction<T, U>(_ signature: EventMethodSignature, argumentOne: T, argumentTwo: U) -> Any? {
-        return collectionViewReactions.first(where: { $0.methodSignature == signature.rawValue })?
-            .performWithArguments((argumentOne, argumentTwo, 0))
+        EventReaction.performUnmappedReaction(from: unmappedReactions, signature.rawValue, argumentOne: argumentOne, argumentTwo: argumentTwo)
     }
     
-    func performSupplementaryReaction(forKind kind: String, signature: EventMethodSignature, location: IndexPath, view: UICollectionReusableView?) -> Any? {
+    func performSupplementaryReaction(ofKind kind: String, signature: EventMethodSignature, location: IndexPath, view: UICollectionReusableView?) -> Any? {
         guard let model = supplementaryModel(ofKind: kind, forSectionAt: location) else { return nil }
-        return collectionViewReactions.performReaction(of: .supplementaryView(kind: kind), signature: signature.rawValue, view: view, model: model, location: location)
+        return EventReaction.performReaction(from: viewFactory?.mappings ?? [], signature: signature.rawValue, view: view, model: model, location: location, supplementaryKind: kind)
     }
     
     // MARK: - Target Forwarding
@@ -260,7 +267,15 @@ open class DTCollectionViewDelegateWrapper : NSObject {
         }
         if super.responds(to: aSelector) {
             if let eventSelector = EventMethodSignature(rawValue: String(describing: aSelector)) {
-                return collectionViewReactions.contains(where: { $0.methodSignature == eventSelector.rawValue })
+                return unmappedReactions.contains {
+                    $0.methodSignature == eventSelector.rawValue
+                } ||
+                (viewFactory?.mappings ?? [])
+                .contains(where: { mapping in
+                    mapping.reactions.contains(where: { reaction in
+                        reaction.methodSignature == eventSelector.rawValue
+                    })
+                })
             }
             return true
         }

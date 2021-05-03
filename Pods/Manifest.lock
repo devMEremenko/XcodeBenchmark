@@ -240,14 +240,14 @@ PODS:
   - BoringSSL-GRPC/Implementation (0.0.7):
     - BoringSSL-GRPC/Interface (= 0.0.7)
   - BoringSSL-GRPC/Interface (0.0.7)
-  - CryptoSwift (1.3.1)
-  - DTCollectionViewManager (7.2.0):
-    - DTModelStorage (~> 8.1.0)
-  - DTModelStorage (8.1.0):
-    - DTModelStorage/Core (= 8.1.0)
-  - DTModelStorage/Core (8.1.0)
-  - DTTableViewManager (7.2.0):
-    - DTModelStorage (~> 8.1.0)
+  - CryptoSwift (1.4.0)
+  - DTCollectionViewManager (8.0.1):
+    - DTModelStorage (~> 9.0.0)
+  - DTModelStorage (9.0.1):
+    - DTModelStorage/Core (= 9.0.1)
+  - DTModelStorage/Core (9.0.1)
+  - DTTableViewManager (8.0.1):
+    - DTModelStorage (~> 9.0)
   - Eureka (5.3.2)
   - FacebookCore (0.9.0):
     - FBSDKCoreKit (~> 5.0)
@@ -512,9 +512,9 @@ PODS:
 DEPENDENCIES:
   - AFNetworking (~> 4.0)
   - Ariadne
-  - CryptoSwift (~> 1.0)
-  - DTCollectionViewManager
-  - DTTableViewManager
+  - CryptoSwift (~> 1.4.0)
+  - DTCollectionViewManager (~> 8.0.0)
+  - DTTableViewManager (~> 8.0.0)
   - Eureka (~> 5.3.2)
   - FacebookCore
   - FacebookLogin
@@ -644,10 +644,10 @@ SPEC CHECKSUMS:
   AppAuth: 31bcec809a638d7bd2f86ea8a52bd45f6e81e7c7
   Ariadne: 1449ab4c3aa796d3f2ae14ff325a0f6d67917b95
   BoringSSL-GRPC: 8edf627ee524575e2f8d19d56f068b448eea3879
-  CryptoSwift: f12f037f6d0fcd6d48c96db0071b653de64e6c4d
-  DTCollectionViewManager: 7a63899c6f917d7d69fa4a186390b77accf91c3c
-  DTModelStorage: 4d95b242464719155d5068eebb881d96c707a415
-  DTTableViewManager: 67c48a338dfe7a5d1aa54f2bd6116fce22063909
+  CryptoSwift: 7cc902df1784de3b389a387756c7d710f197730c
+  DTCollectionViewManager: 3cef3a7d925dd76035bd9a5cab4aa34ea8a3f46e
+  DTModelStorage: 114a4b10f7c9600fa52398e4c201893b23e56303
+  DTTableViewManager: 4dc4ad299b17090c9e53fa22f20f17373e7e136e
   Eureka: 1c2b8b5892bfb0e972d0fe05f8c09fd89f8625ec
   FacebookCore: ba86524b66cfa86d0f8e65d08faa8504a9f732dd
   FacebookLogin: 6cee9fd6e1fe976fe8f7eec199e27b28b14f5d63
@@ -712,6 +712,6 @@ SPEC CHECKSUMS:
   TRON: 3cb6a8c19230177c97225860d2ff38b618d51a53
   VK-ios-sdk: 62a10b6571fbcda0657f455fedce7fedf55b4cd0
 
-PODFILE CHECKSUM: 7f2b3c92cbd3de2bb8b9bfa82069c33fc588fb46
+PODFILE CHECKSUM: 565f3da0ac53c7537087d956a9a46cf71f1932fa
 
-COCOAPODS: 1.9.3
+COCOAPODS: 1.10.1

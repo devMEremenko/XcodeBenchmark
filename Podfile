@@ -1,5 +1,5 @@
 source = 'https://github.com/CocoaPods/Specs.git'
-minimum_target = '13.0'
+minimum_target = '14.5'
 
 platform :ios, minimum_target
 
@@ -29,13 +29,13 @@ target 'XcodeBenchmark' do
   pod 'MagicalRecord', :git => 'https://github.com/magicalpanda/MagicalRecord'
   pod 'RxBluetoothKit'
   pod 'ReactiveCocoa', '~> 10.1'
-  pod 'CryptoSwift', '~> 1.0'
+  pod 'CryptoSwift', '~> 1.4.0'
   pod 'R.swift.Library'
   pod 'ObjectMapper'
   
   pod 'TRON', '~> 5.0.0'
-  pod 'DTCollectionViewManager'
-  pod 'DTTableViewManager'
+  pod 'DTCollectionViewManager', '~> 8.0.0'
+  pod 'DTTableViewManager', '~> 8.0.0'
   pod 'Ariadne'
   pod 'LoadableViews'
   

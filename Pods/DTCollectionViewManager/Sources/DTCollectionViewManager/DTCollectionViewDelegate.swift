@@ -45,7 +45,7 @@ open class DTCollectionViewDelegate: DTCollectionViewDelegateWrapper, UICollecti
     /// Implementation of `UICollectionViewDelegateFlowLayout` and `UICollectionViewDelegate` protocol.
     open func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForHeaderInSection section: Int) -> CGSize
     {
-        if let size = performSupplementaryReaction(forKind: UICollectionView.elementKindSectionHeader, signature: .referenceSizeForHeaderInSection, location: IndexPath(item:0, section:section), view: nil) as? CGSize {
+        if let size = performSupplementaryReaction(ofKind: UICollectionView.elementKindSectionHeader, signature: .referenceSizeForHeaderInSection, location: IndexPath(item:0, section: section), view: nil) as? CGSize {
             return size
         }
         if let size = (self.delegate as? UICollectionViewDelegateFlowLayout)?.collectionView?(collectionView, layout: collectionViewLayout, referenceSizeForHeaderInSection: section) {
@@ -59,7 +59,7 @@ open class DTCollectionViewDelegate: DTCollectionViewDelegateWrapper, UICollecti
     
     /// Implementation of `UICollectionViewDelegateFlowLayout` and `UICollectionViewDelegate` protocol.
     open func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForFooterInSection section: Int) -> CGSize {
-        if let size = performSupplementaryReaction(forKind: UICollectionView.elementKindSectionFooter, signature: .referenceSizeForFooterInSection, location: IndexPath(item:0, section:section), view: nil) as? CGSize {
+        if let size = performSupplementaryReaction(ofKind: UICollectionView.elementKindSectionFooter, signature: .referenceSizeForFooterInSection, location: IndexPath(item: 0, section: section), view: nil) as? CGSize {
             return size
         }
         if let size = (self.delegate as? UICollectionViewDelegateFlowLayout)?.collectionView?(collectionView, layout: collectionViewLayout, referenceSizeForFooterInSection: section) {
@@ -127,12 +127,12 @@ open class DTCollectionViewDelegate: DTCollectionViewDelegateWrapper, UICollecti
     open func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
         defer { (delegate as? UICollectionViewDelegate)?.collectionView?(collectionView, willDisplay: cell, forItemAt: indexPath) }
         guard let model = storage?.item(at: indexPath) else { return }
-        _ = collectionViewReactions.performReaction(of: .cell, signature: EventMethodSignature.willDisplayCellForItemAtIndexPath.rawValue, view: cell, model: model, location: indexPath)
+        _ = EventReaction.performReaction(from: viewFactory?.mappings ?? [], signature: EventMethodSignature.willDisplayCellForItemAtIndexPath.rawValue, view: cell, model: model, location: indexPath)
     }
     
     /// Implementation of `UICollectionViewDelegateFlowLayout` and `UICollectionViewDelegate` protocol.
     open func collectionView(_ collectionView: UICollectionView, willDisplaySupplementaryView view: UICollectionReusableView, forElementKind elementKind: String, at indexPath: IndexPath) {
-        _ = performSupplementaryReaction(forKind: elementKind, signature: .willDisplaySupplementaryViewForElementKindAtIndexPath, location: indexPath, view: view)
+        _ = performSupplementaryReaction(ofKind: elementKind, signature: .willDisplaySupplementaryViewForElementKindAtIndexPath, location: indexPath, view: view)
         (delegate as? UICollectionViewDelegate)?.collectionView?(collectionView, willDisplaySupplementaryView: view, forElementKind: elementKind, at: indexPath)
     }
     
@@ -140,14 +140,14 @@ open class DTCollectionViewDelegate: DTCollectionViewDelegateWrapper, UICollecti
     open func collectionView(_ collectionView: UICollectionView, didEndDisplaying cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
         defer { (delegate as? UICollectionViewDelegate)?.collectionView?(collectionView, didEndDisplaying: cell, forItemAt: indexPath) }
         guard let model = storage?.item(at: indexPath) else { return }
-        _ = collectionViewReactions.performReaction(of: .cell, signature: EventMethodSignature.didEndDisplayingCellForItemAtIndexPath.rawValue, view: cell, model: model, location: indexPath)
+        _ = EventReaction.performReaction(from: viewFactory?.mappings ?? [], signature: EventMethodSignature.didEndDisplayingCellForItemAtIndexPath.rawValue, view: cell, model: model, location: indexPath)
     }
     
     /// Implementation of `UICollectionViewDelegateFlowLayout` and `UICollectionViewDelegate` protocol.
     open func collectionView(_ collectionView: UICollectionView, didEndDisplayingSupplementaryView view: UICollectionReusableView, forElementOfKind elementKind: String, at indexPath: IndexPath) {
         defer { (delegate as? UICollectionViewDelegate)?.collectionView?(collectionView, didEndDisplayingSupplementaryView: view, forElementOfKind: elementKind, at: indexPath) }
         guard let model = supplementaryModel(ofKind: elementKind, forSectionAt: indexPath) else { return }
-        _ = collectionViewReactions.performReaction(of: .supplementaryView(kind: elementKind), signature: EventMethodSignature.didEndDisplayingSupplementaryViewForElementKindAtIndexPath.rawValue, view: view, model: model, location: indexPath)
+        _ = EventReaction.performReaction(from: viewFactory?.mappings ?? [], signature: EventMethodSignature.didEndDisplayingSupplementaryViewForElementKindAtIndexPath.rawValue, view: view, model: model, location: indexPath, supplementaryKind: elementKind)
     }
     
     @available(iOS, deprecated: 13.0)
@@ -216,7 +216,7 @@ open class DTCollectionViewDelegate: DTCollectionViewDelegateWrapper, UICollecti
     
     /// Implementation of `UICollectionViewDelegateFlowLayout` and `UICollectionViewDelegate` protocol.
     open func indexPathForPreferredFocusedView(in collectionView: UICollectionView) -> IndexPath? {
-        if let reaction = collectionViewReactions.first(where: { $0.methodSignature == EventMethodSignature.indexPathForPreferredFocusedView.rawValue }) {
+        if let reaction = unmappedReactions.first(where: { $0.methodSignature == EventMethodSignature.indexPathForPreferredFocusedView.rawValue }) {
             return reaction.performWithArguments((0, 0, 0)) as? IndexPath
         }
         return (delegate as? UICollectionViewDelegate)?.indexPathForPreferredFocusedView?(in: collectionView)
@@ -242,6 +242,15 @@ open class DTCollectionViewDelegate: DTCollectionViewDelegateWrapper, UICollecti
         }
         return (delegate as? UICollectionViewDelegate)?.collectionView?(collectionView,
                                                                 targetContentOffsetForProposedContentOffset: proposedContentOffset) ?? .zero
+    }
+    
+    @available(iOS 14, tvOS 14, *)
+    /// Implementation of `UICollectionViewDelegate` protocol.
+    public func collectionView(_ collectionView: UICollectionView, canEditItemAt indexPath: IndexPath) -> Bool {
+        if let canEdit = performCellReaction(.canEditItemAtIndexPath, location: indexPath, provideCell: false) as? Bool {
+            return canEdit
+        }
+        return (delegate as? UICollectionViewDelegate)?.collectionView?(collectionView, canEditItemAt: indexPath) ?? false
     }
     
 #if os(iOS)
@@ -286,11 +295,11 @@ open class DTCollectionViewDelegate: DTCollectionViewDelegateWrapper, UICollecti
     @available(iOS 13.0, *)
     /// Implementation for `UICollectionViewDelegate` protocol
     open func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
-        if let configuration = perform4ArgumentCellReaction(.contextMenuConfigurationForItemAtIndexPath,
-                                                            argument: point,
-                                                            location: indexPath,
-                                                            provideCell: true) as? UIContextMenuConfiguration {
-            return configuration
+        if let _ = cellReaction(.contextMenuConfigurationForItemAtIndexPath, location: indexPath) as? FourArgumentsEventReaction {
+            return perform4ArgumentCellReaction(.contextMenuConfigurationForItemAtIndexPath,
+                                                argument: point,
+                                                location: indexPath,
+                                                provideCell: true) as? UIContextMenuConfiguration
         }
         return (delegate as? UICollectionViewDelegate)?.collectionView?(collectionView,
                                                               contextMenuConfigurationForItemAt: indexPath,
@@ -300,8 +309,8 @@ open class DTCollectionViewDelegate: DTCollectionViewDelegateWrapper, UICollecti
     @available(iOS 13.0, *)
     /// Implementation for `UICollectionViewDelegate` protocol
     open func collectionView(_ collectionView: UICollectionView, previewForHighlightingContextMenuWithConfiguration configuration: UIContextMenuConfiguration) -> UITargetedPreview? {
-        if let preview = performNonCellReaction(.previewForHighlightingContextMenu, argument: configuration) as? UITargetedPreview {
-            return preview
+        if unmappedReactions.contains(where: { $0.methodSignature == EventMethodSignature.previewForHighlightingContextMenu.rawValue }) {
+            return performNonCellReaction(.previewForHighlightingContextMenu, argument: configuration) as? UITargetedPreview
         }
         return (delegate as? UICollectionViewDelegate)?.collectionView?(collectionView, previewForHighlightingContextMenuWithConfiguration: configuration)
     }
@@ -309,8 +318,8 @@ open class DTCollectionViewDelegate: DTCollectionViewDelegateWrapper, UICollecti
     @available(iOS 13.0, *)
     /// Implementation for `UICollectionViewDelegate` protocol
     open func collectionView(_ collectionView: UICollectionView, previewForDismissingContextMenuWithConfiguration configuration: UIContextMenuConfiguration) -> UITargetedPreview? {
-        if let preview = performNonCellReaction(.previewForDismissingContextMenu, argument: configuration) as? UITargetedPreview {
-            return preview
+        if unmappedReactions.contains(where: { $0.methodSignature == EventMethodSignature.previewForDismissingContextMenu.rawValue }) {
+            return performNonCellReaction(.previewForDismissingContextMenu, argument: configuration) as? UITargetedPreview
         }
         return (delegate as? UICollectionViewDelegate)?.collectionView?(collectionView, previewForDismissingContextMenuWithConfiguration: configuration)
     }
@@ -333,10 +342,9 @@ open class DTCollectionViewDelegate: DTCollectionViewDelegateWrapper, UICollecti
             return insets
         }
         let defaultInset = (collectionViewLayout as? UICollectionViewFlowLayout)?.sectionInset
-        // UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)  is a workaround for Xcode 10 beta 1: https://bugs.swift.org/browse/SR-7879
         return (delegate as? UICollectionViewDelegateFlowLayout)?.collectionView?(collectionView,
                                                                           layout: collectionViewLayout,
-                                                                          insetForSectionAt: section) ?? defaultInset ?? UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+                                                                          insetForSectionAt: section) ?? defaultInset ?? .zero
     }
     
     /// Implementation of `UICollectionViewDelegateFlowLayout` and `UICollectionViewDelegate` protocol.
@@ -365,3 +373,22 @@ open class DTCollectionViewDelegate: DTCollectionViewDelegateWrapper, UICollecti
                                                                                   minimumInteritemSpacingForSectionAt: section) ?? defaultInterItemSpacing ?? 0
     }
 }
+
+#if canImport(TVUIKit)
+import TVUIKit
+
+@available(tvOS 13.0, *)
+extension DTCollectionViewDelegate : TVCollectionViewDelegateFullScreenLayout {
+    /// Implementation of `TVCollectionViewDelegateFullScreenLayout` protocol.
+    public func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, willCenterCellAt indexPath: IndexPath) {
+        _ = performCellReaction(.willCenterCellAtIndexPath, location: indexPath, provideCell: true)
+        (delegate as? TVCollectionViewDelegateFullScreenLayout)?.collectionView?(collectionView, layout: collectionViewLayout, willCenterCellAt: indexPath)
+    }
+    
+    /// Implementation of `TVCollectionViewDelegateFullScreenLayout` protocol.
+    public func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, didCenterCellAt indexPath: IndexPath) {
+        _ = performCellReaction(.didCenterCellAtIndexPath, location: indexPath, provideCell: true)
+        (delegate as? TVCollectionViewDelegateFullScreenLayout)?.collectionView?(collectionView, layout: collectionViewLayout, didCenterCellAt: indexPath)
+    }
+}
+#endif

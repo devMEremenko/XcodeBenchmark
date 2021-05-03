@@ -7,7 +7,51 @@ You are probably familiar with the following question:
 
 I believe the results will help developers to make the right *cost/performance* trade-off decision when choosing their next Mac.
 
-## Score
+## Xcode 12.5 or above
+
+|        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
+|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
+| MacBook Pro 15" 2015 |    i7 2.5 GHz 4-core    |  16 | 512 |     |  12.5 | 11.2.3  |    361    |
+
+
+## Xcode 12
+
+|        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
+|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
+|     Mac Pro 2019     |  Xeon 2.5 GHz 28-core   |  96 | 4TB |     |  12.2 | 11.0.1  |    90     |
+|     Mac mini 2020    |      Apple M1 8-core    |  16 | 1TB |     |  12.2 |   11.0  |    116    |
+| MacBook Pro 13" 2020 |      Apple M1 8-core    |  16 | 1TB |     |  12.2 |   11.0  |    117    |
+| MacBook Air 13" 2020 |  Apple M1 8c (8c GPU)   |  16 | 512 |     |  12.2 | 11.0.1  |    128    |
+|     Mac mini 2020    |      Apple M1 8-core    |   8 | 256 |     |  12.2 | 11.0.1  |    130    |
+| MacBook Air 13" 2020 |  Apple M1 8c (7c GPU)   |   8 | 256 |     |  12.2 | 11.0.1  |    137    |
+|     iMac 27" 2019    |    i9 3.6 GHz 8-core    |  64 | 2TB |     |  12.1 | 11.0.1  |    145    |
+|     iMac 27" 2020    |    i9 3.6 GHz 10-core   | 128 | 1TB |     |  12.2 | 11.0.1  |    146    |
+|   iMac Pro 27" 2017  |   Xeon 3.2 GHz 8-Core   |  32 | 1TB |     |  12.2 | 10.15.7 |    158    |
+|     iMac 27" 2019    |    i9 3.6 GHz 8-core    |  40 | 512 |     |  12.2 | 11.0.1  |    163    |
+| MacBook Pro 16" 2019 |    i9 2.4 GHz 8-core    |  32 | 512 |     |  12.2 | 11.0.1  |    176    |
+|     Mac mini 2018    |    i7 3.2 GHz 6-core    |  32 | 512 |     |  12.2 | 11.0.1  |    192    |
+| MacBook Pro 16" 2019 |    i9 2.3 GHz 8-core    |  32 | 1TB |     |  12.2 | 11.0.1  |    221    |
+|     Mac mini 2018    |    i7 3.2 GHz 6-core    |  16 | 1TB |     |  12.0 | 10.15.5 |    228    |
+|     iMac 27" 2017    |    i7 4.2 GHz 4-core    |  16 | 1TB |     |  12.2 | 11.0.1  |    246    |
+| MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  12.2 | 11.0.1  |    250    |
+| MacBook Pro 13" 2020 |    i5 2.0 GHz 4-core    |  16 | 1TB |     |  12.2 | 11.0.1  |    265    |
+| MacBook Pro 15" 2017 |    i7 2.8 GHz 4-core    |  16 | 256 |     |  12.2 | 11.0.1  |    282    |
+| MacBook Pro 15" 2015 |    i7 2.2 GHz 4-core    |  16 | 256 |     |  12.1 | 11.0.1  |    324    |
+| MacBook Pro 15" 2015 |    i7 2.2 GHz 4-core    |  16 | 256 |     |  12.1 | 10.15.5 |    334    |
+| MacBook Pro 15" 2014 |    i7 2.5 GHz 4-core    |  16 | 256 |     |  12.2 | 10.15.7 |    343    |
+| MacBook Pro 15" 2013 |    i7 2.3 GHz 4-core    |  16 | 512 |     |  12.2 | 10.15.7 |    374    |
+|     iMac 27" 2011    |    i7 3.4 GHz 4-core    |  16 | 250 |     |  12.1 | 10.15.7 |    378    |
+| MacBook Pro 13" 2017 |    i5 2.3 GHz 2-core    |  16 | 256 |     |  12.2 | 11.0.1  |    448    |
+| MacBook Pro 13" 2016 |    i5 2.9 GHz 2-core    |   8 | 256 |     |  12.2 | 11.0.1  |    518    |
+| MacBook Pro 13" 2016 |    i5 2.0 GHz 2-core    |   8 | 256 |     |  12.2 | 11.0.1  |    574    |
+| MacBook Pro 13" 2015 |    i5 2.7 Ghz 2-core    |   8 | 512 |     |  12.2 | 10.15.7 |    597    |
+| MacBook Air 13" 2015 |    i7 2.2 Ghz 2-core    |   8 | 256 |     |  12.0 | 10.15.7 |    610    |
+| MacBook Air 13" 2020 |    i3 1.1 GHz 2-core    |   8 | 256 |     |  12.2 | 11.0.1  |    700    |
+|    iMac 21.5" 2017   |    i5 3.0 GHz 4-core    |  16 |     | 1TB |  12.2 | 11.0.1  |    725    |
+|   MacBook Air 2014   |    i5 1.4 GHz 2-core    |   4 | 128 |     |  12.2 | 11.0.1  |    894    |
+
+
+## Xcode 11
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
@@ -18,21 +62,53 @@ I believe the results will help developers to make the right *cost/performance* 
 |     iMac 27" 2019    |    i9 3.6 GHz 8-core    |  64 | 2TB |     |  11.6 | 10.15.6 |    252    |
 |   iMac Pro 27" 2017  |   Xeon 3.2 GHz 8-core   |  32 | 1TB |     |  11.6 | 10.15.6 |    263    |
 |     Mac Mini 2018    |    i7 3.2 GHz 6-core    |  16 | 512 |     |  11.7 | 10.15.5 |    300    |
-|       Ryzentosh      |  R5 3600 3.6 Ghz 6-core |  16 | 1TB |     |  11.7 | 10.15.6 |    312    |
 | MacBook Pro 16" 2019 |    i9 2.3 GHz 8-core    |  32 | 2TB |     |  11.6 | 10.15.6 |    328    |
 | MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  11.6 | 10.15.6 |    353    |
 |     Mac Mini 2018    | i5-8500B 3.0 GHz 6-core |  8  | 512 |     |  11.7 | 10.15.6 |    383    |
-|      Hackintosh      |  i5-8400 2.8 Ghz 6-core |  32 | 512 |     |  11.6 | 10.15.6 |    409    |
 |     iMac 27" 2017    |    i7 4.2 GHz 4-core    |  48 | 2TB |     |  11.7 | 10.15.6 |    411    |
 |    iMac 21.5" 2017   |  i7-7700 3.6 GHz 4-core |  16 | 1TB |     |  11.7 | 10.16.6 |    419    |
 | MacBook Pro 15" 2018 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  11.6 | 10.15.6 |    440    |
 |     Mac Pro 2013     |E5-1650 v2 3.5 GHz 6-core|  32 | 1TB |     |  11.7 | 10.15.6 |    518    |
 | MacBook Pro 15" 2017 |    i7 2.9 GHz 4-core    |  16 | 512 |     |  11.6 | 10.15.6 |    583    |
-| MacBook Pro 15" 2015 |    i7 2.2 GHz 4-core    |  16 | 265 |     |  11.7 | 10.15.6 |    594    |
+| MacBook Pro 15" 2015 |    i7 2.2 GHz 4-core    |  16 | 256 |     |  11.7 | 10.15.6 |    594    |
 | MacBook Pro 15" 2016 |    i7 2.7 GHz 4-core    |  16 | 1TB |     |  11.7 | 10.15.6 |    642    |
 |     Mac Mini 2014    |    i5 2.6 GHz 2-core    |  8  |     | 1TB |  11.7 | 10.15.6 |    1193   |
 
+
+## Custom Hardware - Xcode 12.5 or above
+
+|        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |    Comments    |
+|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|----------------|
+
+
+## Custom Hardware - Xcode 12
+
+|        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |    Comments    |
+|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|----------------|
+|      Hackintosh      |i9-10850K 3.6 Ghz 10-core|  64 | 1TB |     |  12.2 | 10.15.7 |    113    |                |
+|      Hackintosh      |i9-10900k 3.7 Ghz 10-core|  64 | 512 | 6TB |  12.2 | 11.0.1  |    122    |                |
+|   NLEstation 2020    |    i9 3.6 GHz 8-core    |  64 | 1TB |     |  12.2 | 10.15.7 |    129    |                |
+|      Hackintosh      |i7-10700K 3.8 Ghz 8-core |  32 | 1TB |     |  12.2 | 10.15.7 |    130    |                |
+|      Hackintosh      |AMD 3800x 4.2 Ghz 8-core |  64 | 1TB |     |  12.2 | 10.15.6 |    137    |                |
+|       Ryzentosh      | R9 3900 3.8 Ghz 12-core |  32 | 512 |     |  12.1 | 10.15.4 |    161    |                |
+|       Ryzentosh      |  R5 3600 3.6 Ghz 6-core |  16 | 512 |     |  12.3 | 10.15.7 |    175    |                |
+|      Hackintosh      |  i5-9400 2.9 Ghz 6-core |  32 | 512 | 2TB |  12.1 | 10.15.7 |    191    |                |
+|      Hackintosh      | i3-10100 3.6 Ghz 4-core |  32 | 1TB |     |  12.1 | 10.15.7 |    233    |                |
+|      Hackintosh      | i7-4770K 3.5 Ghz 4-core |  16 | 2TB | 8TB |  12.2 | 10.15.7 |    276    |                |
+|       QEMU VM        |   Xeon 1.8 Ghz 4-core   |  8  | 32  |     |  12.2 | 10.15.7 |    775    |                |
+
+
+## Custom Hardware - Xcode 11
+
+|        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |    Comments    |
+|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|----------------|
+|      Hackintosh      |  i5-8400 2.8 Ghz 6-core |  32 | 512 |     |  11.6 | 10.15.6 |    409    |                |
+|       Ryzentosh      |  R5 3600 3.6 Ghz 6-core |  16 | 1TB |     |  11.7 | 10.15.6 |    312    |                |
+
+
 ## Set up
+
+**Since May 3, 2021, XcodeBenchmark must be used with Xcode 12.5 or above.**
 
 - Download and install [Xcode](https://apps.apple.com/us/app/xcode/id497799835).
 - Open Xcode and install `additional tools` (Xcode should suggest it automatically).
@@ -89,19 +165,24 @@ A framework that includes **42** popular CocoaPods libraries and **70+** depende
 **Q: Will it affect my other Xcode projects?**
 - A separate build folder is created for the benchmark run that is then deleted after it finishes. The folder goes to about 2.5GB.
 
+## YouTubers and bloggers
+
+You are free to use these results in your videos and articles as well as to run XcodeBenchmark to compare Macs.
+Please make sure to add [the link](https://github.com/devMEremenko/XcodeBenchmark/) to this repository.
+
+
 ## Contribution
 
-- **Preferred:** [Submit a pull request](https://github.com/devMEremenko/XcodeBenchmark/pulls) and add a row to the `Score` section.  
-- [Open an issue](https://github.com/devMEremenko/XcodeBenchmark/issues/new/choose) and include all info to fill the `Score` section if you cannot submit a pull request.
+**Since May 3, 2021, XcodeBenchmark must be used with Xcode 12.5 or above.**
+
+- **If you have any non-Apple hardware components - submit your results to the `Custom Hardware` table.**
+- [Submit a pull request](https://github.com/devMEremenko/XcodeBenchmark/pulls).  
 
 Make sure:
 - [All steps](https://github.com/devMEremenko/XcodeBenchmark#before-each-test) are performed
 - `Time` column is still sorted after insertion.
-- You are added to the end of the [Contributors](https://github.com/devMEremenko/XcodeBenchmark#contributors) list.
 - Attach a screenshot with a compilation time. [Example](img/contribution-example.png).
-- The content in cells is centered. You can use [this tool](https://www.tablesgenerator.com/markdown_tables) to edit a table.
-    - File -> Paste table data
-    - Select all cells -> Right click -> Text align -> Center
+- The content in cells is centered.
 
 ## Contributors
 
@@ -119,3 +200,39 @@ Make sure:
 - [@Kuluum](https://github.com/Kuluum)
 - [@villy21](https://github.com/Villy21)
 - [@zhi6w](https://github.com/zhi6w)
+- [@soorinpark](https://github.com/soorinpark)
+- [@igorkulman](https://github.com/igorkulman)
+- [@matopeto](https://github.com/matopeto)
+- [@morid1n](https://twitter.com/morid1n)
+- [@passatgt](https://github.com/passatgt)
+- [@ignatovsa](https://github.com/ignatovsa)
+- [@azonov](https://github.com/azonov)
+- [@euwars](https://twitter.com/euwars)
+- [@samadipour](https://github.com/samadipour)
+- [@dmcrodrigues](https://github.com/dmcrodrigues)
+- [@MeshkaniMohammad](https://github.com/MeshkaniMohammad)
+- [@CasperNEw](https://github.com/CasperNEw)
+- [@iOSleep](https://github.com/iOSleep)
+- [@iPader](https://github.com/ipader)
+- [@boltomli](https://github.com/boltomli)
+- [@Jimmy-Lee](https://github.com/Jimmy-Lee)
+- [@kotalab](https://github.com/kotalab)
+- [@valeriyvan](https://github.com/valeriyvan)
+- [@twlatl](https://github.com/twlatl)
+- [@ypwhs](https://github.com/ypwhs)
+- [@freeubi](https://github.com/freeubi)
+- [@bariscck](https://github.com/bariscck)
+- [@thisura98](https://github.com/Thisura98)
+- [@vitallii-t](https://github.com/vitallii-t)
+- [@kenji21](https://github.com/kenji21)
+- [@hornmichaels](https://github.com/hornmichaels)
+- [@sahilsatralkar](https://github.com/sahilsatralkar)
+- [@idevid](https://github.com/idevid)
+- [@vincentneo](https://github.com/vincentneo)
+- [@BradPatras](https://github.com/BradPatras)
+- [@LightFocus](https://github.com/lightfocus)
+- [@pablosichert](https://github.com/pablosichert)
+- [@vm-tester](https://github.com/vm-tester)
+- [@rursache](https://github.com/rursache)
+- [@wendyliga](https://github.com/wendyliga)
+- [@mlch911](https://github.com/mlch911)
