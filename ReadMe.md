@@ -11,6 +11,7 @@ I believe the results will help developers to make the right *cost/performance* 
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
+| MacBook Air 13" 2020 |    Apple M1 8-core      |  16 | 256 |     |  12.5 | 11.2.2  |    127    |
 | MacBook Pro 15" 2015 |    i7 2.5 GHz 4-core    |  16 | 512 |     |  12.5 | 11.2.3  |    361    |
 
 
