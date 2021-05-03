@@ -7,6 +7,13 @@ You are probably familiar with the following question:
 
 I believe the results will help developers to make the right *cost/performance* trade-off decision when choosing their next Mac.
 
+## Xcode 12.5 or above
+
+|        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
+|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
+| MacBook Pro 15" 2015 |    i7 2.5 GHz 4-core    |  16 | 512 |     |  12.5 | 11.2.3  |    361    |
+
+
 ## Xcode 12
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
@@ -43,6 +50,7 @@ I believe the results will help developers to make the right *cost/performance* 
 |    iMac 21.5" 2017   |    i5 3.0 GHz 4-core    |  16 |     | 1TB |  12.2 | 11.0.1  |    725    |
 |   MacBook Air 2014   |    i5 1.4 GHz 2-core    |   4 | 128 |     |  12.2 | 11.0.1  |    894    |
 
+
 ## Xcode 11
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
@@ -62,9 +70,16 @@ I believe the results will help developers to make the right *cost/performance* 
 | MacBook Pro 15" 2018 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  11.6 | 10.15.6 |    440    |
 |     Mac Pro 2013     |E5-1650 v2 3.5 GHz 6-core|  32 | 1TB |     |  11.7 | 10.15.6 |    518    |
 | MacBook Pro 15" 2017 |    i7 2.9 GHz 4-core    |  16 | 512 |     |  11.6 | 10.15.6 |    583    |
-| MacBook Pro 15" 2015 |    i7 2.2 GHz 4-core    |  16 | 265 |     |  11.7 | 10.15.6 |    594    |
+| MacBook Pro 15" 2015 |    i7 2.2 GHz 4-core    |  16 | 256 |     |  11.7 | 10.15.6 |    594    |
 | MacBook Pro 15" 2016 |    i7 2.7 GHz 4-core    |  16 | 1TB |     |  11.7 | 10.15.6 |    642    |
 |     Mac Mini 2014    |    i5 2.6 GHz 2-core    |  8  |     | 1TB |  11.7 | 10.15.6 |    1193   |
+
+
+## Custom Hardware - Xcode 12.5 or above
+
+|        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |    Comments    |
+|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|----------------|
+
 
 ## Custom Hardware - Xcode 12
 
@@ -82,6 +97,7 @@ I believe the results will help developers to make the right *cost/performance* 
 |      Hackintosh      | i7-4770K 3.5 Ghz 4-core |  16 | 2TB | 8TB |  12.2 | 10.15.7 |    276    |                |
 |       QEMU VM        |   Xeon 1.8 Ghz 4-core   |  8  | 32  |     |  12.2 | 10.15.7 |    775    |                |
 
+
 ## Custom Hardware - Xcode 11
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |    Comments    |
@@ -89,7 +105,10 @@ I believe the results will help developers to make the right *cost/performance* 
 |      Hackintosh      |  i5-8400 2.8 Ghz 6-core |  32 | 512 |     |  11.6 | 10.15.6 |    409    |                |
 |       Ryzentosh      |  R5 3600 3.6 Ghz 6-core |  16 | 1TB |     |  11.7 | 10.15.6 |    312    |                |
 
+
 ## Set up
+
+**Since May 3, 2021, XcodeBenchmark must be used with Xcode 12.5 or above.**
 
 - Download and install [Xcode](https://apps.apple.com/us/app/xcode/id497799835).
 - Open Xcode and install `additional tools` (Xcode should suggest it automatically).
@@ -150,25 +169,16 @@ Please make sure to add [the link](https://github.com/devMEremenko/XcodeBenchmar
 
 ## Contribution
 
+**Since May 3, 2021, XcodeBenchmark must be used with Xcode 12.5 or above.**
+
 - **If you have any non-Apple hardware components - submit your results to the `Custom Hardware` table.**
-- **Preferred:** [Submit a pull request](https://github.com/devMEremenko/XcodeBenchmark/pulls) and add a row to the `Score` section.  
-- [Open an issue](https://github.com/devMEremenko/XcodeBenchmark/issues/new/choose) and include all info in the following format:
-```
-|        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |    Comments    |
-|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|----------------|
-|     Mac Pro 2019     |  Xeon 2.5 GHz 28-core   |  96 | 4TB |     |  12.2 | 11.0.1  |    90     |                |
-| MacBook Air 13" 2020 |  Apple M1 8c (8c GPU)   |  16 | 512 |     |  12.2 | 11.0.1  |    128    |                |
-|     Mac Mini 2018    |    i7 3.2 GHz 6-core    |  16 | 512 |     |  11.7 | 10.15.5 |    300    |                |
-```
+- [Submit a pull request](https://github.com/devMEremenko/XcodeBenchmark/pulls).  
 
 Make sure:
 - [All steps](https://github.com/devMEremenko/XcodeBenchmark#before-each-test) are performed
 - `Time` column is still sorted after insertion.
-- You are added to the end of the [Contributors](https://github.com/devMEremenko/XcodeBenchmark#contributors) list.
 - Attach a screenshot with a compilation time. [Example](img/contribution-example.png).
-- The content in cells is centered. You can use [this tool](https://www.tablesgenerator.com/markdown_tables) to edit a table.
-    - File -> Paste table data
-    - Select all cells -> Right click -> Text align -> Center
+- The content in cells is centered.
 
 ## Contributors
 
