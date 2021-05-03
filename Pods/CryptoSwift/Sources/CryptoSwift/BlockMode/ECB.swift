@@ -18,11 +18,12 @@
 
 public struct ECB: BlockMode {
   public let options: BlockModeOption = .paddingRequired
+  public let customBlockSize: Int? = nil
 
   public init() {
   }
 
-  public func worker(blockSize: Int, cipherOperation: @escaping CipherOperationOnBlock) throws -> CipherModeWorker {
+  public func worker(blockSize: Int, cipherOperation: @escaping CipherOperationOnBlock, encryptionOperation: @escaping CipherOperationOnBlock) throws -> CipherModeWorker {
     ECBModeWorker(blockSize: blockSize, cipherOperation: cipherOperation)
   }
 }
@@ -38,6 +39,7 @@ struct ECBModeWorker: BlockModeWorker {
     self.cipherOperation = cipherOperation
   }
 
+  @inlinable
   mutating func encrypt(block plaintext: ArraySlice<UInt8>) -> Array<UInt8> {
     guard let ciphertext = cipherOperation(plaintext) else {
       return Array(plaintext)

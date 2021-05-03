@@ -29,7 +29,7 @@ target 'XcodeBenchmark' do
   pod 'MagicalRecord', :git => 'https://github.com/magicalpanda/MagicalRecord'
   pod 'RxBluetoothKit'
   pod 'ReactiveCocoa', '~> 10.1'
-  pod 'CryptoSwift', '~> 1.0'
+  pod 'CryptoSwift', '~> 1.4.0'
   pod 'R.swift.Library'
   pod 'ObjectMapper'
   
