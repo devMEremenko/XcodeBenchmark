@@ -79,6 +79,7 @@ I believe the results will help developers to make the right *cost/performance* 
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |    Comments    |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|----------------|
+|      Hackintosh      |i9-10850K 3.6 (5.0 OC locked) Ghz 10-core|  32 (3200 Mhz dual channel) | 512GB |     |  12.5 | 11.3.1 |    117    |                |
 
 
 ## Custom Hardware - Xcode 12
