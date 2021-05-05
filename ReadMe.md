@@ -96,6 +96,7 @@ I believe the results will help developers to make the right *cost/performance* 
 |      Hackintosh      | i3-10100 3.6 Ghz 4-core |  32 | 1TB |     |  12.1 | 10.15.7 |    233    |                |
 |      Hackintosh      | i7-4770K 3.5 Ghz 4-core |  16 | 2TB | 8TB |  12.2 | 10.15.7 |    276    |                |
 |       QEMU VM        |   Xeon 1.8 Ghz 4-core   |  8  | 32  |     |  12.2 | 10.15.7 |    775    |                |
+|      Hackintosh      |i5-5300U 2.30 Ghz 2-Core |  16 | 128 |     |  12.2 | 10.15.7 |    779    |                |
 
 
 ## Custom Hardware - Xcode 11
@@ -236,3 +237,4 @@ Make sure:
 - [@rursache](https://github.com/rursache)
 - [@wendyliga](https://github.com/wendyliga)
 - [@mlch911](https://github.com/mlch911)
+- [@KAnggara75](https://github.com/KAnggara75)
