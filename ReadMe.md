@@ -11,8 +11,8 @@ I believe the results will help developers to make the right *cost/performance* 
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
-| MacBook Pro 13" 2020 |    i5 2.0 GHz 4-core    |  16 | 512 |     |  12.5 | 11.3.1  |    284    |
-| MacBook Pro 13" 2019 |    i5 2.4 GHz 4-core    |  16 | 256 |     |  12.5 | 11.3.1  |    297    |
+| MacBook Pro 13" 2020 |    i5 2.0 GHz 4-core    |  16 | 512 |     |  12.5 | 11.3.1  |    280    |
+| MacBook Pro 13" 2019 |    i5 2.4 GHz 4-core    |  16 | 256 |     |  12.5 | 11.3.1  |    286    |
 | MacBook Pro 15" 2015 |    i7 2.5 GHz 4-core    |  16 | 512 |     |  12.5 | 11.2.3  |    361    |
 
 
