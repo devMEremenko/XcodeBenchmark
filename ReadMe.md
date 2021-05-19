@@ -79,6 +79,7 @@ I believe the results will help developers to make the right *cost/performance* 
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |    Comments    |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|----------------|
+|      Hackintosh      |i9-9900kf 3.6 GHz 8-core |  16 | 512 | 2TB |  12.5 |  11.2.1 |    192    |                |
 
 
 ## Custom Hardware - Xcode 12
