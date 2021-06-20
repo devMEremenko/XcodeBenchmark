@@ -79,7 +79,7 @@ I believe the results will help developers to make the right *cost/performance* 
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |    Comments    |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|----------------|
-
+|       Ryzentosh      |  R5 3600 3.6 Ghz 6-core |  16 | 512 |     |  12.5 |  11.2   |    220    |                |
 
 ## Custom Hardware - Xcode 12
 
