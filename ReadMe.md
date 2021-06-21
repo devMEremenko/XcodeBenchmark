@@ -79,6 +79,7 @@ I believe the results will help developers to make the right *cost/performance* 
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |    Comments    |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|----------------|
+|      Hackintosh      |E5-2678v3 2.5 Ghz 12-core|  32 | 1TB |     |  12.5 |    11.2 |    155    |                |
 
 
 ## Custom Hardware - Xcode 12
