@@ -120,10 +120,10 @@ I believe the results will help developers to make the right *cost/performance* 
 2. Make sure to disable all software running at startup
     - Go to `System Preferences` -> `Users and Groups` -> `User` -> `Login Items`.
     - Empty the list.
-3. Update `Energy Saver` settings 
-	- Go to `System Preferences` -> `Energy Saver` -> `Turn display off`  and set 15 min.
+3. Update `Battery` settings 
+    - Go to `System Preferences` -> `Battery` -> `Battery/Power Adapter` -> `Turn display off`  and set 15 min.
 3. Reboot and cool down your Mac.
-4. Connect to the power adapter if you use MacBook.
+4. Connect to the power adapter if you're using a MacBook.
 
 ## Running a test
 
