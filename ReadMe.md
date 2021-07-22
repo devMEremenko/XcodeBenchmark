@@ -12,6 +12,7 @@ I believe the results will help developers to make the right *cost/performance* 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
 | MacBook Pro 15" 2015 |    i7 2.5 GHz 4-core    |  16 | 512 |     |  12.5 | 11.2.3  |    361    |
+| MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  12.5 |   11.4  |    282    |
 
 
 ## Xcode 12
