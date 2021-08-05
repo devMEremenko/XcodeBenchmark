@@ -77,8 +77,9 @@ I believe the results will help developers to make the right *cost/performance* 
 
 ## Custom Hardware - Xcode 12.5 or above
 
-|        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |    Comments    |
-|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|----------------|
+|        Device        |           CPU           | RAM | SSD | HDD |  Xcode  |  macOS  | Time(sec) |    Comments    |
+|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-------:|:-------:|:---------:|----------------|
+|      Hackintosh      | i7-9700K 3.6 Ghz 8-core |  16 | 512 | 2TB |  12.5.1 |  11.4   |    177    |
 
 
 ## Custom Hardware - Xcode 12
@@ -121,7 +122,7 @@ I believe the results will help developers to make the right *cost/performance* 
     - Go to `System Preferences` -> `Users and Groups` -> `User` -> `Login Items`.
     - Empty the list.
 3. Update `Energy Saver` settings 
-	- Go to `System Preferences` -> `Energy Saver` -> `Turn display off`  and set 15 min.
+    - Go to `System Preferences` -> `Energy Saver` -> `Turn display off`  and set 15 min.
 3. Reboot and cool down your Mac.
 4. Connect to the power adapter if you use MacBook.
 
