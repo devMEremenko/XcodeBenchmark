@@ -50,6 +50,7 @@ I believe the results will help developers to make the right *cost/performance* 
 | MacBook Air 13" 2020 |    i3 1.1 GHz 2-core    |   8 | 256 |     |  12.2 | 11.0.1  |    700    |
 |    iMac 21.5" 2017   |    i5 3.0 GHz 4-core    |  16 |     | 1TB |  12.2 | 11.0.1  |    725    |
 |   MacBook Air 2014   |    i5 1.4 GHz 2-core    |   4 | 128 |     |  12.2 | 11.0.1  |    894    |
+|   MacBook Pro 2010   |    i5 2.4 GHz 2-core    |   8 | 480 |     |  12.4 | 10.15.7 |   1043    |
 
 
 ## Xcode 11
