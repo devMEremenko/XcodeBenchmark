@@ -7,7 +7,18 @@ You are probably familiar with the following question:
 
 I believe the results will help developers to make the right *cost/performance* trade-off decision when choosing their next Mac.
 
-## Xcode 12.5 or above
+## Note
+PR merging will be performed on a best-effort basis.
+If a device you are looking for is not on the below list, check out open [issues](https://github.com/devMEremenko/XcodeBenchmark/issues) and [PRs](https://github.com/devMEremenko/XcodeBenchmark/pulls).
+
+## Xcode 13.0 or above
+
+|        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
+|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
+| MacBook Pro 16 2019  |    i7 2.6 GHz 6-core    |  32 | 512 |     |  13.0 |  11.6   |    248    |
+
+
+## Xcode 12.5
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
@@ -108,7 +119,7 @@ I believe the results will help developers to make the right *cost/performance* 
 
 ## Set up
 
-**Since May 3, 2021, XcodeBenchmark must be used with Xcode 12.5 or above.**
+**Since Oct 23, 2021, XcodeBenchmark only supports Xcode 13.0 or above.**
 
 - Download and install [Xcode](https://apps.apple.com/us/app/xcode/id497799835).
 - Open Xcode and install `additional tools` (Xcode should suggest it automatically).
