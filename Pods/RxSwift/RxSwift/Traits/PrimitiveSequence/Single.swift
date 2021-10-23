@@ -14,14 +14,7 @@ import Foundation
 public enum SingleTrait { }
 /// Represents a push style sequence containing 1 element.
 public typealias Single<Element> = PrimitiveSequence<SingleTrait, Element>
-
-public enum SingleEvent<Element> {
-    /// One and only sequence element is produced. (underlying observable sequence emits: `.next(Element)`, `.completed`)
-    case success(Element)
-    
-    /// Sequence terminated with an error. (underlying observable sequence emits: `.error(Error)`)
-    case error(Swift.Error)
-}
+public typealias SingleEvent<Element> = Result<Element, Swift.Error>
 
 extension PrimitiveSequenceType where Trait == SingleTrait {
     public typealias SingleObserver = (SingleEvent<Element>) -> Void
@@ -41,7 +34,7 @@ extension PrimitiveSequenceType where Trait == SingleTrait {
                 case .success(let element):
                     observer.on(.next(element))
                     observer.on(.completed)
-                case .error(let error):
+                case .failure(let error):
                     observer.on(.error(error))
                 }
             }
@@ -49,7 +42,6 @@ extension PrimitiveSequenceType where Trait == SingleTrait {
         
         return PrimitiveSequence(raw: source)
     }
-    
     
     /**
      Subscribes `observer` to receive events for this sequence.
@@ -66,39 +58,109 @@ extension PrimitiveSequenceType where Trait == SingleTrait {
             case .next(let element):
                 observer(.success(element))
             case .error(let error):
-                observer(.error(error))
+                observer(.failure(error))
             case .completed:
                 rxFatalErrorInDebug("Singles can't emit a completion event")
             }
         }
+    }
+
+    /**
+     Subscribes a success handler, and an error handler for this sequence.
+
+     - parameter onSuccess: Action to invoke for each element in the observable sequence.
+     - parameter onError: Action to invoke upon errored termination of the observable sequence.
+     - parameter onDisposed: Action to invoke upon any type of termination of sequence (if the sequence has
+     gracefully completed, errored, or if the generation is canceled by disposing subscription).
+     - returns: Subscription object used to unsubscribe from the observable sequence.
+     */
+    @available(*, deprecated, renamed: "subscribe(onSuccess:onFailure:onDisposed:)")
+    public func subscribe(onSuccess: ((Element) -> Void)? = nil,
+                          onError: @escaping ((Swift.Error) -> Void),
+                          onDisposed: (() -> Void)? = nil) -> Disposable {
+        subscribe(onSuccess: onSuccess, onFailure: onError, onDisposed: onDisposed)
+    }
+    
+    /**
+     Subscribes a success handler, and an error handler for this sequence.
+     
+     Also, take in an object and provide an unretained, safe to use (i.e. not implicitly unwrapped), reference to it along with the events emitted by the sequence.
+     
+     - Note: If `object` can't be retained, none of the other closures will be invoked.
+     
+     - parameter object: The object to provide an unretained reference on.
+     - parameter onSuccess: Action to invoke for each element in the observable sequence.
+     - parameter onFailure: Action to invoke upon errored termination of the observable sequence.
+     - parameter onDisposed: Action to invoke upon any type of termination of sequence (if the sequence has
+     gracefully completed, errored, or if the generation is canceled by disposing subscription).
+     - returns: Subscription object used to unsubscribe from the observable sequence.
+     */
+    public func subscribe<Object: AnyObject>(
+        with object: Object,
+        onSuccess: ((Object, Element) -> Void)? = nil,
+        onFailure: ((Object, Swift.Error) -> Void)? = nil,
+        onDisposed: ((Object) -> Void)? = nil
+    ) -> Disposable {
+        subscribe(
+            onSuccess: { [weak object] in
+                guard let object = object else { return }
+                onSuccess?(object, $0)
+            },
+            onFailure: { [weak object] in
+                guard let object = object else { return }
+                onFailure?(object, $0)
+            },
+            onDisposed: { [weak object] in
+                guard let object = object else { return }
+                onDisposed?(object)
+            }
+        )
     }
     
     /**
      Subscribes a success handler, and an error handler for this sequence.
      
      - parameter onSuccess: Action to invoke for each element in the observable sequence.
-     - parameter onError: Action to invoke upon errored termination of the observable sequence.
+     - parameter onFailure: Action to invoke upon errored termination of the observable sequence.
+     - parameter onDisposed: Action to invoke upon any type of termination of sequence (if the sequence has
+     gracefully completed, errored, or if the generation is canceled by disposing subscription).
      - returns: Subscription object used to unsubscribe from the observable sequence.
      */
-    public func subscribe(onSuccess: ((Element) -> Void)? = nil, onError: ((Swift.Error) -> Void)? = nil) -> Disposable {
+    public func subscribe(onSuccess: ((Element) -> Void)? = nil,
+                          onFailure: ((Swift.Error) -> Void)? = nil,
+                          onDisposed: (() -> Void)? = nil) -> Disposable {
         #if DEBUG
-             let callStack = Hooks.recordCallStackOnError ? Thread.callStackSymbols : []
+            let callStack = Hooks.recordCallStackOnError ? Thread.callStackSymbols : []
         #else
             let callStack = [String]()
         #endif
-    
-        return self.primitiveSequence.subscribe { event in
+
+        let disposable: Disposable
+        if let onDisposed = onDisposed {
+            disposable = Disposables.create(with: onDisposed)
+        } else {
+            disposable = Disposables.create()
+        }
+
+        let observer: SingleObserver = { event in
             switch event {
             case .success(let element):
                 onSuccess?(element)
-            case .error(let error):
-                if let onError = onError {
-                    onError(error)
+                disposable.dispose()
+            case .failure(let error):
+                if let onFailure = onFailure {
+                    onFailure(error)
                 } else {
                     Hooks.defaultErrorHandler(callStack, error)
                 }
+                disposable.dispose()
             }
         }
+
+        return Disposables.create(
+            self.primitiveSequence.subscribe(observer),
+            disposable
+        )
     }
 }
 
@@ -112,7 +174,7 @@ extension PrimitiveSequenceType where Trait == SingleTrait {
      - returns: An observable sequence containing the single specified element.
      */
     public static func just(_ element: Element) -> Single<Element> {
-        return Single(raw: Observable.just(element))
+        Single(raw: Observable.just(element))
     }
     
     /**
@@ -125,7 +187,7 @@ extension PrimitiveSequenceType where Trait == SingleTrait {
      - returns: An observable sequence containing the single specified element.
      */
     public static func just(_ element: Element, scheduler: ImmediateSchedulerType) -> Single<Element> {
-        return Single(raw: Observable.just(element, scheduler: scheduler))
+        Single(raw: Observable.just(element, scheduler: scheduler))
     }
 
     /**
@@ -136,7 +198,7 @@ extension PrimitiveSequenceType where Trait == SingleTrait {
      - returns: The observable sequence that terminates with specified error.
      */
     public static func error(_ error: Swift.Error) -> Single<Element> {
-        return PrimitiveSequence(raw: Observable.error(error))
+        PrimitiveSequence(raw: Observable.error(error))
     }
 
     /**
@@ -147,7 +209,7 @@ extension PrimitiveSequenceType where Trait == SingleTrait {
      - returns: An observable sequence whose observers will never get called.
      */
     public static func never() -> Single<Element> {
-        return PrimitiveSequence(raw: Observable.never())
+        PrimitiveSequence(raw: Observable.never())
     }
 }
 
@@ -222,7 +284,7 @@ extension PrimitiveSequenceType where Trait == SingleTrait {
      */
     public func compactMap<Result>(_ transform: @escaping (Element) throws -> Result?)
         -> Maybe<Result> {
-        return Maybe(raw: self.primitiveSequence.source.compactMap(transform))
+        Maybe(raw: self.primitiveSequence.source.compactMap(transform))
     }
     
     /**
@@ -305,22 +367,37 @@ extension PrimitiveSequenceType where Trait == SingleTrait {
      - parameter element: Last element in an observable sequence in case error occurs.
      - returns: An observable sequence containing the source sequence's elements, followed by the `element` in case an error occurred.
      */
+    public func catchAndReturn(_ element: Element)
+        -> PrimitiveSequence<Trait, Element> {
+        PrimitiveSequence(raw: self.primitiveSequence.source.catchAndReturn(element))
+    }
+
+    /**
+     Continues an observable sequence that is terminated by an error with a single element.
+
+     - seealso: [catch operator on reactivex.io](http://reactivex.io/documentation/operators/catch.html)
+
+     - parameter element: Last element in an observable sequence in case error occurs.
+     - returns: An observable sequence containing the source sequence's elements, followed by the `element` in case an error occurred.
+     */
+    @available(*, deprecated, renamed: "catchAndReturn(_:)")
     public func catchErrorJustReturn(_ element: Element)
         -> PrimitiveSequence<Trait, Element> {
-        return PrimitiveSequence(raw: self.primitiveSequence.source.catchErrorJustReturn(element))
+        catchAndReturn(element)
     }
 
     /// Converts `self` to `Maybe` trait.
     ///
     /// - returns: Maybe trait that represents `self`.
     public func asMaybe() -> Maybe<Element> {
-        return Maybe(raw: self.primitiveSequence.source)
+        Maybe(raw: self.primitiveSequence.source)
     }
 
-    /// Converts `self` to `Completable` trait.
-    ///
+    /// Converts `self` to `Completable` trait, ignoring its emitted value if
+    /// one exists.
+    /// 
     /// - returns: Completable trait that represents `self`.
     public func asCompletable() -> Completable {
-        return self.primitiveSequence.source.ignoreElements()
+        self.primitiveSequence.source.ignoreElements().asCompletable()
     }
 }

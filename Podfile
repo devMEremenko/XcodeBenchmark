@@ -27,7 +27,7 @@ target 'XcodeBenchmark' do
   pod 'SwiftyJSON', '~> 4.0'
   pod 'Realm', '~> 5.3.4'
   pod 'MagicalRecord', :git => 'https://github.com/magicalpanda/MagicalRecord'
-  pod 'RxBluetoothKit'
+  pod 'RxBluetoothKit', :git => 'https://github.com/i-mobility/RxBluetoothKit.git', :tag => '7.0.2'
   pod 'ReactiveCocoa', '~> 10.1'
   pod 'CryptoSwift', '~> 1.4.0'
   pod 'R.swift.Library'
