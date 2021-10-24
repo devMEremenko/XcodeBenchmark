@@ -9,7 +9,7 @@ I believe the results will help developers to make the right *cost/performance* 
 
 ## Note
 PR merging will be performed on a best-effort basis.  
-If a device you are looking for is not on the below list, check out open [issues](https://github.com/devMEremenko/XcodeBenchmark/issues) and [PRs](https://github.com/devMEremenko/XcodeBenchmark/pulls).
+If a device you are looking for is not on the list below, check out open [issues](https://github.com/devMEremenko/XcodeBenchmark/issues) and [PRs](https://github.com/devMEremenko/XcodeBenchmark/pulls).
 
 ## Xcode 13.0 or above
 
