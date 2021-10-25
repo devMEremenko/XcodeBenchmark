@@ -16,6 +16,7 @@ If a device you are looking for is not on the list below, check out open [issues
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
 | MacBook Pro 16 2019  |    i7 2.6 GHz 6-core    |  32 | 512 |     |  13.0 |  11.6   |    248    |
+| MacBook Pro 13" 2018 |    i7 2.7 GHz 4-core    |   8 | 256 |     |  13.0 |  11.6   |    336    |
 
 
 ## Xcode 12.5
