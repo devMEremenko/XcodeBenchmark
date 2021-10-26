@@ -98,6 +98,7 @@ If a device you are looking for is not on the list below, check out open [issues
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |    Comments    |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|----------------|
+|      Hackintosh      |i9-9900kf 3.6 GHz 8-core |  16 | 512 | 2TB |  12.5 |  11.2.1 |    192    |                |
 
 
 ## Custom Hardware - Xcode 12
