@@ -98,7 +98,7 @@ If a device you are looking for is not on the list below, check out open [issues
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |    Comments    |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|----------------|
-
+|       Ryzentosh      |  R5 3600 3.6 Ghz 6-core |  16 | 512 |     |  12.5 |  11.2   |    220    |                |
 
 ## Custom Hardware - Xcode 12
 
