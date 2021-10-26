@@ -24,6 +24,8 @@ If a device you are looking for is not on the list below, check out open [issues
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
+| MacBook Pro 13" 2020 |    i5 2.0 GHz 4-core    |  16 | 512 |     |  12.5 | 11.3.1  |    280    |
+| MacBook Pro 13" 2019 |    i5 2.4 GHz 4-core    |  16 | 256 |     |  12.5 | 11.3.1  |    286    |
 | MacBook Pro 15" 2015 |    i7 2.5 GHz 4-core    |  16 | 512 |     |  12.5 | 11.2.3  |    361    |
 
 
@@ -249,3 +251,5 @@ Make sure:
 - [@rursache](https://github.com/rursache)
 - [@wendyliga](https://github.com/wendyliga)
 - [@mlch911](https://github.com/mlch911)
+- [@iivanu](https://github.com/iivanu)
+
