@@ -97,8 +97,9 @@ If a device you are looking for is not on the list below, check out open [issues
 
 ## Custom Hardware - Xcode 12.5 or above
 
-|        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |    Comments    |
-|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|----------------|
+|        Device        |           CPU           | RAM | SSD | HDD |  Xcode  |  macOS  | Time(sec) |    Comments    |
+|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-------:|:-------:|:---------:|----------------|
+|      Hackintosh      | i7-9700K 3.6 Ghz 8-core |  16 | 512 | 2TB |  12.5.1 |  11.4   |    177    |
 
 
 ## Custom Hardware - Xcode 12
