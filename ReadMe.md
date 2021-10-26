@@ -24,6 +24,7 @@ If a device you are looking for is not on the list below, check out open [issues
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
 | MacBook Pro 15" 2015 |    i7 2.5 GHz 4-core    |  16 | 512 |     |  12.5 | 11.2.3  |    361    |
+| MacBook Pro 13" 2017 |    i5 2.3 GHz 2-core    |  16 | 256 |     |  12.5 | 11.3.1  |    517    |
 
 
 ## Xcode 12
@@ -248,3 +249,4 @@ Make sure:
 - [@rursache](https://github.com/rursache)
 - [@wendyliga](https://github.com/wendyliga)
 - [@mlch911](https://github.com/mlch911)
+- [@itungdx](https://github.com/itungdx)
