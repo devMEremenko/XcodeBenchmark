@@ -98,6 +98,7 @@ If a device you are looking for is not on the list below, check out open [issues
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |    Comments    |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|----------------|
+|      Hackintosh      |E5-2678v3 2.5 Ghz 12-core|  32 | 1TB |     |  12.5 |    11.2 |    155    |                |
 
 
 ## Custom Hardware - Xcode 12
