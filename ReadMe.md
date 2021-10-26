@@ -25,7 +25,7 @@ If a device you are looking for is not on the list below, check out open [issues
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
-| iMac 24" 2021        |     Apple M1 8-core     |  16 | 512 |     |  12.5 | 12.0.1  |    124    |
+| iMac 24" 2021        |      Apple M1 8-core    |  16 | 512 |     |  12.5 | 12.0.1  |    124    |
 | MacBook Pro 15" 2015 |    i7 2.5 GHz 4-core    |  16 | 512 |     |  12.5 | 11.2.3  |    361    |
 
 
