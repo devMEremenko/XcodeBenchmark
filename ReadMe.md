@@ -7,24 +7,41 @@ You are probably familiar with the following question:
 
 I believe the results will help developers to make the right *cost/performance* trade-off decision when choosing their next Mac.
 
-## Xcode 12.5 or above
+## Note
+PR merging will be performed on a best-effort basis.  
+If a device you are looking for is not on the list below, check out open [issues](https://github.com/devMEremenko/XcodeBenchmark/issues) and [PRs](https://github.com/devMEremenko/XcodeBenchmark/pulls).
+
+## Xcode 13.0 or above
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
+| MacBook Pro 16" 2021 |      M1 Pro 10-core     |  16 | 1TB |     |  13.1 | 12.0.1  |    102    |
+| MacBook Pro 16" 2021 |      M1 Max 10-core     |  32 | 1TB |     |  13.1 | 12.0.1  |    103    |
+| MacBook Pro 14" 2021 |      M1 Pro 8-core      |  16 | 512 |     |  13.1 | 12.0.1  |    109    |
+| MacBook Pro 13" 2020 |      M1 8-core          |  16 | 1TB |     |  13.1 | 12.0.1  |    130    |
+|    iMac 24" 2021     |      M1 8-core          |  16 | 512 |     |  13.1 | 12.0.1  |    130    |
+| MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  32 | 512 |     |  13.0 | 11.6    |    248    |
+| MacBook Pro 15" 2018 |    i9 2.9 GHz 6-core    |  32 | 1TB |     |  13.0 | 11.6    |    263    |
+| MacBook Pro 13" 2018 |    i7 2.7 GHz 4-core    |   8 | 256 |     |  13.0 |  11.6   |    336    |
+
+## Xcode 12.5
+
+|        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
+|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
+|    iMac 24" 2021     |      M1 8-core          |  16 | 512 |     |  12.5 | 12.0.1  |    124    |
 | MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  12.5 |   11.4  |    282    |
 | MacBook Pro 15" 2015 |    i7 2.5 GHz 4-core    |  16 | 512 |     |  12.5 | 11.2.3  |    361    |
-
 
 ## Xcode 12
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
 |     Mac Pro 2019     |  Xeon 2.5 GHz 28-core   |  96 | 4TB |     |  12.2 | 11.0.1  |    90     |
-|     Mac mini 2020    |      Apple M1 8-core    |  16 | 1TB |     |  12.2 |   11.0  |    116    |
-| MacBook Pro 13" 2020 |      Apple M1 8-core    |  16 | 1TB |     |  12.2 |   11.0  |    117    |
-| MacBook Air 13" 2020 |  Apple M1 8c (8c GPU)   |  16 | 512 |     |  12.2 | 11.0.1  |    128    |
-|     Mac mini 2020    |      Apple M1 8-core    |   8 | 256 |     |  12.2 | 11.0.1  |    130    |
-| MacBook Air 13" 2020 |  Apple M1 8c (7c GPU)   |   8 | 256 |     |  12.2 | 11.0.1  |    137    |
+|     Mac mini 2020    |        M1 8-core        |  16 | 1TB |     |  12.2 |   11.0  |    116    |
+| MacBook Pro 13" 2020 |        M1 8-core        |  16 | 1TB |     |  12.2 |   11.0  |    117    |
+| MacBook Air 13" 2020 |        M1 8c (8c GPU)   |  16 | 512 |     |  12.2 | 11.0.1  |    128    |
+|     Mac mini 2020    |        M1 8-core        |   8 | 256 |     |  12.2 | 11.0.1  |    130    |
+| MacBook Air 13" 2020 |        M1 8c (7c GPU)   |   8 | 256 |     |  12.2 | 11.0.1  |    137    |
 |     iMac 27" 2019    |    i9 3.6 GHz 8-core    |  64 | 2TB |     |  12.1 | 11.0.1  |    145    |
 |     iMac 27" 2020    |    i9 3.6 GHz 10-core   | 128 | 1TB |     |  12.2 | 11.0.1  |    146    |
 |   iMac Pro 27" 2017  |   Xeon 3.2 GHz 8-Core   |  32 | 1TB |     |  12.2 | 10.15.7 |    158    |
@@ -50,6 +67,7 @@ I believe the results will help developers to make the right *cost/performance* 
 | MacBook Air 13" 2020 |    i3 1.1 GHz 2-core    |   8 | 256 |     |  12.2 | 11.0.1  |    700    |
 |    iMac 21.5" 2017   |    i5 3.0 GHz 4-core    |  16 |     | 1TB |  12.2 | 11.0.1  |    725    |
 |   MacBook Air 2014   |    i5 1.4 GHz 2-core    |   4 | 128 |     |  12.2 | 11.0.1  |    894    |
+|   MacBook Pro 2010   |    i5 2.4 GHz 2-core    |   8 | 480 |     |  12.4 | 10.15.7 |   1043    |
 
 
 ## Xcode 11
@@ -109,7 +127,7 @@ I believe the results will help developers to make the right *cost/performance* 
 
 ## Set up
 
-**Since May 3, 2021, XcodeBenchmark must be used with Xcode 12.5 or above.**
+**Since Oct 23, 2021, XcodeBenchmark only supports Xcode 13.0 or above.**
 
 - Download and install [Xcode](https://apps.apple.com/us/app/xcode/id497799835).
 - Open Xcode and install `additional tools` (Xcode should suggest it automatically).
@@ -237,3 +255,5 @@ Make sure:
 - [@rursache](https://github.com/rursache)
 - [@wendyliga](https://github.com/wendyliga)
 - [@mlch911](https://github.com/mlch911)
+- [@apvex](https://github.com/apvex)
+- [@Jeehut](https://github.com/Jeehut)

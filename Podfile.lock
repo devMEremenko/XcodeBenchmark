@@ -489,9 +489,9 @@ PODS:
   - Realm (5.3.4):
     - Realm/Headers (= 5.3.4)
   - Realm/Headers (5.3.4)
-  - RxBluetoothKit (5.3.0):
-    - RxSwift (~> 5.0)
-  - RxSwift (5.1.1)
+  - RxBluetoothKit (7.0.0):
+    - RxSwift (~> 6.0)
+  - RxSwift (6.2.0)
   - SDWebImage (5.8.4):
     - SDWebImage/Core (= 5.8.4)
   - SDWebImage/Core (5.8.4)
@@ -542,7 +542,7 @@ DEPENDENCIES:
   - R.swift.Library
   - ReactiveCocoa (~> 10.1)
   - Realm (~> 5.3.4)
-  - RxBluetoothKit
+  - RxBluetoothKit (from `https://github.com/i-mobility/RxBluetoothKit.git`, tag `7.0.2`)
   - SDWebImage (~> 5.0)
   - SnapKit (~> 5.0.0)
   - Starscream (~> 4.0.0)
@@ -615,7 +615,6 @@ SPEC REPOS:
     - ReactiveCocoa
     - ReactiveSwift
     - Realm
-    - RxBluetoothKit
     - RxSwift
     - SDWebImage
     - SnapKit
@@ -631,11 +630,17 @@ SPEC REPOS:
 EXTERNAL SOURCES:
   MagicalRecord:
     :git: https://github.com/magicalpanda/MagicalRecord
+  RxBluetoothKit:
+    :git: https://github.com/i-mobility/RxBluetoothKit.git
+    :tag: 7.0.2
 
 CHECKOUT OPTIONS:
   MagicalRecord:
     :commit: 6031f608b79c1d6802007aaed6efd100e11f59ba
     :git: https://github.com/magicalpanda/MagicalRecord
+  RxBluetoothKit:
+    :git: https://github.com/i-mobility/RxBluetoothKit.git
+    :tag: 7.0.2
 
 SPEC CHECKSUMS:
   abseil: 6c8eb7892aefa08d929b39f9bb108e5367e3228f
@@ -699,8 +704,8 @@ SPEC CHECKSUMS:
   ReactiveCocoa: 083ae559e6f588ce519cab412ea119b431c26a24
   ReactiveSwift: 7937f26ec18d555e2a99352bd0a8b2817d1f042d
   Realm: 4dd457b6ed025041cf7efe05dae78c027ba842e0
-  RxBluetoothKit: 0e781978e8a0df70ac3c611dcf44800b76c69f8a
-  RxSwift: 81470a2074fa8780320ea5fe4102807cb7118178
+  RxBluetoothKit: be7acb92b3eaaa3a15c3813c2c12648ad7f49010
+  RxSwift: d356ab7bee873611322f134c5f9ef379fa183d8f
   SDWebImage: cf6922231e95550934da2ada0f20f2becf2ceba9
   SnapKit: 97b92857e3df3a0c71833cce143274bf6ef8e5eb
   Starscream: 5178aed56b316f13fa3bc55694e583d35dd414d9
@@ -712,6 +717,6 @@ SPEC CHECKSUMS:
   TRON: 3cb6a8c19230177c97225860d2ff38b618d51a53
   VK-ios-sdk: 62a10b6571fbcda0657f455fedce7fedf55b4cd0
 
-PODFILE CHECKSUM: 565f3da0ac53c7537087d956a9a46cf71f1932fa
+PODFILE CHECKSUM: aceb17c6e5beaf7292e79f66536ceed0c2d0d0e9
 
-COCOAPODS: 1.10.1
+COCOAPODS: 1.11.2
