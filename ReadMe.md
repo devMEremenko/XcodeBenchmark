@@ -35,6 +35,7 @@ If a device you are looking for is not on the list below, check out open [issues
 | MacBook Pro 13" 2020 |      Apple M1 8-core    |  16 | 1TB |     |  12.2 |   11.0  |    117    |
 | MacBook Air 13" 2020 |  Apple M1 8c (8c GPU)   |  16 | 512 |     |  12.2 | 11.0.1  |    128    |
 |     Mac mini 2020    |      Apple M1 8-core    |   8 | 256 |     |  12.2 | 11.0.1  |    130    |
+| MacBook Pro 13" 2020 |      Apple M1 8-core    |   8 | 256 |     |  12.4 | 11.2.3  |    131    |
 | MacBook Air 13" 2020 |  Apple M1 8c (7c GPU)   |   8 | 256 |     |  12.2 | 11.0.1  |    137    |
 |     iMac 27" 2019    |    i9 3.6 GHz 8-core    |  64 | 2TB |     |  12.1 | 11.0.1  |    145    |
 |     iMac 27" 2020    |    i9 3.6 GHz 10-core   | 128 | 1TB |     |  12.2 | 11.0.1  |    146    |
@@ -248,3 +249,4 @@ Make sure:
 - [@rursache](https://github.com/rursache)
 - [@wendyliga](https://github.com/wendyliga)
 - [@mlch911](https://github.com/mlch911)
+- [@martinbernat](https://github.com/martinbernat)
