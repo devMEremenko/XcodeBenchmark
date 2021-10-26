@@ -15,6 +15,7 @@ If a device you are looking for is not on the list below, check out open [issues
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
+| MacBook Pro 16" 2021 |   Apple M1 Max 10-core  |  32 | 1TB |     |  13.1 | 12.0.1  |    103    |
 | MacBook Pro 14" 2021 |   Apple M1 Pro 8-core   |  16 | 512 |     |  13.1 | 12.0.1  |    109    |
 | MacBook Pro 13" 2020 |      Apple M1 8-core    |  16 | 1TB |     |  13.1 | 12.0.1  |    130    |
 | MacBook Pro 16 2019  |    i7 2.6 GHz 6-core    |  32 | 512 |     |  13.0 | 11.6    |    248    |
@@ -134,7 +135,7 @@ If a device you are looking for is not on the list below, check out open [issues
     - Go to `System Preferences` -> `Users and Groups` -> `User` -> `Login Items`.
     - Empty the list.
 3. Update `Energy Saver` settings 
-	- Go to `System Preferences` -> `Energy Saver` -> `Turn display off`  and set 15 min.
+    - Go to `System Preferences` -> `Energy Saver` -> `Turn display off`  and set 15 min.
 3. Reboot and cool down your Mac.
 4. Connect to the power adapter if you use MacBook.
 
