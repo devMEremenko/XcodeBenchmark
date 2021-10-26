@@ -99,6 +99,7 @@ If a device you are looking for is not on the list below, check out open [issues
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |    Comments    |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|----------------|
+|      Ryzentosh       | R9 5950x 3.4 Ghz 16-core|  64 | 1TB |     |  13.0 | 11.3.1  |    92     |                |
 
 
 ## Custom Hardware - Xcode 12
