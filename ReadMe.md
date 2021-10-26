@@ -29,6 +29,7 @@ If a device you are looking for is not on the list below, check out open [issues
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
 |    iMac 24" 2021     |      M1 8-core          |  16 | 512 |     |  12.5 | 12.0.1  |    124    |
+| MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  12.5 |   11.4  |    282    |
 | MacBook Pro 15" 2015 |    i7 2.5 GHz 4-core    |  16 | 512 |     |  12.5 | 11.2.3  |    361    |
 
 ## Xcode 12
@@ -138,10 +139,10 @@ If a device you are looking for is not on the list below, check out open [issues
 2. Make sure to disable all software running at startup
     - Go to `System Preferences` -> `Users and Groups` -> `User` -> `Login Items`.
     - Empty the list.
-3. Update `Energy Saver` settings 
-    - Go to `System Preferences` -> `Energy Saver` -> `Turn display off`  and set 15 min.
+3. Update `Battery` settings 
+    - Go to `System Preferences` -> `Battery` -> `Battery/Power Adapter` -> `Turn display off`  and set 15 min.
 3. Reboot and cool down your Mac.
-4. Connect to the power adapter if you use MacBook.
+4. Connect to the power adapter if you're using a MacBook.
 
 ## Running a test
 
