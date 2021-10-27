@@ -31,6 +31,8 @@ if [ -n "$PATH_TO_PROJECT" ]; then
 	system_profiler SPHardwareDataType | grep "Processor Speed:"
 	system_profiler SPHardwareDataType | grep "Total Number of Cores:"
 
+ 	system_profiler SPDisplaysDataType | grep "Total Number of Cores:" | sed 's/Total Number of Cores:/GPU Cores:/'
+
 	system_profiler SPHardwareDataType | grep "L2 Cache (per Core):"
 	system_profiler SPHardwareDataType | grep "L3 Cache:"
 
