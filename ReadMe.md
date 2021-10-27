@@ -20,6 +20,7 @@ If a device you are looking for is not on the list below, check out open [issues
 | MacBook Pro 14" 2021 |      M1 Pro 8-core      |  16 | 512 |     |  13.1 | 12.0.1  |    109    |
 | MacBook Pro 13" 2020 |      M1 8-core          |  16 | 1TB |     |  13.1 | 12.0.1  |    130    |
 |    iMac 24" 2021     |      M1 8-core          |  16 | 512 |     |  13.1 | 12.0.1  |    130    |
+|   iMac Pro 27" 2017  |   Xeon 3.2 GHz 8-Core   |  32 | 1TB |     |  13.1 | 11.6    |    186    |
 | MacBook Pro 16" 2019 |    i9 2.4 GHz 8-core    |  32 | 1TB |     |  13.0 | 11.6    |    223    |
 |     Mac mini 2018    |    i5 3.0 Ghz 6-core    |   8 | 256 |     |  13.0 | 12.0.1  |    235    |
 | MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  32 | 512 |     |  13.0 | 11.6    |    248    |
@@ -202,7 +203,7 @@ Please make sure to add [the link](https://github.com/devMEremenko/XcodeBenchmar
 
 Make sure:
 - [All steps](https://github.com/devMEremenko/XcodeBenchmark#before-each-test) are performed
-- `Time` column is still sorted after insertion.
+- `Time` column is still sorted after insertion (round up your result).
 - Attach a screenshot with a compilation time. [Example](img/contribution-example.png).
 - The content in cells is centered.
 
