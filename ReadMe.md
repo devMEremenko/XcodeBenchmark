@@ -100,7 +100,8 @@ If a device you are looking for is not on the list below, check out open [issues
 
 |        Device        |           CPU           | RAM | SSD | HDD |  Xcode  |  macOS  | Time(sec) |    Comments    |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-------:|:-------:|:---------:|----------------|
-|      Hackintosh      | i7-9700K 3.6 Ghz 8-core |  16 | 512 | 2TB |  12.5.1 |  11.4   |    177    |
+|      Hackintosh      | i9-10900 2.8 Ghz 10-core|  32 | 1TB |     |  13.1   |  1.0.1  |    163    |                |
+|      Hackintosh      | i9-9700K 3.6 Ghz 8-core |  16 | 512 | 2TB |  12.5.1 |  11.4   |    177    |                |
 
 
 ## Custom Hardware - Xcode 12
