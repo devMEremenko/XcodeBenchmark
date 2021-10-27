@@ -24,6 +24,7 @@ If a device you are looking for is not on the list below, check out open [issues
 |     Mac mini 2018    |    i5 3.0 Ghz 6-core    |   8 | 256 |     |  13.0 | 12.0.1  |    235    |
 | MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  32 | 512 |     |  13.0 | 11.6    |    248    |
 | MacBook Pro 15" 2018 |    i9 2.9 GHz 6-core    |  32 | 1TB |     |  13.0 | 11.6    |    263    |
+| MacBook Pro 13" 2020 |    i5 2.0 GHz 4-core    |  32 | 512 |     |  13.0 | 11.5.2  |    311    |
 | MacBook Pro 13" 2018 |    i7 2.7 GHz 4-core    |   8 | 256 |     |  13.0 | 11.6    |    336    |
 
 ## Xcode 12.5
