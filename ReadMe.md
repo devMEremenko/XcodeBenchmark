@@ -95,6 +95,11 @@ If a device you are looking for is not on the list below, check out open [issues
 | MacBook Pro 15" 2016 |    i7 2.7 GHz 4-core    |  16 | 1TB |     |  11.7 | 10.15.6 |    642    |
 |     Mac Mini 2014    |    i5 2.6 GHz 2-core    |  8  |     | 1TB |  11.7 | 10.15.6 |    1193   |
 
+## Custom Hardware - Xcode 13 or above
+
+|        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |    Comments    |
+|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|----------------|
+|      Hackintosh      | i7-8700K 3.7 Ghz 6-core | 32  | 512 |     | 13.1  |   11.6  |    208    |                |
 
 ## Custom Hardware - Xcode 12.5 or above
 
@@ -260,3 +265,4 @@ Make sure:
 - [@mlch911](https://github.com/mlch911)
 - [@apvex](https://github.com/apvex)
 - [@Jeehut](https://github.com/Jeehut)
+- [@anatolikant](https://github.com/anatoliykant)
