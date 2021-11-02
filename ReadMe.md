@@ -99,7 +99,7 @@ If a device you are looking for is not on the list below, check out open [issues
 
 |        Device        |           CPU            | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |    Comments    |
 |:--------------------:|:------------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|----------------|
-|      Hackintosh      | i5-10600K 4.1 Ghz 6-core | 32  | 500 |     | 13.0  |   11.6  |    159    | All cores overclocked to 5.1GHz |
+|      Hackintosh      | i5-10600K 4.1 Ghz 6-core | 32  | 500 |     | 13.0  |   11.6  |    158    | All cores overclocked to 5.1GHz |
 
 ## Custom Hardware - Xcode 12.5 or above
 
