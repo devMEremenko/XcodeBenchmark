@@ -68,6 +68,7 @@ If a device you are looking for is not on the list below, check out open [issues
 | MacBook Air 13" 2015 |    i7 2.2 Ghz 2-core    |   8 | 256 |     |  12.0 | 10.15.7 |    610    |
 | MacBook Air 13" 2020 |    i3 1.1 GHz 2-core    |   8 | 256 |     |  12.2 | 11.0.1  |    700    |
 |    iMac 21.5" 2017   |    i5 3.0 GHz 4-core    |  16 |     | 1TB |  12.2 | 11.0.1  |    725    |
+| MacBook Pro 15" 2012 |    i7 2.7 GHz 4-core    |  16 | 768 |     |  12.4 | 10.15.7 |    785    |
 |   MacBook Air 2014   |    i5 1.4 GHz 2-core    |   4 | 128 |     |  12.2 | 11.0.1  |    894    |
 |   MacBook Pro 2010   |    i5 2.4 GHz 2-core    |   8 | 480 |     |  12.4 | 10.15.7 |   1043    |
 
@@ -260,3 +261,4 @@ Make sure:
 - [@mlch911](https://github.com/mlch911)
 - [@apvex](https://github.com/apvex)
 - [@Jeehut](https://github.com/Jeehut)
+- [@alejedi](https://github.com/alejedi)
