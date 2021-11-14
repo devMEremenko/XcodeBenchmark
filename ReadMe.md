@@ -25,6 +25,7 @@ If a device you are looking for is not on the list below, check out open [issues
 | MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  32 | 512 |     |  13.0 | 11.6    |    248    |
 | MacBook Pro 15" 2018 |    i9 2.9 GHz 6-core    |  32 | 1TB |     |  13.0 | 11.6    |    263    |
 | MacBook Pro 13" 2018 |    i7 2.7 GHz 4-core    |   8 | 256 |     |  13.0 | 11.6    |    336    |
+| MacBook Pro 13" 2013 |    i5 2.4 GHz 2-core    |   8 | 256 |     |  13.1 | 11.5.2  |    719    |
 
 ## Xcode 12.5
 
@@ -260,3 +261,4 @@ Make sure:
 - [@mlch911](https://github.com/mlch911)
 - [@apvex](https://github.com/apvex)
 - [@Jeehut](https://github.com/Jeehut)
+- [@mlazari](https://github.com/mlazari)
