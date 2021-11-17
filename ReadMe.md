@@ -23,6 +23,7 @@ If a device you are looking for is not on the list below, check out open [issues
 | MacBook Pro 16" 2019 |    i9 2.4 GHz 8-core    |  32 | 1TB |     |  13.0 | 11.6    |    223    |
 |     Mac mini 2018    |    i5 3.0 Ghz 6-core    |   8 | 256 |     |  13.0 | 12.0.1  |    235    |
 | MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  32 | 512 |     |  13.0 | 11.6    |    248    |
+|     Mac Pro 2013     |E5-2697v2 2.7 GHz 12-Core|  64 | 256 |     |  13.1 | 11.6    |    254    |
 | MacBook Pro 15" 2018 |    i9 2.9 GHz 6-core    |  32 | 1TB |     |  13.0 | 11.6    |    263    |
 | MacBook Pro 13" 2018 |    i7 2.7 GHz 4-core    |   8 | 256 |     |  13.0 | 11.6    |    336    |
 
