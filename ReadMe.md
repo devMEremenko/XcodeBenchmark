@@ -102,6 +102,7 @@ If a device you are looking for is not on the list below, check out open [issues
 
 |        Device        |           CPU           | RAM | SSD | HDD |  Xcode  |  macOS  | Time(sec) |    Comments    |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-------:|:-------:|:---------:|----------------|
+|      Hackintosh      | i7-12700K 3.6 Ghz 12c   |  64 | 512 |     |  13.1.  |  12.01  |    96     | 12 core since Hyperthreading is disabled
 |      Hackintosh      | i7-9700K 3.6 Ghz 8-core |  16 | 512 | 2TB |  12.5.1 |  11.4   |    177    |
 
 
