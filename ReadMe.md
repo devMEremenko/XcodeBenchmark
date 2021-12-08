@@ -15,6 +15,7 @@ If a device you are looking for is not on the list below, check out open [issues
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
+| MacBook Pro 15" 2015 |    i7 2.5 GHz 4-core    |  16 | 512 |     |  12.5 | 11.2.3  |    361    |
 | MacBook Pro 16" 2021 |      M1 Max 10-core     |  32 | 1TB |     |  13.1 | 12.0.1  |    98     |
 | MacBook Pro 16" 2021 |      M1 Pro 10-core     |  16 | 1TB |     |  13.1 | 12.0.1  |    102    |
 | MacBook Pro 14" 2021 |      M1 Pro 8-core      |  16 | 512 |     |  13.1 | 12.0.1  |    109    |
@@ -35,6 +36,7 @@ If a device you are looking for is not on the list below, check out open [issues
 |    iMac 24" 2021     |      M1 8-core          |  16 | 512 |     |  12.5 | 12.0.1  |    124    |
 | MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  12.5 |   11.4  |    282    |
 | MacBook Pro 15" 2015 |    i7 2.5 GHz 4-core    |  16 | 512 |     |  12.5 | 11.2.3  |    361    |
+|   MacBook 12" 2017   |    m3 1.1 GHz 2-core    |  8  | 256 |     |  12.5 |  11.4   |    891    |
 
 ## Xcode 12
 
