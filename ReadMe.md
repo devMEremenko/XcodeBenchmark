@@ -100,9 +100,10 @@ If a device you are looking for is not on the list below, check out open [issues
 
 ## Custom Hardware - Xcode 12.5 or above
 
-|        Device        |           CPU           | RAM | SSD | HDD |  Xcode  |  macOS  | Time(sec) |    Comments    |
-|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-------:|:-------:|:---------:|----------------|
-|      Hackintosh      | i7-9700K 3.6 Ghz 8-core |  16 | 512 | 2TB |  12.5.1 |  11.4   |    177    |
+|        Device        |           CPU            | RAM |  SSD  | HDD |  Xcode  |  macOS   | Time(sec) |    Comments    |
+|:--------------------:|:------------------------:|:---:|:-----:|:---:|:-------:|:--------:|:---------:|----------------|
+|      Ryzentosh       | R9 3950X 3.5 Ghz 16-core |  32 | 1024  |     |  13.1   |  12.0.1  |    109    |
+|      Hackintosh      | i7-9700K 3.6 Ghz 8-core  |  16 |  512  | 2TB |  12.5.1 |  11.4    |    177    |
 
 
 ## Custom Hardware - Xcode 12
@@ -144,7 +145,7 @@ If a device you are looking for is not on the list below, check out open [issues
 2. Make sure to disable all software running at startup
     - Go to `System Preferences` -> `Users and Groups` -> `User` -> `Login Items`.
     - Empty the list.
-3. Update `Battery` settings 
+3. Update `Battery` settings
     - Go to `System Preferences` -> `Battery` -> `Battery/Power Adapter` -> `Turn display off`  and set 15 min.
 3. Reboot and cool down your Mac.
 4. Connect to the power adapter if you're using a MacBook.
