@@ -102,6 +102,7 @@ If a device you are looking for is not on the list below, check out open [issues
 
 |        Device        |           CPU           | RAM | SSD | HDD |  Xcode  |  macOS  | Time(sec) |    Comments    |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-------:|:-------:|:---------:|----------------|
+|      Ryzentosh       | AMD 5950x 4.3 Ghz 16-core |  16 | 1TB | 2TB |  13.1 |  11.6   |    71    |
 |      Hackintosh      | i7-9700K 3.6 Ghz 8-core |  16 | 512 | 2TB |  12.5.1 |  11.4   |    177    |
 
 
