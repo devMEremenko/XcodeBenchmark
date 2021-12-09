@@ -98,10 +98,10 @@ If a device you are looking for is not on the list below, check out open [issues
 
 ## Custom Hardware - Xcode 12.5 or above
 
-|        Device        |           CPU           | RAM | SSD | HDD |  Xcode  |  macOS  | Time(sec) |    Comments    |
-|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-------:|:-------:|:---------:|----------------|
-|      Hackintosh      | i9-9960X 3.1 Ghz 16-core|  64 | 1TB |     |  13.1   |  12.0.1 |    90     |                |
-|      Hackintosh      | i7-9700K 3.6 Ghz 8-core |  16 | 512 | 2TB |  12.5.1 |  11.4   |    177    |                |
+|        Device        |           CPU              | RAM | SSD | HDD |  Xcode  |  macOS  | Time(sec) |          Comments         |
+|:--------------------:|:--------------------------:|:---:|:---:|:---:|:-------:|:-------:|:---------:|---------------------------|
+|      Hackintosh      | i9-10980XE 3.0 Ghz 18-core |  64 | 1TB |     |  13.1   |  12.0.1 |    72     |Synced all cores on 4.8Ghz |
+|      Hackintosh      | i7-9700K 3.6 Ghz 8-core    |  16 | 512 | 2TB |  12.5.1 |  11.4   |    177    |                           |
 
 
 ## Custom Hardware - Xcode 12
