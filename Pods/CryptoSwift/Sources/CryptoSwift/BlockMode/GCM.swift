@@ -38,6 +38,7 @@ public final class GCM: BlockMode {
   private let iv: Array<UInt8>
   private let additionalAuthenticatedData: Array<UInt8>?
   private let mode: Mode
+  public let customBlockSize: Int? = nil
 
   /// Length of authentication tag, in bytes.
   /// For encryption, the value is given as init parameter.
@@ -64,7 +65,7 @@ public final class GCM: BlockMode {
     self.authenticationTag = authenticationTag
   }
 
-  public func worker(blockSize: Int, cipherOperation: @escaping CipherOperationOnBlock) throws -> CipherModeWorker {
+  public func worker(blockSize: Int, cipherOperation: @escaping CipherOperationOnBlock, encryptionOperation: @escaping CipherOperationOnBlock) throws -> CipherModeWorker {
     if self.iv.isEmpty {
       throw Error.invalidInitializationVector
     }
@@ -155,6 +156,7 @@ final class GCMModeWorker: BlockModeWorker, FinalizingEncryptModeWorker, Finaliz
     return Array(ciphertext)
   }
 
+  @inlinable
   func finalize(encrypt ciphertext: ArraySlice<UInt8>) throws -> ArraySlice<UInt8> {
     // Calculate MAC tag.
     let ghash = self.gf.ghashFinish()
@@ -171,6 +173,7 @@ final class GCMModeWorker: BlockModeWorker, FinalizingEncryptModeWorker, Finaliz
     }
   }
 
+  @inlinable
   func decrypt(block ciphertext: ArraySlice<UInt8>) -> Array<UInt8> {
     self.counter = incrementCounter(self.counter)
 
@@ -202,6 +205,7 @@ final class GCMModeWorker: BlockModeWorker, FinalizingEncryptModeWorker, Finaliz
     }
   }
 
+  @inlinable
   func didDecryptLast(bytes plaintext: ArraySlice<UInt8>) throws -> ArraySlice<UInt8> {
     // Calculate MAC tag.
     let ghash = self.gf.ghashFinish()

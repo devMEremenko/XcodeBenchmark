@@ -32,9 +32,14 @@ final class CollectionViewFactory
 {
     fileprivate let collectionView: UICollectionView
     
-    var mappings = [ViewModelMapping]()
+    var mappings = [ViewModelMappingProtocol]() {
+        didSet {
+            resetDelegates?()
+        }
+    }
     
     weak var anomalyHandler : DTCollectionViewManagerAnomalyHandler?
+    var resetDelegates : (() -> Void)?
     
     init(collectionView: UICollectionView)
     {
@@ -45,51 +50,78 @@ final class CollectionViewFactory
 // MARK: Registration
 extension CollectionViewFactory
 {
-    func registerCellClass<T:ModelTransfer>(_ cellClass: T.Type, mappingBlock: ((ViewModelMapping) -> Void)?) where T: UICollectionViewCell
+    func registerCellClass<Cell:ModelTransfer>(_ cellClass: Cell.Type, handler: @escaping (Cell, Cell.ModelType, IndexPath) -> Void, mapping: ((ViewModelMapping<Cell, Cell.ModelType>) -> Void)?) where Cell: UICollectionViewCell
     {
-        let mapping : ViewModelMapping = ViewModelMapping(viewType: .cell, viewClass: T.self, xibName: String(describing: T.self), mappingBlock: mappingBlock)
-        if let xibName = mapping.xibName, UINib.nibExists(withNibName: xibName, inBundle: mapping.bundle) {
-            collectionView.register(UINib(nibName: xibName, bundle: mapping.bundle),
-                                    forCellWithReuseIdentifier: mapping.reuseIdentifier)
-            verifyCell(T.self, nibName: xibName, withReuseIdentifier: mapping.reuseIdentifier, in: mapping.bundle)
+        let mapping = ViewModelMapping<Cell, Cell.ModelType>(cellConfiguration: handler, mapping: mapping)
+        
+        func registerCell() {
+            if let xibName = mapping.xibName, UINib.nibExists(withNibName: xibName, inBundle: mapping.bundle) {
+                collectionView.register(UINib(nibName: xibName, bundle: mapping.bundle),
+                                        forCellWithReuseIdentifier: mapping.reuseIdentifier)
+            } else {
+                if !mapping.cellRegisteredByStoryboard {
+                    collectionView.register(cellClass, forCellWithReuseIdentifier: mapping.reuseIdentifier)
+                }
+            }
+        }
+        #if compiler(<5.3)
+        registerCell()
+        #else
+        if #available(iOS 14, tvOS 14, *) {
+            // Registration is not needed, dequeue provided by ViewModelMapping instance
         } else {
-            mapping.xibName = nil
+            registerCell()
+        }
+        #endif
+        if !mapping.cellRegisteredByStoryboard {
+            verifyCell(Cell.self, nibName: mapping.xibName, withReuseIdentifier: mapping.reuseIdentifier, in: mapping.bundle)
         }
         mappings.append(mapping)
     }
     
-    func registerNiblessCellClass<T:ModelTransfer>(_ cellClass: T.Type, mappingBlock: ((ViewModelMapping) -> Void)?) where T:UICollectionViewCell
+    func registerCellClass<Cell: UICollectionViewCell, Model>(_ cellType: Cell.Type, _ modelType: Model.Type, handler: @escaping (Cell, Model, IndexPath) -> Void, mapping: ((ViewModelMapping<Cell, Model>) -> Void)? = nil)
     {
-        let mapping = ViewModelMapping(viewType: .cell, viewClass: T.self, mappingBlock: mappingBlock)
-        collectionView.register(cellClass, forCellWithReuseIdentifier: mapping.reuseIdentifier)
+        let mapping = ViewModelMapping<Cell, Model>(cellConfiguration: handler, mapping: mapping)
+        func registerCell() {
+            if let xibName = mapping.xibName, UINib.nibExists(withNibName: xibName, inBundle: mapping.bundle) {
+                collectionView.register(UINib(nibName: xibName, bundle: mapping.bundle),
+                                        forCellWithReuseIdentifier: mapping.reuseIdentifier)
+            } else {
+                if !mapping.cellRegisteredByStoryboard {
+                    collectionView.register(cellType, forCellWithReuseIdentifier: mapping.reuseIdentifier)
+                }
+            }
+        }
+        #if compiler(<5.3)
+        registerCell()
+        #else
+        if #available(iOS 14, tvOS 14, *) {
+            // Registration is not needed, dequeue provided by ViewModelMapping instance
+        } else {
+            registerCell()
+        }
+        #endif
+        if !mapping.cellRegisteredByStoryboard {
+            verifyCell(Cell.self, nibName: mapping.xibName, withReuseIdentifier: mapping.reuseIdentifier, in: mapping.bundle)
+        }
         mappings.append(mapping)
-        verifyCell(T.self, nibName: nil, withReuseIdentifier: mapping.reuseIdentifier, in: mapping.bundle)
     }
     
-    func registerNibNamed<T:ModelTransfer>(_ nibName: String, forCellClass cellClass: T.Type, mappingBlock: ((ViewModelMapping) -> Void)?) where T: UICollectionViewCell
-    {
-        let mapping = ViewModelMapping(viewType: .cell, viewClass: T.self, xibName: nibName, mappingBlock: mappingBlock)
-        assert(UINib.nibExists(withNibName: nibName, inBundle: mapping.bundle))
-        collectionView.register(UINib(nibName: nibName, bundle: mapping.bundle), forCellWithReuseIdentifier: mapping.reuseIdentifier)
-        mappings.append(mapping)
-        verifyCell(T.self, nibName: nibName, withReuseIdentifier: mapping.reuseIdentifier, in: mapping.bundle)
-    }
-    
-    func verifyCell<T:UICollectionViewCell>(_ cell: T.Type, nibName: String?,
+    func verifyCell<Cell:UICollectionViewCell>(_ cell: Cell.Type, nibName: String?,
                                             withReuseIdentifier reuseIdentifier: String, in bundle: Bundle) {
-        var cell = T(frame: .zero)
+        var cell = Cell(frame: .zero)
         if let nibName = nibName, UINib.nibExists(withNibName: nibName, inBundle: bundle) {
             let nib = UINib(nibName: nibName, bundle: bundle)
             let objects = nib.instantiate(withOwner: cell, options: nil)
-            if let instantiatedCell = objects.first as? T {
+            if let instantiatedCell = objects.first as? Cell {
                 cell = instantiatedCell
             } else {
                 if let first = objects.first {
                     anomalyHandler?.reportAnomaly(.differentCellClass(xibName: nibName,
                                                                       cellClass: String(describing: type(of: first)),
-                                                                      expectedCellClass: String(describing: T.self)))
+                                                                      expectedCellClass: String(describing: Cell.self)))
                 } else {
-                    anomalyHandler?.reportAnomaly(.emptyXibFile(xibName: nibName, expectedViewClass: String(describing: T.self)))
+                    anomalyHandler?.reportAnomaly(.emptyXibFile(xibName: nibName, expectedViewClass: String(describing: Cell.self)))
                 }
             }
         }
@@ -98,52 +130,80 @@ extension CollectionViewFactory
         }
     }
     
-    func registerNiblessSupplementaryClass<T:ModelTransfer>(_ supplementaryClass: T.Type, forKind kind: String, mappingBlock: ((ViewModelMapping) -> Void)?) where T: UICollectionReusableView
+    func registerSupplementaryClass<View:ModelTransfer>(_ supplementaryClass: View.Type, ofKind kind: String, handler: @escaping (View, View.ModelType, IndexPath) -> Void, mapping: ((ViewModelMapping<View, View.ModelType>) -> Void)?) where View:UICollectionReusableView
     {
-        let mapping = ViewModelMapping(viewType: .supplementaryView(kind: kind), viewClass: T.self, mappingBlock: mappingBlock)
-        collectionView.register(supplementaryClass, forSupplementaryViewOfKind: kind, withReuseIdentifier: mapping.reuseIdentifier)
-        mappings.append(mapping)
-        verifySupplementaryView(T.self, nibName: nil, reuseIdentifier: mapping.reuseIdentifier, in: mapping.bundle)
-    }
-    
-    func registerSupplementaryClass<T:ModelTransfer>(_ supplementaryClass: T.Type, forKind kind: String, mappingBlock: ((ViewModelMapping) -> Void)?) where T:UICollectionReusableView
-    {
-        let mapping = ViewModelMapping(viewType: .supplementaryView(kind: kind), viewClass: T.self,
-                                       xibName: String(describing: T.self), mappingBlock: mappingBlock)
-        if let nibName = mapping.xibName, UINib.nibExists(withNibName: nibName, inBundle: mapping.bundle) {
-            collectionView.register(UINib(nibName: nibName, bundle: mapping.bundle), forSupplementaryViewOfKind: kind, withReuseIdentifier: mapping.reuseIdentifier)
-            verifySupplementaryView(T.self, nibName: nibName, reuseIdentifier: mapping.reuseIdentifier, in: mapping.bundle)
-        } else {
-            mapping.xibName = nil
-            verifySupplementaryView(T.self, nibName: nil, reuseIdentifier: mapping.reuseIdentifier, in: mapping.bundle)
+        let mapping = ViewModelMapping<View, View.ModelType>(kind: kind, supplementaryConfiguration: handler, mapping: mapping)
+        
+        func registerSupplementary() {
+            if let nibName = mapping.xibName, UINib.nibExists(withNibName: nibName, inBundle: mapping.bundle) {
+                collectionView.register(UINib(nibName: nibName, bundle: mapping.bundle), forSupplementaryViewOfKind: kind, withReuseIdentifier: mapping.reuseIdentifier)
+                
+            } else {
+                if !mapping.supplementaryRegisteredByStoryboard {
+                    collectionView.register(View.self, forSupplementaryViewOfKind: kind, withReuseIdentifier: mapping.reuseIdentifier)
+                }
+            }
         }
+        #if compiler(<5.3)
+        registerSupplementary()
+        #else
+        if #available(iOS 14, tvOS 14, *) {
+            // Registration is not needed, dequeue provided by ViewModelMapping instance
+        } else {
+            registerSupplementary()
+        }
+        #endif
+        
+        if !mapping.supplementaryRegisteredByStoryboard {
+            verifySupplementaryView(View.self, nibName: mapping.xibName, reuseIdentifier: mapping.reuseIdentifier, in: mapping.bundle)
+        }
+        
         mappings.append(mapping)
     }
     
-    func registerNibNamed<T:ModelTransfer>(_ nibName: String, forSupplementaryClass supplementaryClass: T.Type, forKind kind: String, mappingBlock: ((ViewModelMapping) -> Void)?) where T:UICollectionReusableView
+    func registerSupplementaryClass<View:UICollectionReusableView, Model>(_ supplementaryClass: View.Type, _ modelType: Model.Type, ofKind kind: String, handler: @escaping (View, Model, IndexPath) -> Void, mapping: ((ViewModelMapping<View, Model>) -> Void)?)
     {
-        let mapping = ViewModelMapping(viewType: .supplementaryView(kind: kind), viewClass: T.self, xibName: nibName, mappingBlock: mappingBlock)
-        assert(UINib.nibExists(withNibName: nibName, inBundle: mapping.bundle))
-        collectionView.register(UINib(nibName: nibName, bundle: mapping.bundle), forSupplementaryViewOfKind: kind, withReuseIdentifier: mapping.reuseIdentifier)
+        let mapping = ViewModelMapping<View, Model>(kind: kind, supplementaryConfiguration: handler, mapping: mapping)
+        
+        func registerSupplementary() {
+            if let nibName = mapping.xibName, UINib.nibExists(withNibName: nibName, inBundle: mapping.bundle) {
+                collectionView.register(UINib(nibName: nibName, bundle: mapping.bundle), forSupplementaryViewOfKind: kind, withReuseIdentifier: mapping.reuseIdentifier)
+                verifySupplementaryView(View.self, nibName: nibName, reuseIdentifier: mapping.reuseIdentifier, in: mapping.bundle)
+            } else {
+                if !mapping.supplementaryRegisteredByStoryboard {
+                    collectionView.register(View.self, forSupplementaryViewOfKind: kind, withReuseIdentifier: mapping.reuseIdentifier)
+                }
+                verifySupplementaryView(View.self, nibName: nil, reuseIdentifier: mapping.reuseIdentifier, in: mapping.bundle)
+            }
+        }
+        #if compiler(<5.3)
+        registerSupplementary()
+        #else
+        if #available(iOS 14, tvOS 14, *) {
+            // Registration is not needed, dequeue provided by ViewModelMapping instance
+        } else {
+            registerSupplementary()
+        }
+        #endif
+        
         mappings.append(mapping)
-        verifySupplementaryView(T.self, nibName: nibName, reuseIdentifier: mapping.reuseIdentifier, in: mapping.bundle)
     }
     
-    func verifySupplementaryView<T:UICollectionReusableView>(_ view: T.Type, nibName: String?,
+    func verifySupplementaryView<View:UICollectionReusableView>(_ view: View.Type, nibName: String?,
                                                              reuseIdentifier: String, in bundle: Bundle) {
-        var view = T(frame: .zero)
+        var view = View(frame: .zero)
         if let nibName = nibName, UINib.nibExists(withNibName: nibName, inBundle: bundle) {
             let nib = UINib(nibName: nibName, bundle: bundle)
             let objects = nib.instantiate(withOwner: view, options: nil)
-            if let instantiatedView = objects.first as? T {
+            if let instantiatedView = objects.first as? View {
                 view = instantiatedView
             } else {
                 if let first = objects.first {
                     anomalyHandler?.reportAnomaly(DTCollectionViewManagerAnomaly.differentSupplementaryClass(xibName: nibName,
                                                                               viewClass: String(describing: type(of: first)),
-                                                                              expectedViewClass: String(describing: T.self)))
+                                                                              expectedViewClass: String(describing: View.self)))
                 } else {
-                    anomalyHandler?.reportAnomaly(.emptyXibFile(xibName: nibName, expectedViewClass: String(describing: T.self)))
+                    anomalyHandler?.reportAnomaly(.emptyXibFile(xibName: nibName, expectedViewClass: String(describing: View.self)))
                 }
             }
         }
@@ -152,20 +212,20 @@ extension CollectionViewFactory
         }
     }
     
-    func unregisterCellClass<T:ModelTransfer>(_ cellClass: T.Type) where T: UICollectionViewCell {
+    func unregisterCellClass<Cell:ModelTransfer>(_ cellClass: Cell.Type) where Cell: UICollectionViewCell {
         mappings = mappings.filter({ mapping in
-            if mapping.viewClass is T.Type && mapping.viewType == .cell { return false }
+            if mapping.viewClass is Cell.Type && mapping.viewType == .cell { return false }
             return true
         })
         let nilClass : AnyClass? = nil
         let nilNib : UINib? = nil
-        collectionView.register(nilClass, forCellWithReuseIdentifier: String(describing: T.self))
-        collectionView.register(nilNib, forCellWithReuseIdentifier: String(describing: T.self))
+        collectionView.register(nilClass, forCellWithReuseIdentifier: String(describing: Cell.self))
+        collectionView.register(nilNib, forCellWithReuseIdentifier: String(describing: Cell.self))
     }
     
-    func unregisterSupplementaryClass<T:ModelTransfer>(_ klass: T.Type, forKind kind: String) where T:UICollectionReusableView {
+    func unregisterSupplementaryClass<View:ModelTransfer>(_ klass: View.Type, ofKind kind: String) where View:UICollectionReusableView {
         mappings = mappings.filter({ mapping in
-            if mapping.viewClass is T.Type && mapping.viewType == .supplementaryView(kind: kind) { return false }
+            if mapping.viewClass is View.Type && mapping.viewType == .supplementaryView(kind: kind) { return false }
             return true
         })
         let nilClass : AnyClass? = nil
@@ -178,21 +238,19 @@ extension CollectionViewFactory
 // MARK: View creation
 extension CollectionViewFactory
 {
-    func viewModelMapping(for viewType: ViewType, model: Any, at indexPath: IndexPath) -> ViewModelMapping?
+    func viewModelMapping(for viewType: ViewType, model: Any, at indexPath: IndexPath) -> ViewModelMappingProtocol?
     {
         guard let unwrappedModel = RuntimeHelper.recursivelyUnwrapAnyValue(model) else {
             return nil
         }
-        return mappings.mappingCandidates(for: viewType, withModel: unwrappedModel, at: indexPath).first
+        return viewType.mappingCandidates(for: mappings, withModel: unwrappedModel, at: indexPath).first
     }
     
     func cellForModel(_ model: Any, atIndexPath indexPath:IndexPath) -> UICollectionViewCell?
     {
         if let mapping = viewModelMapping(for: .cell, model: model, at: indexPath)
         {
-            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: mapping.reuseIdentifier, for: indexPath)
-            mapping.updateBlock(cell, model)
-            return cell
+            return mapping.dequeueConfiguredReusableCell(for: collectionView, model: model, indexPath: indexPath)
         }
         anomalyHandler?.reportAnomaly(.noCellMappingFound(modelDescription: String(describing: model), indexPath: indexPath))
         return nil
@@ -202,18 +260,15 @@ extension CollectionViewFactory
         guard let cell = collectionView.cellForItem(at: indexPath) else { return }
         guard let unwrappedModel = RuntimeHelper.recursivelyUnwrapAnyValue(model) else { return }
         if let mapping = viewModelMapping(for: .cell, model: unwrappedModel, at: indexPath) {
-            mapping.updateBlock(cell, unwrappedModel)
+            mapping.updateCell(cell: cell, at: indexPath, with: unwrappedModel)
         }
     }
 
     func supplementaryViewOfKind(_ kind: String, forModel model: Any, atIndexPath indexPath: IndexPath) -> UICollectionReusableView?
     {
-        if let mapping = mappings.mappingCandidates(for: .supplementaryView(kind: kind), withModel: model, at: indexPath).first
+        if let mapping = ViewType.supplementaryView(kind: kind).mappingCandidates(for: mappings, withModel: model, at: indexPath).first
         {
-            let viewClassName = String(describing: mapping.viewClass)
-            let reusableView = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: viewClassName, for: indexPath)
-            mapping.updateBlock(reusableView, model)
-            return reusableView
+            return mapping.dequeueConfiguredReusableSupplementaryView(for: collectionView, kind: kind, model: model, indexPath: indexPath)
         }
         anomalyHandler?.reportAnomaly(.noSupplementaryMappingFound(modelDescription: String(describing: model), kind: kind, indexPath: indexPath))
         return nil

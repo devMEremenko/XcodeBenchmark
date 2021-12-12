@@ -1,5 +1,5 @@
-import Foundation
 import CoreBluetooth
+import Foundation
 
 /// It should be deleted when `RestoredState` will be deleted
 protocol CentralManagerRestoredStateType {
@@ -44,14 +44,16 @@ public struct CentralManagerRestoredState: CentralManagerRestoredStateType {
     /// Dictionary that contains all of the peripheral scan options that were being used
     /// by the central manager at the time the app was terminated by the system.
     public var scanOptions: [String: AnyObject]? {
-        return restoredStateData[CBCentralManagerRestoredStatePeripheralsKey] as? [String: AnyObject]
+        return restoredStateData[CBCentralManagerRestoredStatePeripheralsKey]
+            as? [String: AnyObject]
     }
 
     /// Array of `Service` objects which have been restored.
     /// These are all the services the central manager was scanning for at the time the app
     /// was terminated by the system.
     public var services: [Service] {
-        let objects = restoredStateData[CBCentralManagerRestoredStateScanServicesKey] as? [AnyObject]
+        let objects =
+            restoredStateData[CBCentralManagerRestoredStateScanServicesKey] as? [AnyObject]
         guard let arrayOfAnyObjects = objects else { return [] }
 
         #if swift(>=4.1)
@@ -60,7 +62,16 @@ public struct CentralManagerRestoredState: CentralManagerRestoredStateType {
         let cbServices = arrayOfAnyObjects.flatMap { $0 as? CBService }
         #endif
 
-        return cbServices.map { Service(peripheral: centralManager.retrievePeripheral(for: $0.peripheral),
-                                        service: $0) }
+        return cbServices.compactMap {
+            let maybePeripheral: CBPeripheral? = $0.peripheral
+            guard let peripheral = maybePeripheral else {
+                return nil
+            }
+            
+            return Service(
+                peripheral: centralManager.retrievePeripheral(for: peripheral),
+                service: $0
+            )
+        }
     }
 }

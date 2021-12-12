@@ -47,7 +47,7 @@ open class DTTableViewDropPlaceholderContext {
     
     /// Commits insertion of item, using `UITableViewDropPlaceholderContext.commitInsertion(_:)` method. Both commit and `insertionIndexPathClosure` will be automatically dispatched to `DispatchQueue.main`.
     /// If you are using `MemoryStorage`, model will be automatically inserted, and no additional actions are required.
-    open func commitInsertion<T>(ofItem item: T, _ insertionIndexPathClosure: ((IndexPath) -> Void)? = nil) {
+    open func commitInsertion<Model>(ofItem item: Model, _ insertionIndexPathClosure: ((IndexPath) -> Void)? = nil) {
         DispatchQueue.main.async { [weak self] in
             self?.context.commitInsertion { insertionIndexPath in
                 guard let storage = self?.storage else { return }
