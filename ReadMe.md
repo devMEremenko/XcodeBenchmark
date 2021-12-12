@@ -55,6 +55,7 @@ If a device you are looking for is not on the list below, check out open [issues
 |     iMac 27" 2019    |    i9 3.6 GHz 8-core    |  40 | 512 |     |  12.2 | 11.0.1  |    163    |
 | MacBook Pro 16" 2019 |    i9 2.4 GHz 8-core    |  32 | 512 |     |  12.2 | 11.0.1  |    176    |
 |     Mac mini 2018    |    i7 3.2 GHz 6-core    |  32 | 512 |     |  12.2 | 11.0.1  |    192    |
+|     iMac 27" 2019    |    i5 3.7 GHz 6-core    |  40 |     | 1TB |  12.3 | 11.0.1  |    195    |
 | MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  32 | 1TB |     |  12.3 | 11.1    |    215    |
 | MacBook Pro 16" 2019 |    i9 2.3 GHz 8-core    |  32 | 1TB |     |  12.2 | 11.0.1  |    221    |
 |     Mac mini 2018    |    i7 3.2 GHz 6-core    |  16 | 1TB |     |  12.0 | 10.15.5 |    228    |
@@ -268,3 +269,4 @@ Make sure:
 - [@apvex](https://github.com/apvex)
 - [@Jeehut](https://github.com/Jeehut)
 - [@ginamdar](https://github.com/ginamdar)
+- [@julianko13](https://github.com/julianko13/)
