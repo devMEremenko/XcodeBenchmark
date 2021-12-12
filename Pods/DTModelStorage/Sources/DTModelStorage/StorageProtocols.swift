@@ -92,12 +92,6 @@ extension SupplementaryStorage {
 }
 
 extension SupplementaryStorage {
-    @available(*, unavailable, message: "Please use storage.supplementaryModel closure instead.")
-    /// Sets supplementaries `models`, using `kind`.
-    public func setSupplementaries(_ models: [[Int: Any]], forKind kind: String)
-    {
-    }
-    
     /// Sets section header `models`, using `supplementaryHeaderKind`.
     public func setSectionHeaderModels<T>(_ models: [T])
     {
@@ -114,25 +108,5 @@ extension SupplementaryStorage {
             guard index < models.count else { return nil }
             return models[index]
         }
-    }
-    
-    @available(*, unavailable, message: "Please use storage.headerModelProvider closure instead.")
-    /// Sets section header `model` for section at `sectionIndex`
-    ///
-    /// This method calls delegate?.storageNeedsReloading() method at the end, causing UI to be updated.
-    /// - SeeAlso: `configureForTableViewUsage`
-    /// - SeeAlso: `configureForCollectionViewUsage`
-    public func setSectionHeaderModel<T>(_ model: T?, forSection sectionIndex: Int)
-    {
-    }
-    
-    @available(*, unavailable, message: "Please use storage.footerModelProvider closure instead.")
-    /// Sets section footer `model` for section at `sectionIndex`
-    ///
-    /// This method calls delegate?.storageNeedsReloading() method at the end, causing UI to be updated.
-    /// - SeeAlso: `configureForTableViewUsage`
-    /// - SeeAlso: `configureForCollectionViewUsage`
-    public func setSectionFooterModel<T>(_ model: T?, forSection sectionIndex: Int)
-    {
     }
 }

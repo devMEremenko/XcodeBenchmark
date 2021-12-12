@@ -17,9 +17,11 @@
 // https://csrc.nist.gov/publications/detail/sp/800-38c/final
 
 #if canImport(Darwin)
-  import Darwin
-#else
-  import Glibc
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(ucrt)
+import ucrt
 #endif
 
 /// Counter with Cipher Block Chaining-Message Authentication Code
@@ -36,6 +38,7 @@ public struct CCM: StreamMode {
   private let additionalAuthenticatedData: Array<UInt8>?
   private let tagLength: Int
   private let messageLength: Int // total message length. need to know in advance
+  public let customBlockSize: Int? = nil
 
   // `authenticationTag` nil for encryption, known tag for decryption
   /// For encryption, the value is set at the end of the encryption.
@@ -69,7 +72,7 @@ public struct CCM: StreamMode {
     self.authenticationTag = authenticationTag
   }
 
-  public func worker(blockSize: Int, cipherOperation: @escaping CipherOperationOnBlock) throws -> CipherModeWorker {
+  public func worker(blockSize: Int, cipherOperation: @escaping CipherOperationOnBlock, encryptionOperation: @escaping CipherOperationOnBlock) throws -> CipherModeWorker {
     if self.nonce.isEmpty {
       throw Error.invalidInitializationVector
     }
@@ -139,6 +142,7 @@ class CCMModeWorker: StreamModeWorker, SeekableModeWorker, CounterModeWorker, Fi
     return self.cipherOperation(ctr.slice)!
   }
 
+  @inlinable
   func seek(to position: Int) throws {
     self.counter = position
     self.keystream = try self.S(i: position)
@@ -172,6 +176,7 @@ class CCMModeWorker: StreamModeWorker, SeekableModeWorker, CounterModeWorker, Fi
     return result
   }
 
+  @inlinable
   func finalize(encrypt ciphertext: ArraySlice<UInt8>) throws -> ArraySlice<UInt8> {
     // concatenate T at the end
     guard let S0 = try? S(i: 0) else { return ciphertext }
@@ -217,6 +222,7 @@ class CCMModeWorker: StreamModeWorker, SeekableModeWorker, CounterModeWorker, Fi
     return output
   }
 
+  @inlinable
   func finalize(decrypt plaintext: ArraySlice<UInt8>) throws -> ArraySlice<UInt8> {
     // concatenate T at the end
     let computedTag = Array(last_y.prefix(self.tagLength))
@@ -237,6 +243,7 @@ class CCMModeWorker: StreamModeWorker, SeekableModeWorker, CounterModeWorker, Fi
     return ciphertext[ciphertext.startIndex..<ciphertext.endIndex.advanced(by: -Swift.min(tagLength, ciphertext.count))]
   }
 
+  @inlinable
   func didDecryptLast(bytes plaintext: ArraySlice<UInt8>) throws -> ArraySlice<UInt8> {
 
     // Calculate Tag, from the last CBC block, for accumulated plaintext.

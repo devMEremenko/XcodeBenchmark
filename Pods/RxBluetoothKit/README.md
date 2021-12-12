@@ -51,11 +51,16 @@ With just 9 lines it started scanning, connecting to the peripheral, discovering
 
 # Recent Changes
 
-**5.3.0**
+**6.0.0**
 
-* Always connect to retrieved peripherals first (#337)
-* Addded a customisation point for injecting a logger (#341)
-* Fixed L2CAP API to support OSX 10.14 (#345)
+* Increased deployment target for iOS to 9.0 and for osx to 10.13 (#379, #380)
+* Added support for observing ancsAuthorized property on peripheral. (#370)
+* Added Bluetooth usage description to Info.plist in Example project (#369)
+* Added initial state improvement & a minor fix for BluetoothState methods. (#371)
+* Fixed problems with SPM support (#358, #368)
+* Updated RxSwift version to 5.1 (#376)
+* Updated project configurations to decrease build time on TravisCI (#376)
+* Updated scripts to fixed problems with generating mocks (#378)
 
 [All previous changes](CHANGELOG.md)
 
@@ -97,17 +102,19 @@ Check [our Wiki](https://github.com/Polidea/RxBluetoothKit/wiki) with guidelines
 * [StackOverflow](http://stackoverflow.com/questions/tagged/rxiosble?sort=active) if you have a problem
 * Or open [an issue](https://github.com/Polidea/RxBluetoothKit/issues/new) on GitHub
 
-Remember to follow [Polidea's Blog](https://www.polidea.com/blog/RxBluetoothKit_The_most_simple_way_to_code_BLE_devices/) blog to get all the news and updates!
+Remember to follow [Polidea's Blog](https://www.polidea.com/blog/RxBluetoothKit_The_most_simple_way_to_code_BLE_devices/?utm_source=Github&utm_medium=Npaid&utm_campaign=Blog&utm_term=Article&utm_content=GH_NOP_BLG_ART_BLD01) blog to get all the news and updates!
 
-Learn more about Polidea's BLE services [here](https://www.polidea.com/services/ble).
+[Contact us](https://www.polidea.com/project/?utm_source=Github&utm_medium=Npaid&utm_campaign=Kontakt&utm_term=Code&utm_content=GH_NOP_KKT_COD_RBK001)
+
+Learn more about Polidea's BLE services [here](https://www.polidea.com/services/ble/?utm_source=Github&utm_medium=Npaid&utm_campaign=Tech_BLE&utm_term=Code&utm_content=GH_NOP_BLE_COD_RBK001).
 
 # Requirements
 
-- iOS 8.0+
-- OSX 10.10+
+- iOS 9.0+
+- OSX 10.13+
 - watchOS 4.0+
 - tvOS 11.0+
-- Xcode 7.3+
+- Xcode 11.4+
 
 ## Swift versions
 * 3.0 version supports Swift 3.0 and 3.1

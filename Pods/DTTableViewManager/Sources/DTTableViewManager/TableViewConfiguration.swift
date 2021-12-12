@@ -35,6 +35,8 @@ public enum SupplementarySectionStyle
     case view
 }
 
+//swiftlint:disable line_length
+
 /// Defines most commonly used configuration properties for UITableView
 public struct TableViewConfiguration
 {
@@ -49,6 +51,14 @@ public struct TableViewConfiguration
     
     /// Defines, whether to show footer on a section, that does not contain any items. Default is true.
     public var displayFooterOnEmptySection = true
+    
+    /// Controls whether automatic header height detection is enabled. This includes returning UITableView.automaticDimension for cases when header model is String, returning tableView.sectionHeaderHeight for cases where headerModel is not nil, and also returning `minimalHeaderHeightForTableView`, that is slightly different for UITableView.Style.plain and UITableView.Style.grouped. Defaults to true.
+    /// - Note: This property might be helpful if you want to use self-sizing table view headers for improved perfomance. In this case, set estimated header height either on UITableView, or via closure on `DTTableViewManager`, or by implementing UITableViewDelegate method, and set `semanticHeaderHeight` property to false.
+    public var semanticHeaderHeight = true
+    
+    /// Controls whether automatic footer height detection is enabled. This includes returning UITableView.automaticDimension for cases when footer model is String, returning tableView.sectionfooterHeight for cases where footerModel is not nil, and also returning `minimalFooterHeightForTableView`, that is slightly different for UITableView.Style.plain and UITableView.Style.grouped. Defaults to true.
+    /// - Note: This property might be helpful if you want to use self-sizing table view footers for improved perfomance. In this case, set estimated footer height either on UITableView, or via closure on `DTTableViewManager`, or by implementing UITableViewDelegate method, and set `semanticFooterHeight` property to false.
+    public var semanticFooterHeight = true
     
     /// Minimal header height to hide it when section is empty. This defaults to .zero if `UITableView.Style` is `.plain` and `.leastNormalMagnitude` otherwise.
     public var minimalHeaderHeightForTableView: (UITableView) -> CGFloat = {

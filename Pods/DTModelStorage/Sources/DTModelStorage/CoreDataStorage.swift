@@ -35,9 +35,8 @@ open class CoreDataStorage<T: NSFetchRequestResult> : BaseUpdateDeliveringStorag
     public let fetchedResultsController: NSFetchedResultsController<T>
     
     @available(*, unavailable, message: "Please use storage.supplementaryModel closure to customize section supplementaries")
-    /// Property, which defines, for which supplementary kinds NSFetchedResultsController section name should be used.
-    /// Defaults to [DTTableViewElementSectionHeader,UICollectionElementKindSectionHeader]
-    /// - Discussion: This is useful, for example, if you want section footers intead of headers to have section name in them.
+    /// In the past, this property defined supplementaries to display with CoreDataStorage. Now, `storage.supplementaryModel` closure is used to do that.
+    /// Read https://github.com/DenTelezhkin/DTModelStorage/blob/master/Guides/8.0%20Migration%20Guide.md#supplementary-provider-rewrite for details of this change.
     open var displaySectionNameForSupplementaryKinds = [""]
     
     /// Initialize CoreDataStorage with NSFetchedResultsController
