@@ -52,7 +52,11 @@ open class DTTableViewDataSource : DTTableViewDelegateWrapper, UITableViewDataSo
         guard let cell = viewFactory?.cellForModel(model, atIndexPath: indexPath) else {
             return UITableViewCell()
         }
-        _ = tableViewEventReactions.performReaction(of: .cell, signature: EventMethodSignature.configureCell.rawValue, view: cell, model: model, location: indexPath)
+        _ = EventReaction.performReaction(from: viewFactory?.mappings ?? [],
+                                                    signature: EventMethodSignature.configureCell.rawValue,
+                                                    view: cell,
+                                                    model: model,
+                                                    location: indexPath)
         return cell
     }
     
@@ -107,7 +111,7 @@ open class DTTableViewDataSource : DTTableViewDelegateWrapper, UITableViewDataSo
     #if os(iOS)
     /// Implementation for `UITableViewDataSource` protocol
     open func sectionIndexTitles(for tableView: UITableView) -> [String]? {
-        if let _ = tableViewEventReactions.first(where: { $0.methodSignature == EventMethodSignature.sectionIndexTitlesForTableView.rawValue }) {
+        if let _ = unmappedReactions.first(where: { $0.methodSignature == EventMethodSignature.sectionIndexTitlesForTableView.rawValue }) {
             return performNonCellReaction(.sectionIndexTitlesForTableView) as? [String]
         }
         return (delegate as? UITableViewDataSource)?.sectionIndexTitles?(for: tableView) ?? nil

@@ -24,13 +24,14 @@ public struct CTR: StreamMode {
   public let options: BlockModeOption = [.initializationVectorRequired, .useEncryptToDecrypt]
   private let iv: Array<UInt8>
   private let counter: Int
+  public let customBlockSize: Int? = nil
 
   public init(iv: Array<UInt8>, counter: Int = 0) {
     self.iv = iv
     self.counter = counter
   }
 
-  public func worker(blockSize: Int, cipherOperation: @escaping CipherOperationOnBlock) throws -> CipherModeWorker {
+  public func worker(blockSize: Int, cipherOperation: @escaping CipherOperationOnBlock, encryptionOperation: @escaping CipherOperationOnBlock) throws -> CipherModeWorker {
     if self.iv.count != blockSize {
       throw Error.invalidInitializationVector
     }
@@ -52,6 +53,7 @@ struct CTRModeWorker: StreamModeWorker, SeekableModeWorker, CounterModeWorker {
       self.constPrefix + self.value.bytes()
     }
 
+    @inlinable
     init(_ initialValue: Array<UInt8>) {
       let halfIndex = initialValue.startIndex.advanced(by: initialValue.count / 2)
       self.constPrefix = Array(initialValue[initialValue.startIndex..<halfIndex])
@@ -91,6 +93,7 @@ struct CTRModeWorker: StreamModeWorker, SeekableModeWorker, CounterModeWorker {
     self.keystream = Array(cipherOperation(self.counter.bytes.slice)!)
   }
 
+  @inlinable
   mutating func seek(to position: Int) throws {
     let offset = position % self.blockSize
     self.counter = CTRCounter(nonce: self.iv, startAt: position / self.blockSize)
@@ -99,6 +102,7 @@ struct CTRModeWorker: StreamModeWorker, SeekableModeWorker, CounterModeWorker {
   }
 
   // plaintext is at most blockSize long
+  @inlinable
   mutating func encrypt(block plaintext: ArraySlice<UInt8>) -> Array<UInt8> {
     var result = Array<UInt8>(reserveCapacity: plaintext.count)
 

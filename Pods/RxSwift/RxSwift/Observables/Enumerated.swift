@@ -17,7 +17,7 @@ extension ObservableType {
      */
     public func enumerated()
         -> Observable<(index: Int, element: Element)> {
-        return Enumerated(source: self.asObservable())
+        Enumerated(source: self.asObservable())
     }
 }
 
@@ -47,15 +47,15 @@ final private class EnumeratedSink<Element, Observer: ObserverType>: Sink<Observ
 }
 
 final private class Enumerated<Element>: Producer<(index: Int, element: Element)> {
-    private let _source: Observable<Element>
+    private let source: Observable<Element>
 
     init(source: Observable<Element>) {
-        self._source = source
+        self.source = source
     }
 
     override func run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == (index: Int, element: Element) {
         let sink = EnumeratedSink<Element, Observer>(observer: observer, cancel: cancel)
-        let subscription = self._source.subscribe(sink)
+        let subscription = self.source.subscribe(sink)
         return (sink: sink, subscription: subscription)
     }
 }

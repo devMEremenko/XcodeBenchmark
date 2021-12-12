@@ -28,7 +28,7 @@ import UIKit
 import DTModelStorage
 
 /// Adopting this protocol will automatically inject manager property to your object, that lazily instantiates DTCollectionViewManager object.
-/// Target is not required to be UICollectionViewController, and can be a regular UIViewController with UICollectionView, or even different object like UICollectionViewCell.
+/// Target is not required to be UICollectionViewController, and can be a regular UIViewController with UICollectionView, or any other view, that contains UICollectionView.
 public protocol DTCollectionViewManageable : class
 {
     /// Collection view, that will be managed by DTCollectionViewManager. This property or `optionalCollectionView` property must be implemented in order for `DTCollectionViewManager` to work.
@@ -49,7 +49,7 @@ private var DTCollectionViewManagerAssociatedKey = "DTCollectionView Manager Ass
 /// Default implementation for `DTCollectionViewManageable` protocol, that will inject `manager` property to any object, that declares itself `DTCollectionViewManageable`.
 extension DTCollectionViewManageable
 {
-    /// Lazily instantiated `DTCollectionViewManager` instance. When your collection view is loaded, call `startManaging(withDelegate:)` method and `DTCollectionViewManager` will take over UICollectionView datasource and delegate.
+    /// Lazily instantiated `DTCollectionViewManager` instance. When your collection view is loaded, call mapping registration methods and `DTCollectionViewManager` will take over UICollectionView datasource and delegate.
     /// Any method, that is not implemented by `DTCollectionViewManager`, will be forwarded to delegate.
     /// If this property is accessed when UICollectionView is loaded, and DTCollectionViewManager is not configured yet, startManaging(withDelegate:_) method will automatically be called once to initialize DTCollectionViewManager.
     /// - SeeAlso: `startManaging(withDelegate:)`
@@ -87,15 +87,22 @@ open class DTCollectionViewManager {
     fileprivate weak var delegate : AnyObject?
     
     /// Bool property, that will be true, after `startManagingWithDelegate` method is called on `DTCollectionViewManager`.
-    open var isManagingCollectionView : Bool {
-        return collectionView != nil
-    }
+    open var isManagingCollectionView : Bool { collectionView != nil }
     
     ///  Factory for creating cells and reusable views for UICollectionView
     final lazy var viewFactory: CollectionViewFactory = {
         precondition(self.isManagingCollectionView, "Please call manager.startManagingWithDelegate(self) before calling any other DTCollectionViewManager methods")
         //swiftlint:disable:next force_unwrapping
         let factory = CollectionViewFactory(collectionView: self.collectionView!)
+        factory.resetDelegates = { [weak self] in
+            self?.collectionDataSource?.delegateWasReset()
+            self?.collectionDelegate?.delegateWasReset()
+            
+            #if os(iOS)
+            self?.collectionDropDelegate?.delegateWasReset()
+            self?.collectionDragDelegate?.delegateWasReset()
+            #endif
+        }
         factory.anomalyHandler = anomalyHandler
         return factory
     }()
@@ -194,7 +201,8 @@ open class DTCollectionViewManager {
         self.storage = storage
     }
     
-    /// Call this method before calling any of `DTCollectionViewManager` methods.
+    /// If you access `manager` property when managed `UICollectionView` is already created(for example: viewDidLoad method), calling this method is not necessary.
+    /// If for any reason, `UICollectionView` is created later, please call this method before modifying storage or registering cells/supplementary views.
     /// - Precondition: UICollectionView instance on `delegate` should not be nil.
     /// - Parameter delegate: Object, that has UICollectionView, that will be managed by `DTCollectionViewManager`.
     open func startManaging(withDelegate delegate : DTCollectionViewManageable)
@@ -233,6 +241,7 @@ open class DTCollectionViewManager {
     }
     
     @available(iOS 13.0, tvOS 13.0, *)
+    @available(*, deprecated, message: "Please use configureDiffableDataSource method for models, that are Hashable. From Apple documentation: If you’re working in a Swift codebase, always use UICollectionViewDiffableDataSource instead.")
     /// Configures `UICollectionViewDiffableDataSourceReference` to be used with `DTCollectionViewManager`.
     ///  Because `UICollectionViewDiffableDataSourceReference` handles UICollectionView updates, `collectionViewUpdater` property on `DTCollectionViewManager` will be set to nil.
     /// - Parameter modelProvider: closure that provides `DTCollectionViewManager` models.
@@ -269,6 +278,10 @@ open class DTCollectionViewManager {
         collectionDragDelegate = DTCollectionViewDragDelegate(delegate: delegate, collectionViewManager: self)
         collectionDropDelegate = DTCollectionViewDropDelegate(delegate: delegate, collectionViewManager: self)
         #endif
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.eventVerificationDelay) { [weak self] in
+            self?.verifyEventsCompatibility()
+        }
     }
     
     /// Returns closure, that updates cell at provided indexPath.
@@ -305,32 +318,46 @@ open class DTCollectionViewManager {
                                      animateMoveAsDeleteAndInsert: true)
     }
     
-    /// Immediately runs closure to provide access to both T and T.ModelType for `klass`.
-    ///
-    /// - Discussion: This is particularly useful for registering events, because near 1/3 of events don't have cell or view before they are getting run, which prevents view type from being known, and required developer to remember, which model is mapped to which cell.
-    /// By using this container closure you will be able to provide compile-time safety for all events.
-    /// - Parameters:
-    ///   - klass: Class of reusable view to be used in configuration container
-    ///   - closure: closure to run with view types.
-    open func configureEvents<T:ModelTransfer>(for klass: T.Type, _ closure: (T.Type, T.ModelType.Type) -> Void) {
-        closure(T.self, T.ModelType.self)
-    }
+    static var eventVerificationDelay : TimeInterval = 1
     
-    func verifyItemEvent<T>(for itemType: T.Type, methodName: String) {
+    func verifyItemEvent<Model>(for itemType: Model.Type, methodName: String) {
         switch itemType {
         case is UICollectionReusableView.Type:
-            anomalyHandler.reportAnomaly(.modelEventCalledWithCellClass(modelType: String(describing: T.self), methodName: methodName, subclassOf: "UICollectionReusableView"))
+            anomalyHandler.reportAnomaly(.modelEventCalledWithCellClass(modelType: String(describing: Model.self), methodName: methodName, subclassOf: "UICollectionReusableView"))
         case is UICollectionViewCell.Type:
-            anomalyHandler.reportAnomaly(.modelEventCalledWithCellClass(modelType: String(describing: T.self), methodName: methodName, subclassOf: "UICollectionViewCell"))
+            anomalyHandler.reportAnomaly(.modelEventCalledWithCellClass(modelType: String(describing: Model.self), methodName: methodName, subclassOf: "UICollectionViewCell"))
         default: ()
         }
     }
     
     func verifyViewEvent<T:ModelTransfer>(for viewType: T.Type, methodName: String) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.eventVerificationDelay) { [weak self] in
             if self?.viewFactory.mappings.filter({ $0.viewClass.isSubclass(of: viewType) }).count == 0 {
                 self?.anomalyHandler.reportAnomaly(DTCollectionViewManagerAnomaly.unusedEventDetected(viewType: String(describing: T.self), methodName: methodName))
             }
+        }
+    }
+    
+    func verifyEventsCompatibility() {
+        let flowLayoutMethodSignatures = [
+            EventMethodSignature.sizeForItemAtIndexPath,
+            .referenceSizeForHeaderInSection,
+            .referenceSizeForFooterInSection,
+            .insetForSectionAtIndex,
+            .minimumLineSpacingForSectionAtIndex,
+            .minimumInteritemSpacingForSectionAtIndex
+        ].map { $0.rawValue }
+        
+        let unmappedFlowDelegateEvents = collectionDelegate?.unmappedReactions.filter { flowLayoutMethodSignatures.contains($0.methodSignature) } ?? []
+        let mappedFlowDelegateEvents = viewFactory.mappings.reduce(into: []) { result, current in
+            result.append(contentsOf: current.reactions.filter { flowLayoutMethodSignatures.contains($0.methodSignature) })
+        }
+        
+        guard let _ = collectionView?.collectionViewLayout as? UICollectionViewFlowLayout else {
+            (unmappedFlowDelegateEvents + mappedFlowDelegateEvents).forEach { reaction in
+                anomalyHandler.reportAnomaly(.flowDelegateLayoutMethodWithDifferentLayout(methodSignature: reaction.methodSignature))
+            }
+            return
         }
     }
 }
@@ -382,6 +409,7 @@ internal enum EventMethodSignature: String {
     case previewForHighlightingContextMenu = "collectionView:previewForHighlightingContextMenuWithConfiguration:"
     case previewForDismissingContextMenu = "collectionView:previewForDismissingContextMenuWithConfiguration:"
     case willCommitMenuWithAnimator = "collectionView:willCommitMenuWithAnimator:"
+    case canEditItemAtIndexPath = "collectionView:canEditItemAtIndexPath:"
     
     // UICollectionViewDelegateFlowLayout
     case sizeForItemAtIndexPath = "collectionView:layout:sizeForItemAtIndexPath:"
@@ -410,4 +438,9 @@ internal enum EventMethodSignature: String {
     case dropSessionDidExit = "collectionView:dropSessionDidExit:"
     case dropSessionDidEnd = "collectionView:dropSessionDidEnd:"
     case dropPreviewParametersForItemAtIndexPath = "collectionView:dropPreviewParametersForItemAtIndexPath:"
+    
+    // TVCollectionViewDelegateFullScreenLayout
+    
+    case willCenterCellAtIndexPath = "collectionView:layout:willCenterCellAtIndexPath:"
+    case didCenterCellAtIndexPath = "collectionView:layout:didCenterCellAtIndexPath:"
 }

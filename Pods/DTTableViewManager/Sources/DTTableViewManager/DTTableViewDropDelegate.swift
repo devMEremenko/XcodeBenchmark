@@ -81,7 +81,7 @@ open class DTTableViewDropDelegate: DTTableViewDelegateWrapper, UITableViewDropD
     
     /// Implementation for `UITableViewDropDelegate` protocol
     open func tableView(_ tableView: UITableView, dropPreviewParametersForRowAt indexPath: IndexPath) -> UIDragPreviewParameters? {
-        if let reaction = tableViewEventReactions.first(where: { $0.methodSignature == EventMethodSignature.dropPreviewParametersForRowAtIndexPath.rawValue }) {
+        if let reaction = unmappedReactions.first(where: { $0.methodSignature == EventMethodSignature.dropPreviewParametersForRowAtIndexPath.rawValue }) {
             return reaction.performWithArguments((indexPath, 0, 0)) as? UIDragPreviewParameters
         }
         return (delegate as? UITableViewDropDelegate)?.tableView?(tableView,

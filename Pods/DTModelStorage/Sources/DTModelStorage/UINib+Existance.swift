@@ -34,3 +34,19 @@ extension UINib {
         return bundle.path(forResource: nibName, ofType: "nib") != nil
     }
 }
+
+extension UIView {
+    static func load(for mapping: ViewModelMappingProtocol) -> Self? {
+        guard let xibName = mapping.xibName else { return nil }
+        guard let topLevelObjects = mapping.bundle.loadNibNamed(xibName, owner: nil, options: nil) else {
+            return nil
+        }
+
+        for object in topLevelObjects.compactMap( { $0 as AnyObject }) {
+            if object.isKind(of: self) {
+                return object as? Self
+            }
+        }
+        return nil
+    }
+}

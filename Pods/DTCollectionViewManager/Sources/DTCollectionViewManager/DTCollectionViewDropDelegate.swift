@@ -32,7 +32,7 @@ import DTModelStorage
 /// Object, that implements `UICollectionViewDropDelegate` methods for `DTCollectionViewManager`.
 open class DTCollectionViewDropDelegate : DTCollectionViewDelegateWrapper, UICollectionViewDropDelegate {
     override func delegateWasReset() {
-        // Currently, in Xcode beta 6 seed, this resetting of the delegate is unnecessary and causes super weird interactions with UICollectionViewDropDelegate methods such as invalidating UICollectionView layouts all the time while drop session is in progress.
+        // Currently, in Xcode 10, 11, 12, this resetting of the delegate is unnecessary and causes super weird interactions with UICollectionViewDropDelegate methods such as invalidating UICollectionView layouts all the time while drop session is in progress.
         
 //        collectionView?.dropDelegate = nil
 //        collectionView?.dropDelegate = self
@@ -84,7 +84,7 @@ open class DTCollectionViewDropDelegate : DTCollectionViewDelegateWrapper, UICol
     
     /// Implementation of `UICollectionViewDropDelegate` protocol.
     open func collectionView(_ collectionView: UICollectionView, dropPreviewParametersForItemAt indexPath: IndexPath) -> UIDragPreviewParameters? {
-        if let reaction = collectionViewReactions.first(where: { $0.methodSignature == EventMethodSignature.dropPreviewParametersForItemAtIndexPath.rawValue }) {
+        if let reaction = unmappedReactions.first(where: { $0.methodSignature == EventMethodSignature.dropPreviewParametersForItemAtIndexPath.rawValue }) {
             return reaction.performWithArguments((indexPath, 0, 0)) as? UIDragPreviewParameters
         }
         return (delegate as? UICollectionViewDropDelegate)?.collectionView?(collectionView,
