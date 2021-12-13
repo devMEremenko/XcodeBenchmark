@@ -28,6 +28,7 @@ If a device you are looking for is not on the list below, check out open [issues
 |     Mac Pro 2012     |2 x Xeon 3.46 GHz 6-core |  48 | 500 |     |  13.1 | 12.0.1  |    230    |
 |     Mac mini 2018    |    i5 3.0 Ghz 6-core    |   8 | 256 |     |  13.0 | 12.0.1  |    235    |
 | MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  32 | 512 |     |  13.0 | 11.6    |    248    |
+| MacBook Pro 13" 2020 |    i7 2.3 GHz 4-core    |  32 | 512 |     |  13.1 | 12.0.1  |    255    |
 | MacBook Pro 15" 2018 |    i9 2.9 GHz 6-core    |  32 | 1TB |     |  13.0 | 11.6    |    263    |
 | MacBook Pro 13" 2018 |    i7 2.7 GHz 4-core    |   8 | 256 |     |  13.0 | 11.6    |    336    |
 | MacBook Pro 15" 2016 |    i7 2.6 GHz 4-core    |  16 | 256 |     |  13.1 | 12.0.1  |    362    |
