@@ -13,29 +13,30 @@ If a device you are looking for is not on the list below, check out open [issues
 
 ## Xcode 13.0 or above
 
-|        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
-|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
-| MacBook Pro 14" 2021 |      M1 Max 10-core     |  32 | 2TB |     |  13.1 | 12.0.1  |     90    |
-| MacBook Pro 14" 2021 |      M1 Max 10-core     |  64 | 2TB |     |  13.1 | 12.0.1  |     92    |
-| MacBook Pro 16" 2021 |      M1 Max 10-core     |  64 | 4TB |     |  13.1 | 12.0.1  |     93    |
-| MacBook Pro 16" 2021 |      M1 Max 10-core     |  32 | 1TB |     |  13.1 | 12.0.1  |     98    |
-| MacBook Pro 16" 2021 |      M1 Pro 10-core     |  16 | 1TB |     |  13.1 | 12.0.1  |    102    |
-| MacBook Pro 14" 2021 |      M1 Pro 8-core      |  16 | 512 |     |  13.1 | 12.0.1  |    109    |
-| MacBook Pro 13" 2020 |      M1 8-core          |  16 | 1TB |     |  13.1 | 12.0.1  |    130    |
-|    iMac 24" 2021     |      M1 8-core          |  16 | 512 |     |  13.1 | 12.0.1  |    130    |
-| MacBook Pro 16" 2019 |    i9 2.3 GHz 8-core    |  16 | 1TB |     |  13.2 | 11.6.1  |    184    |
-| MacBook Pro 16" 2019 |    i9 2.4 GHz 8-core    |  64 | 1TB |     |  13.1 | 12.0.1  |    212    |
-| MacBook Pro 16" 2019 |    i9 2.4 GHz 8-core    |  32 | 1TB |     |  13.0 | 11.6    |    223    |
-|     Mac Pro 2012     |2 x Xeon 3.46 GHz 6-core |  48 | 500 |     |  13.1 | 12.0.1  |    230    |
-|     Mac mini 2018    |    i5 3.0 Ghz 6-core    |   8 | 256 |     |  13.0 | 12.0.1  |    235    |
-| MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  32 | 512 |     |  13.0 | 11.6    |    248    |
-|     Mac Pro 2013     |E5-2697v2 2.7 GHz 12-Core|  64 | 256 |     |  13.1 | 11.6    |    254    |
-| MacBook Pro 13" 2020 |    i7 2.3 GHz 4-core    |  32 | 512 |     |  13.1 | 12.0.1  |    255    |
-| MacBook Pro 15" 2018 |    i9 2.9 GHz 6-core    |  32 | 1TB |     |  13.0 | 11.6    |    263    |
-| MacBook Pro 13" 2018 |    i7 2.7 GHz 4-core    |   8 | 256 |     |  13.0 | 11.6    |    336    |
-| MacBook Pro 15" 2016 |    i7 2.6 GHz 4-core    |  16 | 256 |     |  13.1 | 12.0.1  |    362    |
-|     iMac 27" 2015    |    i5 3.3 GHz 4-core    |  32 | 1TB |     |  13.1 | 11.6    |    400    |
-| MacBook Pro 13" 2017 |    i5 2.3 GHz 2-core    |   8 | 256 |     |  13.1 | 11.5.1  |    511    |
+|        Device        |           CPU           | RAM | SSD | HDD |  Xcode  |  macOS  | Time(sec) |
+|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-------:|:-------:|:---------:|
+| MacBook Pro 14" 2021 |      M1 Max 10-core     |  32 | 2TB |     |  13.1   | 12.0.1  |     90    |
+| MacBook Pro 14" 2021 |      M1 Max 10-core     |  64 | 2TB |     |  13.1   | 12.0.1  |     92    |
+| MacBook Pro 16" 2021 |      M1 Max 10-core     |  64 | 4TB |     |  13.1   | 12.0.1  |     93    |
+| MacBook Pro 16" 2021 |      M1 Max 10-core     |  32 | 1TB |     |  13.1   | 12.0.1  |     98    |
+| MacBook Pro 16" 2021 |      M1 Pro 10-core     |  16 | 1TB |     |  13.1   | 12.0.1  |    102    |
+| MacBook Pro 14" 2021 |      M1 Pro 8-core      |  16 | 512 |     |  13.1   | 12.0.1  |    109    |
+| MacBook Pro 13" 2020 |      M1 8-core          |  16 | 1TB |     |  13.1   | 12.0.1  |    130    |
+|    iMac 24" 2021     |      M1 8-core          |  16 | 512 |     |  13.1   | 12.0.1  |    130    |
+| MacBook Pro 16" 2019 |    i9 2.3 GHz 8-core    |  16 | 1TB |     |  13.2   | 11.6.1  |    184    |
+| MacBook Pro 16" 2019 |    i9 2.4 GHz 8-core    |  64 | 1TB |     |  13.1   | 12.0.1  |    212    |
+| MacBook Pro 16" 2019 |    i9 2.4 GHz 8-core    |  32 | 1TB |     |  13.0   | 11.6    |    223    |
+|     Mac Pro 2012     |2 x Xeon 3.46 GHz 6-core |  48 | 500 |     |  13.1   | 12.0.1  |    230    |
+|     Mac mini 2018    |    i5 3.0 Ghz 6-core    |   8 | 256 |     |  13.0   | 12.0.1  |    235    |
+| MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  32 | 512 |     |  13.0   | 11.6    |    248    |
+|     Mac Pro 2013     |E5-2697v2 2.7 GHz 12-Core|  64 | 256 |     |  13.1   | 11.6    |    254    |
+| MacBook Pro 13" 2020 |    i7 2.3 GHz 4-core    |  32 | 512 |     |  13.1   | 12.0.1  |    255    |
+| MacBook Pro 15" 2018 |    i9 2.9 GHz 6-core    |  32 | 1TB |     |  13.0   | 11.6    |    263    |
+| MacBook Pro 13" 2018 |    i7 2.7 GHz 4-core    |   8 | 256 |     |  13.0   | 11.6    |    336    |
+| MacBook Pro 15" 2016 |    i7 2.6 GHz 4-core    |  16 | 256 |     |  13.1   | 12.0.1  |    362    |
+|     iMac 27" 2015    |    i5 3.3 GHz 4-core    |  32 | 1TB |     |  13.1   | 11.6    |    400    |
+| MacBook Pro 13" 2017 |    i5 2.3 GHz 2-core    |   8 | 256 |     |  13.1   | 11.5.1  |    511    |
+| MacBook Pro 13" 2013 |    i5 2.4 GHz 2-core    |   8 | 256 |     |  13.2.1 | 11.6.2  |    768    |
 
 ## Xcode 12.5
 
