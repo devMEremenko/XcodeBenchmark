@@ -23,6 +23,7 @@ If a device you are looking for is not on the list below, check out open [issues
 | MacBook Pro 14" 2021 |      M1 Pro 8-core      |  16 | 512 |     |  13.1 | 12.0.1  |    109    |
 | MacBook Pro 13" 2020 |      M1 8-core          |  16 | 1TB |     |  13.1 | 12.0.1  |    130    |
 |    iMac 24" 2021     |      M1 8-core          |  16 | 512 |     |  13.1 | 12.0.1  |    130    |
+|     iMac 27" 2019    |    i9 3.6 GHz 8-core    |  64 | 2TB |     |  13.2 | 12.2.1  |    167    |
 | MacBook Pro 16" 2019 |    i9 2.3 GHz 8-core    |  16 | 1TB |     |  13.2 | 11.6.1  |    184    |
 | MacBook Pro 16" 2019 |    i9 2.4 GHz 8-core    |  64 | 1TB |     |  13.1 | 12.0.1  |    212    |
 | MacBook Pro 16" 2019 |    i9 2.4 GHz 8-core    |  32 | 1TB |     |  13.0 | 11.6    |    223    |
