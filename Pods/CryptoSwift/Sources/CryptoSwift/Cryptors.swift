@@ -14,13 +14,15 @@
 //
 
 #if canImport(Darwin)
-  import Darwin
-#else
-  import Glibc
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(ucrt)
+import ucrt
 #endif
 
 /// Worker cryptor/decryptor of `Updatable` types
-public protocol Cryptors: class {
+public protocol Cryptors: AnyObject {
 
   /// Cryptor suitable for encryption
   func makeEncryptor() throws -> Cryptor & Updatable

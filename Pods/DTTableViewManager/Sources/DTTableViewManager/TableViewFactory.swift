@@ -32,53 +32,78 @@ final class TableViewFactory
 {
     fileprivate let tableView: UITableView
     
-    var mappings = [ViewModelMapping]()
+    var mappings = [ViewModelMappingProtocol]() {
+        didSet {
+            resetDelegates?()
+        }
+    }
     
     weak var anomalyHandler : DTTableViewManagerAnomalyHandler?
+    
+    var resetDelegates : (() -> Void)?
     
     init(tableView: UITableView)
     {
         self.tableView = tableView
     }
     
-    func registerCellClass<T:ModelTransfer>(_ cellClass : T.Type, mappingBlock: ((ViewModelMapping) -> Void)?) where T: UITableViewCell
+    func registerCellClass<Cell:ModelTransfer>(_ cellClass : Cell.Type, handler: @escaping (Cell, Cell.ModelType, IndexPath) -> Void, mapping: ((ViewModelMapping<Cell, Cell.ModelType>) -> Void)?) where Cell: UITableViewCell
     {
-        let mapping = ViewModelMapping(viewType: .cell, viewClass: T.self, mappingBlock: mappingBlock)
+        let mapping = ViewModelMapping<Cell, Cell.ModelType>(cellConfiguration: handler, mapping: mapping)
         if let cell = tableView.dequeueReusableCell(withIdentifier: mapping.reuseIdentifier) {
             // Storyboard prototype cell
-            mappings.append(mapping)
             if let cellReuseIdentifier = cell.reuseIdentifier, cellReuseIdentifier != mapping.reuseIdentifier {
                 anomalyHandler?.reportAnomaly(.differentCellReuseIdentifier(mappingReuseIdentifier: mapping.reuseIdentifier, cellReuseIdentifier: cellReuseIdentifier))
             }
         } else {
-            tableView.register(T.self, forCellReuseIdentifier: mapping.reuseIdentifier)
-            
-            if UINib.nibExists(withNibName: String(describing: T.self), inBundle: mapping.bundle) {
-                registerNibNamed(String(describing: T.self), forCellClass: T.self, mappingBlock: mappingBlock)
+            if let xibName = mapping.xibName, UINib.nibExists(withNibName: xibName, inBundle: mapping.bundle) {
+                let nib = UINib(nibName: xibName, bundle: mapping.bundle)
+                tableView.register(nib, forCellReuseIdentifier: mapping.reuseIdentifier)
             } else {
-                mappings.append(mapping)
-                verifyCell(T.self, nibName: nil, withReuseIdentifier: mapping.reuseIdentifier, in: mapping.bundle)
+                tableView.register(Cell.self, forCellReuseIdentifier: mapping.reuseIdentifier)
             }
         }
+        mappings.append(mapping)
+        verifyCell(Cell.self, nibName: mapping.xibName, withReuseIdentifier: mapping.reuseIdentifier, in: mapping.bundle)
     }
     
-    func verifyCell<T:UITableViewCell>(_ cell: T.Type,
+    func registerCellClass<Cell: UITableViewCell, Model>(_ cellType: Cell.Type, _ modelType: Model.Type, handler: @escaping (Cell, Model, IndexPath) -> Void, mapping: ((ViewModelMapping<Cell, Model>) -> Void)? = nil)
+    {
+        let mapping = ViewModelMapping<Cell, Model>(cellConfiguration: handler, mapping: mapping)
+        if let cell = tableView.dequeueReusableCell(withIdentifier: mapping.reuseIdentifier) {
+            // Storyboard prototype cell
+            if let cellReuseIdentifier = cell.reuseIdentifier, cellReuseIdentifier != mapping.reuseIdentifier {
+                anomalyHandler?.reportAnomaly(.differentCellReuseIdentifier(mappingReuseIdentifier: mapping.reuseIdentifier, cellReuseIdentifier: cellReuseIdentifier))
+            }
+        } else {
+            if let xibName = mapping.xibName, UINib.nibExists(withNibName: xibName, inBundle: mapping.bundle) {
+                let nib = UINib(nibName: xibName, bundle: mapping.bundle)
+                tableView.register(nib, forCellReuseIdentifier: mapping.reuseIdentifier)
+            } else {
+                tableView.register(Cell.self, forCellReuseIdentifier: mapping.reuseIdentifier)
+            }
+        }
+        mappings.append(mapping)
+        verifyCell(Cell.self, nibName: mapping.xibName, withReuseIdentifier: mapping.reuseIdentifier, in: mapping.bundle)
+    }
+    
+    func verifyCell<Cell:UITableViewCell>(_ cell: Cell.Type,
                                        nibName: String?,
                                        withReuseIdentifier reuseIdentifier: String,
                                        in bundle: Bundle) {
-        var cell = T(frame: .zero)
+        var cell = Cell(frame: .zero)
         if let nibName = nibName, UINib.nibExists(withNibName: nibName, inBundle: bundle) {
             let nib = UINib(nibName: nibName, bundle: bundle)
             let objects = nib.instantiate(withOwner: cell, options: nil)
-            if let instantiatedCell = objects.first as? T {
+            if let instantiatedCell = objects.first as? Cell {
                 cell = instantiatedCell
             } else {
                 if let first = objects.first {
                     anomalyHandler?.reportAnomaly(.differentCellClass(xibName: nibName,
                                                                       cellClass: String(describing: type(of: first)),
-                                                                      expectedCellClass: String(describing: T.self)))
+                                                                      expectedCellClass: String(describing: Cell.self)))
                 } else {
-                    anomalyHandler?.reportAnomaly(.emptyXibFile(xibName: nibName, expectedViewClass: String(describing: T.self)))
+                    anomalyHandler?.reportAnomaly(.emptyXibFile(xibName: nibName, expectedViewClass: String(describing: Cell.self)))
                 }
             }
         }
@@ -87,133 +112,97 @@ final class TableViewFactory
         }
     }
     
-    func verifyHeaderFooterView<T:UIView>(_ view: T.Type, nibName: String?, in bundle: Bundle) {
-        var view = T(frame: .zero)
+    func verifyHeaderFooterView<View:UIView>(_ view: View.Type, nibName: String?, in bundle: Bundle) {
+        var view = View(frame: .zero)
         if let nibName = nibName, UINib.nibExists(withNibName: nibName, inBundle: bundle) {
             let nib = UINib(nibName: nibName, bundle: bundle)
             let objects = nib.instantiate(withOwner: view, options: nil)
-            if let instantiatedView = objects.first as? T {
+            if let instantiatedView = objects.first as? View {
                 view = instantiatedView
             } else {
                 if let first = objects.first {
                     anomalyHandler?.reportAnomaly(.differentHeaderFooterClass(xibName: nibName,
                                                                               viewClass: String(describing: type(of: first)),
-                                                                              expectedViewClass: String(describing: T.self)))
+                                                                              expectedViewClass: String(describing: View.self)))
                 } else {
-                    anomalyHandler?.reportAnomaly(.emptyXibFile(xibName: nibName, expectedViewClass: String(describing: T.self)))
+                    anomalyHandler?.reportAnomaly(.emptyXibFile(xibName: nibName, expectedViewClass: String(describing: View.self)))
                 }
             }
         }
     }
     
-    func registerNibNamed<T:ModelTransfer>(_ nibName : String, forCellClass cellClass: T.Type, mappingBlock: ((ViewModelMapping) -> Void)?) where T: UITableViewCell
+    func registerSupplementaryClass<View:ModelTransfer>(_ supplementaryClass: View.Type, ofKind kind: String, handler: @escaping (View, View.ModelType, Int) -> Void, mapping: ((ViewModelMapping<View, View.ModelType>) -> Void)?) where View:UIView
     {
-        let mapping = ViewModelMapping(viewType: .cell, viewClass: T.self, xibName: nibName, mappingBlock: mappingBlock)
-        assert(UINib.nibExists(withNibName: nibName, inBundle: mapping.bundle), "Register cell nib method should be called only if nib exists")
-        let nib = UINib(nibName: nibName, bundle: mapping.bundle)
-        tableView.register(nib, forCellReuseIdentifier: mapping.reuseIdentifier)
-        mappings.append(mapping)
-        verifyCell(T.self, nibName: nibName, withReuseIdentifier: mapping.reuseIdentifier, in: mapping.bundle)
-    }
-    
-    func registerNiblessHeaderClass<T:ModelTransfer>(_ headerClass : T.Type, mappingBlock: ((ViewModelMapping) -> Void)?) where T: UIView
-    {
-        let mapping = ViewModelMapping(viewType: .supplementaryView(kind: DTTableViewElementSectionHeader), viewClass: T.self, mappingBlock: mappingBlock)
-        tableView.register(headerClass, forHeaderFooterViewReuseIdentifier: mapping.reuseIdentifier)
-        mappings.append(mapping)
-    }
-    
-    func registerNiblessFooterClass<T:ModelTransfer>(_ footerClass : T.Type, mappingBlock: ((ViewModelMapping) -> Void)?) where T: UIView
-    {
-        let mapping = ViewModelMapping(viewType: .supplementaryView(kind: DTTableViewElementSectionFooter), viewClass: T.self, mappingBlock: mappingBlock)
-        tableView.register(footerClass, forHeaderFooterViewReuseIdentifier: mapping.reuseIdentifier)
-        mappings.append(mapping)
-    }
-    
-    func registerHeaderClass<T:ModelTransfer>(_ headerClass : T.Type, mappingBlock: ((ViewModelMapping) -> Void)?) where T: UIView
-    {
-        registerNibNamed(String(describing: T.self), forHeaderClass: headerClass, mappingBlock: mappingBlock)
-    }
-    
-    func registerFooterClass<T:ModelTransfer>(_ footerClass: T.Type, mappingBlock: ((ViewModelMapping) -> Void)?) where T:UIView
-    {
-        registerNibNamed(String(describing: T.self), forFooterClass: footerClass, mappingBlock: mappingBlock)
-    }
-    
-    func registerNibNamed<T:ModelTransfer>(_ nibName: String, forHeaderClass headerClass: T.Type, mappingBlock: ((ViewModelMapping) -> Void)?) where T:UIView
-    {
-        let mapping = ViewModelMapping(viewType: .supplementaryView(kind: DTTableViewElementSectionHeader),
-                                       viewClass: T.self,
-                                       xibName: nibName,
-                                       mappingBlock: mappingBlock)
+        let mapping = ViewModelMapping<View, View.ModelType>(kind: kind, headerFooterConfiguration: handler, mapping: mapping)
         
-        assert(UINib.nibExists(withNibName: nibName, inBundle: mapping.bundle), "Register header nib method should be called only if nib exists. If you need to register header without nib, please call `registerNiblessHeader` method.")
-        
-        if T.isSubclass(of: UITableViewHeaderFooterView.self) {
-            self.tableView.register(UINib(nibName: nibName, bundle: mapping.bundle), forHeaderFooterViewReuseIdentifier: mapping.reuseIdentifier)
+        if View.isSubclass(of: UITableViewHeaderFooterView.self) {
+            if let nibName = mapping.xibName, UINib.nibExists(withNibName: nibName, inBundle: mapping.bundle) {
+                let nib = UINib(nibName: nibName, bundle: mapping.bundle)
+                tableView.register(nib, forHeaderFooterViewReuseIdentifier: mapping.reuseIdentifier)
+            } else {
+                tableView.register(View.self, forHeaderFooterViewReuseIdentifier: mapping.reuseIdentifier)
+            }
         }
         mappings.append(mapping)
-        verifyHeaderFooterView(T.self, nibName: nibName, in: mapping.bundle)
+        verifyHeaderFooterView(View.self, nibName: mapping.xibName, in: mapping.bundle)
     }
     
-    func registerNibNamed<T:ModelTransfer>(_ nibName: String, forFooterClass footerClass: T.Type, mappingBlock: ((ViewModelMapping) -> Void)?) where T:UIView
+    func registerSupplementaryClass<View, Model>(_ supplementaryClass: View.Type, ofKind kind: String, handler: @escaping (View, Model, Int) -> Void, mapping: ((ViewModelMapping<View, Model>) -> Void)?) where View:UIView
     {
-        let mapping = ViewModelMapping(viewType: .supplementaryView(kind: DTTableViewElementSectionFooter),
-                                       viewClass: T.self,
-                                       xibName: nibName,
-                                       mappingBlock: mappingBlock)
+        let mapping = ViewModelMapping<View, Model>(kind: kind, headerFooterConfiguration: handler, mapping: mapping)
         
-        assert(UINib.nibExists(withNibName: nibName, inBundle: mapping.bundle), "Register footer nib method should be called only if nib exists. If you need to register footer without nib, please call `registerNiblessHeader` method.")
-        
-        if T.isSubclass(of: UITableViewHeaderFooterView.self) {
-            tableView.register(UINib(nibName: nibName, bundle: mapping.bundle), forHeaderFooterViewReuseIdentifier: mapping.reuseIdentifier)
+        if View.isSubclass(of: UITableViewHeaderFooterView.self) {
+            if let nibName = mapping.xibName, UINib.nibExists(withNibName: nibName, inBundle: mapping.bundle) {
+                let nib = UINib(nibName: nibName, bundle: mapping.bundle)
+                tableView.register(nib, forHeaderFooterViewReuseIdentifier: mapping.reuseIdentifier)
+            } else {
+                tableView.register(View.self, forHeaderFooterViewReuseIdentifier: mapping.reuseIdentifier)
+            }
         }
         mappings.append(mapping)
-        verifyHeaderFooterView(T.self, nibName: nibName, in: mapping.bundle)
+        verifyHeaderFooterView(View.self, nibName: mapping.xibName, in: mapping.bundle)
     }
     
-    func unregisterCellClass<T:ModelTransfer>(_ cellClass: T.Type) where T: UITableViewCell {
+    func unregisterCellClass<Cell:ModelTransfer>(_ cellClass: Cell.Type) where Cell: UITableViewCell {
         mappings = mappings.filter({ (mapping) -> Bool in
-            if mapping.viewClass is T.Type && mapping.viewType == .cell { return false }
+            if mapping.viewClass is Cell.Type && mapping.viewType == .cell { return false }
             return true
         })
-        tableView.register(nil as AnyClass?, forCellReuseIdentifier: String(describing: T.self))
-        tableView.register(nil as UINib?, forCellReuseIdentifier: String(describing: T.self))
+        tableView.register(nil as AnyClass?, forCellReuseIdentifier: String(describing: Cell.self))
+        tableView.register(nil as UINib?, forCellReuseIdentifier: String(describing: Cell.self))
     }
     
-    func unregisterHeaderClass<T:ModelTransfer>(_ headerClass: T.Type) where T: UIView {
+    func unregisterHeaderClass<View:ModelTransfer>(_ headerClass: View.Type) where View: UIView {
         mappings = mappings.filter({ mapping in
-            if mapping.viewClass is T.Type && mapping.viewType == .supplementaryView(kind: DTTableViewElementSectionHeader) { return false }
+            if mapping.viewClass is View.Type && mapping.viewType == .supplementaryView(kind: DTTableViewElementSectionHeader) { return false }
             return true
         })
-        tableView.register(nil as AnyClass?, forHeaderFooterViewReuseIdentifier: String(describing: T.self))
+        tableView.register(nil as AnyClass?, forHeaderFooterViewReuseIdentifier: String(describing: View.self))
         tableView.register(nil as UINib?, forHeaderFooterViewReuseIdentifier: String(describing: self))
     }
     
-    func unregisterFooterClass<T:ModelTransfer>(_ footerClass: T.Type) where T: UIView {
+    func unregisterFooterClass<View:ModelTransfer>(_ footerClass: View.Type) where View: UIView {
         mappings = mappings.filter({ mapping in
-            if mapping.viewClass is T.Type && mapping.viewType == .supplementaryView(kind: DTTableViewElementSectionFooter) { return false }
+            if mapping.viewClass is View.Type && mapping.viewType == .supplementaryView(kind: DTTableViewElementSectionFooter) { return false }
             return true
         })
-        tableView.register(nil as AnyClass?, forHeaderFooterViewReuseIdentifier: String(describing: T.self))
+        tableView.register(nil as AnyClass?, forHeaderFooterViewReuseIdentifier: String(describing: View.self))
         tableView.register(nil as UINib?, forHeaderFooterViewReuseIdentifier: String(describing: self))
     }
     
-    func viewModelMapping(for viewType: ViewType, model: Any, indexPath: IndexPath) -> ViewModelMapping?
+    func viewModelMapping(for viewType: ViewType, model: Any, indexPath: IndexPath) -> ViewModelMappingProtocol?
     {
         guard let unwrappedModel = RuntimeHelper.recursivelyUnwrapAnyValue(model) else {
             return nil
         }
-        return mappings.mappingCandidates(for: viewType, withModel: unwrappedModel, at: indexPath).first
+        return viewType.mappingCandidates(for: mappings, withModel: unwrappedModel, at: indexPath).first
     }
     
     func cellForModel(_ model: Any, atIndexPath indexPath:IndexPath) -> UITableViewCell?
     {
         if let mapping = viewModelMapping(for: .cell, model: model, indexPath: indexPath)
         {
-            let cell = tableView.dequeueReusableCell(withIdentifier: mapping.reuseIdentifier, for: indexPath)
-            mapping.updateBlock(cell, model)
-            return cell
+            return mapping.dequeueConfiguredReusableCell(for: tableView, model: model, indexPath: indexPath)
         }
         anomalyHandler?.reportAnomaly(.noCellMappingFound(modelDescription: String(describing: model), indexPath: indexPath))
         return nil
@@ -223,7 +212,7 @@ final class TableViewFactory
         guard let cell = tableView.cellForRow(at: indexPath) else { return }
         guard let unwrappedModel = RuntimeHelper.recursivelyUnwrapAnyValue(model) else { return }
         if let mapping = viewModelMapping(for: .cell, model: unwrappedModel, indexPath: indexPath) {
-            mapping.updateBlock(cell, unwrappedModel)
+            mapping.updateCell(cell: cell, at: indexPath, with: unwrappedModel)
         }
     }
     
@@ -234,20 +223,6 @@ final class TableViewFactory
             return nil
         }
       
-        if let view = tableView.dequeueReusableHeaderFooterView(withIdentifier: mapping.reuseIdentifier) {
-            mapping.updateBlock(view, model)
-            return view
-        } else {
-            var view : UIView?
-            
-            if let type = mapping.viewClass as? UIView.Type {
-                view = type.dt_loadFromXib()
-            }
-            
-            if let view = view {
-                mapping.updateBlock(view, model)
-            }
-            return view
-        }
+        return mapping.dequeueConfiguredReusableSupplementaryView(for: tableView, kind: type.supplementaryKind() ?? "", model: model, indexPath: indexPath)
     }
 }

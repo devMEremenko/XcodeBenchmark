@@ -30,11 +30,7 @@ open class CollectionViewUpdater : StorageUpdating {
     /// When this property is true, move events will be animated as delete event and insert event.
     open var animateMoveAsDeleteAndInsert: Bool
     
-    /// Boolean property, that indicates whether batch updates are completed.
-    /// - Note: this can be useful if you are deciding whether to run another batch of animations - insertion, deletions etc. UICollectionView is not very tolerant to multiple performBatchUpdates, executed at once.
-    open var batchUpdatesInProgress: Bool = false
-    
-    /// If turned on, animates changes off screen, otherwise calls `collectionView.reloadData` when update come offscreen. To verify if tableView is onscreen, `CollectionViewUpdater` compares collectionView.window to nil. Defaults to true.
+    /// If turned on, animates changes off screen, otherwise calls `collectionView.reloadData` when update come offscreen. To verify if collectionView is onscreen, `CollectionViewUpdater` compares collectionView.window to nil. Defaults to true.
     open var animateChangesOffScreen : Bool = true
     
     /// Creates updater.
