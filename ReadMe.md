@@ -77,6 +77,7 @@ If a device you are looking for is not on the list below, check out open [issues
 | MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  12.2 | 11.0.1  |    250    |
 | MacBook Pro 13" 2020 |    i5 2.0 GHz 4-core    |  16 | 1TB |     |  12.2 | 11.0.1  |    265    |
 | MacBook Pro 15" 2017 |    i7 2.8 GHz 4-core    |  16 | 256 |     |  12.2 | 11.0.1  |    282    |
+| Macbook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  16 | 512 |     |  12.4 | 11.2.2  |    292    |
 | MacBook Pro 15" 2015 |    i7 2.2 GHz 4-core    |  16 | 256 |     |  12.1 | 11.0.1  |    324    |
 | MacBook Pro 15" 2015 |    i7 2.2 GHz 4-core    |  16 | 256 |     |  12.1 | 10.15.5 |    334    |
 | MacBook Pro 15" 2014 |    i7 2.5 GHz 4-core    |  16 | 256 |     |  12.2 | 10.15.7 |    343    |
@@ -287,6 +288,7 @@ Make sure:
 - [@rursache](https://github.com/rursache)
 - [@wendyliga](https://github.com/wendyliga)
 - [@mlch911](https://github.com/mlch911)
+- [@fmortens](https://github.com/fmortens)
 - [@apvex](https://github.com/apvex)
 - [@Jeehut](https://github.com/Jeehut)
 - [@ginamdar](https://github.com/ginamdar)
