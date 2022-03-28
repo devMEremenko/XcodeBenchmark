@@ -1,4 +1,5 @@
 readonly PATH_TO_PROJECT=$(pwd)/XcodeBenchmark.xcworkspace
+readonly PATH_TO_DERIVED=$(pwd)/DerivedData
 
 clear
 
@@ -7,7 +8,6 @@ echo "Preparing environment"
 START_TIME=$(date +"%T")
 
 defaults write com.apple.dt.Xcode ShowBuildOperationDuration YES
-rm -rf ~/Library/Developer/Xcode/DerivedData
 
 if [ -n "$PATH_TO_PROJECT" ]; then 
 
@@ -17,6 +17,7 @@ if [ -n "$PATH_TO_PROJECT" ]; then
 	xcodebuild -workspace "$PATH_TO_PROJECT" \
 			   -scheme XcodeBenchmark \
 			   -destination generic/platform=iOS \
+			   -derivedDataPath "$PATH_TO_DERIVED" \
 			   build
 
 	echo "System Version:" "$(sw_vers -productVersion)"
@@ -53,6 +54,8 @@ if [ -n "$PATH_TO_PROJECT" ]; then
 	echo ""
 	echo "2️⃣  Share your results at https://github.com/devMEremenko/XcodeBenchmark"
 
+	rm -rfd "$PATH_TO_DERIVED"
+	
 else
     echo "XcodeBenchmark.xcworkspace was not found in the current folder"
     echo "Are you running in the XcodeBenchmark folder?"

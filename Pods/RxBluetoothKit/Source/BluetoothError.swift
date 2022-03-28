@@ -42,6 +42,10 @@ public enum BluetoothError: Error {
     // L2CAP
     case openingL2CAPChannelFailed(Peripheral, Error?)
     case publishingL2CAPChannelFailed(CBL2CAPPSM, Error?)
+    
+    case peripheralDestroyed
+    case serviceDestroyed
+    
     // Unknown
     case unknownWriteType
 }
@@ -120,6 +124,11 @@ extension BluetoothError: CustomStringConvertible {
             return "Opening L2CAP channel error has occured: \(err?.localizedDescription ?? "-")"
         case let .publishingL2CAPChannelFailed(_, err):
             return "Publishing L2CAP channel error has occured: \(err?.localizedDescription ?? "-")"
+            
+        case .peripheralDestroyed:
+            return "Peripheral was already deallocated"
+        case .serviceDestroyed:
+            return "Service was already deallocated"
         // Unknown
         case .unknownWriteType:
             return "Unknown write type"

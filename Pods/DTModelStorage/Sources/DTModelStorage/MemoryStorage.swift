@@ -106,7 +106,7 @@ open class MemoryStorageAnomalyHandler : AnomalyHandler {
 public enum MemoryStorageError: LocalizedError
 {
     /// Errors that can happen when inserting items into memory storage - `insertItem(_:to:)` method
-    public enum InsertionReason
+    public enum InsertionReason: Equatable
     {
         case indexPathTooBig(IndexPath)
     }
@@ -145,6 +145,8 @@ public enum MemoryStorageError: LocalizedError
 /// - SeeAlso: `SectionModel`
 open class MemoryStorage: BaseUpdateDeliveringStorage, Storage, SectionLocationIdentifyable
 {
+    //swiftlint:disable:next line_length
+    @available(*, deprecated, message: "Deferring datasource updates and executing them inside of performBatchUpdates block turned out to be the only stable and correct way to apply updates to both UI and datasource. It's highly recommended to leave this property on. It is now deprecated, and may be removed in the future release, maintaining current default behaviour.")
     /// When enabled, datasource updates are not applied immediately and saved inside `StorageUpdate` `enqueuedDatasourceUpdates` property.
     /// Call `StorageUpdate.applyDeferredDatasourceUpdates` method to apply all deferred changes.
     /// Defaults to `true`.
@@ -317,17 +319,41 @@ open class MemoryStorage: BaseUpdateDeliveringStorage, Storage, SectionLocationI
         finishUpdate()
     }
     
+    /// Inserts contents of `items` at `indexPath`.
+    ///
+    /// This method creates all sections prior to indexPath.section, unless they are already created.
+    /// - Throws: if indexPath is too big, will throw MemoryStorageErrors.Insertion.IndexPathTooBig
+    open func insertItems<T>(_ items: [T], at indexPath: IndexPath) throws {
+        startUpdate()
+        performDatasourceUpdate { [weak self] update in
+            guard let section = self?.getValidSection(indexPath.section, collectChangesIn: update) else {
+                return
+            }
+            guard section.items.count >= indexPath.item else {
+                self?.anomalyHandler.reportAnomaly(MemoryStorageAnomaly.insertionIndexPathTooBig(indexPath: indexPath, countOfElementsInSection: section.items.count))
+                throw MemoryStorageError.insertionFailed(reason: .indexPathTooBig(indexPath))
+            }
+            
+            section.items.insert(contentsOf: items, at: indexPath.item)
+            update.objectChanges.append(contentsOf:
+                                            (indexPath.item..<indexPath.item + items.count)
+                                            .map { (.insert, [IndexPath(item: $0, section: indexPath.section)]) }
+            )
+        }
+        finishUpdate()
+    }
+    
     /// Inserts `items` to `indexPaths`
     ///
     /// This method creates sections prior to maximum indexPath.section in `indexPaths`, unless they are already created.
-    /// - Throws: if items.count is different from indexPaths.count, will throw MemoryStorageErrors.BatchInsertion.ItemsCountMismatch
-    open func insertItems<T>(_ items: [T], to indexPaths: [IndexPath]) throws
+    open func insertItems<T>(_ items: [T], to indexPaths: [IndexPath])
     {
         if items.count != indexPaths.count {
             anomalyHandler.reportAnomaly(.batchInsertionItemCountMismatch(itemsCount: items.count, indexPathsCount: indexPaths.count))
             return
         }
         if defersDatasourceUpdates {
+            startUpdate()
             performDatasourceUpdate { [weak self] update in
                 indexPaths.enumerated().forEach { (arg) in
                     let (itemIndex, indexPath) = arg
@@ -339,6 +365,7 @@ open class MemoryStorage: BaseUpdateDeliveringStorage, Storage, SectionLocationI
                     update.objectChanges.append((.insert, [indexPath]))
                 }
             }
+            finishUpdate()
         } else {
             performUpdates {
                 indexPaths.enumerated().forEach { (arg) in

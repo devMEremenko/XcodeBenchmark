@@ -28,98 +28,99 @@ import DTModelStorage
 
 extension DTTableViewManager
 {
-    /// Registers mapping from model class to `cellClass`.
-    ///
-    /// Method will automatically check for nib with the same name as `cellClass`. If it exists - nib will be registered instead of class.
-    open func register<T:ModelTransfer>(_ cellClass:T.Type, mapping: ((ViewModelMapping) -> Void)? = nil) where T: UITableViewCell
+    /// Registers mapping for `cellClass`. Mapping will automatically check for nib with the same name as `cellClass` and register it, if it is found. `UITableViewCell` can also be designed in storyboard.
+    /// - Parameters:
+    ///   - cellClass: UITableViewCell subclass type, conforming to `ModelTransfer` protocol.
+    ///   - mapping: mapping configuration closure, executed before any registration or dequeue is performed.
+    ///   - handler: configuration closure, that is run when cell is dequeued. Please note, that `handler` is called before `update(with:)` method.
+    open func register<Cell:ModelTransfer>(_ cellClass:Cell.Type,
+                                        mapping: ((ViewModelMapping<Cell, Cell.ModelType>) -> Void)? = nil,
+                                        handler: @escaping (Cell, Cell.ModelType, IndexPath) -> Void = { _, _, _ in }) where Cell: UITableViewCell
     {
-        self.viewFactory.registerCellClass(cellClass, mappingBlock: mapping)
+        self.viewFactory.registerCellClass(cellClass, handler: handler, mapping: mapping)
     }
     
-    /// Registers nib with `nibName` mapping from model class to `cellClass`.
-    open func registerNibNamed<T:ModelTransfer>(_ nibName: String, for cellClass: T.Type, mapping: ((ViewModelMapping) -> Void)? = nil) where T: UITableViewCell
+    /// Registers mapping from `modelType` to `cellClass`. Mapping will automatically check for nib with the same name as `cellClass` and register it, if it is found. `UITableViewCell` can also be designed in storyboard.
+    /// - Parameters:
+    ///   - cellClass: UITableViewCell to register
+    ///   - modelType: Model type, which is mapped to `cellClass`.
+    ///   - mapping: mapping configuration closure, executed before any registration or dequeue is performed.
+    ///   - handler: configuration closure, that is run when cell is dequeued.
+    open func register<Cell: UITableViewCell, Model>(_ cellClass: Cell.Type, for modelType: Model.Type,
+                                                     mapping: ((ViewModelMapping<Cell, Model>) -> Void)? = nil,
+                                                     handler: @escaping (Cell, Model, IndexPath) -> Void)
     {
-        self.viewFactory.registerNibNamed(nibName, forCellClass: cellClass, mappingBlock: mapping)
+        viewFactory.registerCellClass(cellClass, modelType, handler: handler, mapping: mapping)
     }
     
     /// Registers mapping from model class to header view of `headerClass` type.
     ///
     /// Method will automatically check for nib with the same name as `headerClass`. If it exists - nib will be registered instead of class.
     /// This method also sets TableViewConfiguration.sectionHeaderStyle property to .view.
-    /// - Note: Views does not need to be `UITableViewHeaderFooterView`, if it's a `UIView` subclass, it also will be created from XIB.
-    /// - SeeAlso: `UIView+XibLoading`.
-    open func registerHeader<T:ModelTransfer>(_ headerClass : T.Type, mapping: ((ViewModelMapping) -> Void)? = nil) where T: UIView
+    /// - Note: Views does not need to be `UITableViewHeaderFooterView`, if it's a `UIView` subclass, it also will be created from XIB. In the latter case, events defined inside mapping closure are not supported.
+    /// - Note: `handler` closure is called before `update(with:)` method.
+    open func registerHeader<View:ModelTransfer>(_ headerClass : View.Type,
+                                              mapping: ((ViewModelMapping<View, View.ModelType>) -> Void)? = nil,
+                                              handler: @escaping (View, View.ModelType, Int) -> Void = { _, _, _ in }) where View: UIView
     {
         configuration.sectionHeaderStyle = .view
-        self.viewFactory.registerHeaderClass(headerClass, mappingBlock: mapping)
+        viewFactory.registerSupplementaryClass(View.self, ofKind: DTTableViewElementSectionHeader, handler: handler, mapping: mapping)
     }
     
     /// Registers mapping from model class to header view of `headerClass` type.
     ///
-    /// This method is intended to be used for headers created from code - without UI made in XIB.
+    /// Method will automatically check for nib with the same name as `headerClass`. If it exists - nib will be registered instead of class.
     /// This method also sets TableViewConfiguration.sectionHeaderStyle property to .view.
-    open func registerNiblessHeader<T:ModelTransfer>(_ headerClass : T.Type, mapping: ((ViewModelMapping) -> Void)? = nil) where T: UITableViewHeaderFooterView
+    /// - Note: Views does not need to be `UITableViewHeaderFooterView`, if it's a `UIView` subclass, it also will be created from XIB. In the latter case, events defined inside mapping closure are not supported.
+    open func registerHeader<View: UIView, Model>(_ headerClass : View.Type,
+                                                  for: Model.Type,
+                                                  mapping: ((ViewModelMapping<View, Model>) -> Void)? = nil,
+                                                  handler: @escaping (View, Model, Int) -> Void)
     {
         configuration.sectionHeaderStyle = .view
-        self.viewFactory.registerNiblessHeaderClass(headerClass, mappingBlock: mapping)
-    }
-    
-    /// Registers mapping from model class to footer view of `footerClass` type.
-    ///
-    /// This method is intended to be used for footers created from code - without UI made in XIB.
-    /// This method also sets TableViewConfiguration.sectionFooterStyle property to .view.
-    open func registerNiblessFooter<T:ModelTransfer>(_ footerClass : T.Type, mapping: ((ViewModelMapping) -> Void)? = nil) where T: UITableViewHeaderFooterView
-    {
-        configuration.sectionFooterStyle = .view
-        self.viewFactory.registerNiblessFooterClass(footerClass, mappingBlock: mapping)
+        viewFactory.registerSupplementaryClass(View.self, ofKind: DTTableViewElementSectionHeader, handler: handler, mapping: mapping)
     }
     
     /// Registers mapping from model class to footerView view of `footerClass` type.
     ///
     /// Method will automatically check for nib with the same name as `footerClass`. If it exists - nib will be registered instead of class.
     /// This method also sets TableViewConfiguration.sectionFooterStyle property to .view.
-    /// - Note: Views does not need to be `UITableViewHeaderFooterView`, if it's a `UIView` subclass, it also will be created from XIB.
-    /// - SeeAlso: `UIView+XibLoading`.
-    open func registerFooter<T:ModelTransfer>(_ footerClass: T.Type, mapping: ((ViewModelMapping) -> Void)? = nil) where T:UIView
+    /// - Note: Views does not need to be `UITableViewHeaderFooterView`, if it's a `UIView` subclass, it also will be created from XIB. In the latter case, events defined inside mapping closure are not supported.
+    /// - Note: `handler` closure is called before `update(with:)` method.
+    open func registerFooter<View:ModelTransfer>(_ footerClass: View.Type,
+                                              mapping: ((ViewModelMapping<View, View.ModelType>) -> Void)? = nil,
+                                              handler: @escaping (View, View.ModelType, Int) -> Void = { _, _, _ in }) where View:UIView
     {
         configuration.sectionFooterStyle = .view
-        viewFactory.registerFooterClass(footerClass, mappingBlock: mapping)
+        viewFactory.registerSupplementaryClass(View.self, ofKind: DTTableViewElementSectionFooter, handler: handler, mapping: mapping)
     }
     
-    /// Registers mapping from model class to headerView view of `headerClass` type with `nibName`.
+    /// Registers mapping from model class to footer view of `footerClass` type.
     ///
-    /// This method also sets TableViewConfiguration.sectionHeaderStyle property to .view.
-    /// - Note: Views does not need to be `UITableViewHeaderFooterView`, if it's a `UIView` subclass, it also will be created from XIB.
-    /// - SeeAlso: `UIView+XibLoading`.
-    open func registerNibNamed<T:ModelTransfer>(_ nibName: String, forHeader headerClass: T.Type, mapping: ((ViewModelMapping) -> Void)? = nil) where T:UIView
-    {
-        configuration.sectionHeaderStyle = .view
-        viewFactory.registerNibNamed(nibName, forHeaderClass: headerClass, mappingBlock: mapping)
-    }
-    
-    /// Registers mapping from model class to headerView view of `footerClass` type with `nibName`.
-    ///
+    /// Method will automatically check for nib with the same name as `footerClass`. If it exists - nib will be registered instead of class.
     /// This method also sets TableViewConfiguration.sectionFooterStyle property to .view.
-    /// - Note: Views does not need to be `UITableViewHeaderFooterView`, if it's a `UIView` subclass, it also will be created from XIB.
-    /// - SeeAlso: `UIView+XibLoading`.
-    open func registerNibNamed<T:ModelTransfer>(_ nibName: String, forFooter footerClass: T.Type, mapping: ((ViewModelMapping) -> Void)? = nil) where T:UIView
+    /// - Note: Views does not need to be `UITableViewHeaderFooterView`, if it's a `UIView` subclass, it will be created from XIB. In the latter case, events defined inside mapping closure are not supported.
+    open func registerFooter<View: UIView, Model>(_ footerClass : View.Type,
+                                           for: Model.Type,
+                                           mapping: ((ViewModelMapping<View, Model>) -> Void)? = nil,
+                                           handler: @escaping (View, Model, Int) -> Void)
     {
         configuration.sectionFooterStyle = .view
-        viewFactory.registerNibNamed(nibName, forFooterClass: footerClass, mappingBlock: mapping)
+        viewFactory.registerSupplementaryClass(View.self, ofKind: DTTableViewElementSectionFooter, handler: handler, mapping: mapping)
     }
     
     /// Unregisters `cellClass` from `DTTableViewManager` and `UITableView`.
-    open func unregister<T:ModelTransfer>(_ cellClass: T.Type) where T:UITableViewCell {
-        viewFactory.unregisterCellClass(T.self)
+    open func unregister<Cell:ModelTransfer>(_ cellClass: Cell.Type) where Cell:UITableViewCell {
+        viewFactory.unregisterCellClass(Cell.self)
     }
     
     /// Unregisters `headerClass` from `DTTableViewManager` and `UITableView`.
-    open func unregisterHeader<T:ModelTransfer>(_ headerClass: T.Type) where T: UIView {
-        viewFactory.unregisterHeaderClass(T.self)
+    open func unregisterHeader<View:ModelTransfer>(_ headerClass: View.Type) where View: UIView {
+        viewFactory.unregisterHeaderClass(View.self)
     }
     
     /// Unregisters `footerClass` from `DTTableViewManager` and `UITableView`.
-    open func unregisterFooter<T:ModelTransfer>(_ footerClass: T.Type) where T: UIView {
-        viewFactory.unregisterFooterClass(T.self)
+    open func unregisterFooter<View:ModelTransfer>(_ footerClass: View.Type) where View: UIView {
+        viewFactory.unregisterFooterClass(View.self)
     }
 }

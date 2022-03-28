@@ -29,152 +29,152 @@ import DTModelStorage
 
 extension DTTableViewManager {
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:didSelectRowAt:)` method is called for `cellClass`.
-    open func didSelect<T:ModelTransfer>(_ cellClass:  T.Type, _ closure: @escaping (T, T.ModelType, IndexPath) -> Void) where T:UITableViewCell
+    open func didSelect<Cell:ModelTransfer>(_ cellClass:  Cell.Type, _ closure: @escaping (Cell, Cell.ModelType, IndexPath) -> Void) where Cell:UITableViewCell
     {
-        tableDelegate?.appendReaction(for: T.self, signature: .didSelectRowAtIndexPath, closure: closure)
+        tableDelegate?.appendReaction(for: Cell.self, signature: .didSelectRowAtIndexPath, closure: closure)
     }
     
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:willSelectRowAt:)` method is called for `cellClass`.
-    open func willSelect<T:ModelTransfer>(_ cellClass:  T.Type, _ closure: @escaping (T, T.ModelType, IndexPath) -> IndexPath?) where T:UITableViewCell {
-        tableDelegate?.appendReaction(for: T.self, signature: .willSelectRowAtIndexPath, closure: closure)
+    open func willSelect<Cell:ModelTransfer>(_ cellClass:  Cell.Type, _ closure: @escaping (Cell, Cell.ModelType, IndexPath) -> IndexPath?) where Cell:UITableViewCell {
+        tableDelegate?.appendReaction(for: Cell.self, signature: .willSelectRowAtIndexPath, closure: closure)
     }
     
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:willDeselectRowAt:)` method is called for `cellClass`.
-    open func willDeselect<T:ModelTransfer>(_ cellClass:  T.Type, _ closure: @escaping (T, T.ModelType, IndexPath) -> IndexPath?) where T:UITableViewCell {
-        tableDelegate?.appendReaction(for: T.self, signature: .willDeselectRowAtIndexPath, closure: closure)
+    open func willDeselect<Cell:ModelTransfer>(_ cellClass:  Cell.Type, _ closure: @escaping (Cell, Cell.ModelType, IndexPath) -> IndexPath?) where Cell:UITableViewCell {
+        tableDelegate?.appendReaction(for: Cell.self, signature: .willDeselectRowAtIndexPath, closure: closure)
     }
     
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:didDeselectRowAt:)` method is called for `cellClass`.
-    open func didDeselect<T:ModelTransfer>(_ cellClass:  T.Type, _ closure: @escaping (T, T.ModelType, IndexPath) -> Void) where T:UITableViewCell {
-        tableDelegate?.appendReaction(for: T.self, signature: .didDeselectRowAtIndexPath, closure: closure)
+    open func didDeselect<Cell:ModelTransfer>(_ cellClass:  Cell.Type, _ closure: @escaping (Cell, Cell.ModelType, IndexPath) -> Void) where Cell:UITableViewCell {
+        tableDelegate?.appendReaction(for: Cell.self, signature: .didDeselectRowAtIndexPath, closure: closure)
     }
     
     /// Registers `closure` to be executed to determine cell height in `UITableViewDelegate.tableView(_:heightForRowAt:)` method, when it's called for cell which model is of `itemType`.
-    open func heightForCell<T>(withItem itemType: T.Type, _ closure: @escaping (T, IndexPath) -> CGFloat) {
-        tableDelegate?.appendReaction(for: T.self, signature: .heightForRowAtIndexPath, closure: closure)
+    open func heightForCell<Model>(withItem itemType: Model.Type, _ closure: @escaping (Model, IndexPath) -> CGFloat) {
+        tableDelegate?.appendReaction(viewType: .cell, for: Model.self, signature: .heightForRowAtIndexPath, closure: closure)
     }
     
     /// Registers `closure` to be executed to determine estimated cell height in `UITableViewDelegate.tableView(_:estimatedHeightForRowAt:)` method, when it's called for cell which model is of `itemType`.
-    open func estimatedHeightForCell<T>(withItem itemType: T.Type, _ closure: @escaping (T, IndexPath) -> CGFloat) {
-        tableDelegate?.appendReaction(for: T.self, signature: .estimatedHeightForRowAtIndexPath, closure: closure)
+    open func estimatedHeightForCell<Model>(withItem itemType: Model.Type, _ closure: @escaping (Model, IndexPath) -> CGFloat) {
+        tableDelegate?.appendReaction(viewType: .cell, for: Model.self, signature: .estimatedHeightForRowAtIndexPath, closure: closure)
     }
     
     /// Registers `closure` to be executed to determine indentation level in `UITableViewDelegate.tableView(_:indentationLevelForRowAt:)` method, when it's called for cell which model is of `itemType`.
-    open func indentationLevelForCell<T>(withItem itemType: T.Type, _ closure: @escaping (T, IndexPath) -> CGFloat) {
-        tableDelegate?.appendReaction(for: T.self, signature: .indentationLevelForRowAtIndexPath, closure: closure)
+    open func indentationLevelForCell<Model>(withItem itemType: Model.Type, _ closure: @escaping (Model, IndexPath) -> Int) {
+        tableDelegate?.appendReaction(viewType: .cell, for: Model.self, signature: .indentationLevelForRowAtIndexPath, closure: closure)
     }
     
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:willDisplayCell:forRowAt:)` method is called for `cellClass`.
-    open func willDisplay<T:ModelTransfer>(_ cellClass:T.Type, _ closure: @escaping (T, T.ModelType, IndexPath) -> Void) where T: UITableViewCell
+    open func willDisplay<Cell:ModelTransfer>(_ cellClass:Cell.Type, _ closure: @escaping (Cell, Cell.ModelType, IndexPath) -> Void) where Cell: UITableViewCell
     {
-        tableDelegate?.appendReaction(for: T.self, signature: .willDisplayCellForRowAtIndexPath, closure: closure)
+        tableDelegate?.appendReaction(for: Cell.self, signature: .willDisplayCellForRowAtIndexPath, closure: closure)
     }
     
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:accessoryButtonTappedForRowAt:)` method is called for `cellClass`.
-    open func accessoryButtonTapped<T:ModelTransfer>(in cellClass: T.Type, _ closure: @escaping (T, T.ModelType, IndexPath) -> Void) where T: UITableViewCell {
-        tableDelegate?.appendReaction(for: T.self, signature: .accessoryButtonTappedForRowAtIndexPath, closure: closure)
+    open func accessoryButtonTapped<Cell:ModelTransfer>(in cellClass: Cell.Type, _ closure: @escaping (Cell, Cell.ModelType, IndexPath) -> Void) where Cell: UITableViewCell {
+        tableDelegate?.appendReaction(for: Cell.self, signature: .accessoryButtonTappedForRowAtIndexPath, closure: closure)
     }
     
     /// Registers `closure` to be executed to determine header height in `UITableViewDelegate.tableView(_:heightForHeaderInSection:)` method, when it's called for header which model is of `itemType`.
-    open func heightForHeader<T>(withItem type: T.Type, _ closure: @escaping (T, Int) -> CGFloat) {
-        tableDelegate?.appendReaction(forSupplementaryKind: DTTableViewElementSectionHeader, modelClass: T.self, signature: .heightForHeaderInSection, closure: closure)
+    open func heightForHeader<Model>(withItem type: Model.Type, _ closure: @escaping (Model, Int) -> CGFloat) {
+        tableDelegate?.appendReaction(forSupplementaryKind: DTTableViewElementSectionHeader, modelClass: Model.self, signature: .heightForHeaderInSection, closure: closure)
     }
     
     /// Registers `closure` to be executed to determine estimated header height in `UITableViewDelegate.tableView(_:estimatedHeightForHeaderInSection:)` method, when it's called for header which model is of `itemType`.
-    open func estimatedHeightForHeader<T>(withItem type: T.Type, _ closure: @escaping (T, Int) -> CGFloat) {
-        tableDelegate?.appendReaction(forSupplementaryKind: DTTableViewElementSectionHeader, modelClass: T.self, signature: .estimatedHeightForHeaderInSection, closure: closure)
+    open func estimatedHeightForHeader<Model>(withItem type: Model.Type, _ closure: @escaping (Model, Int) -> CGFloat) {
+        tableDelegate?.appendReaction(forSupplementaryKind: DTTableViewElementSectionHeader, modelClass: Model.self, signature: .estimatedHeightForHeaderInSection, closure: closure)
     }
     
     /// Registers `closure` to be executed to determine footer height in `UITableViewDelegate.tableView(_:heightForFooterInSection:)` method, when it's called for footer which model is of `itemType`.
-    open func heightForFooter<T>(withItem type: T.Type, _ closure: @escaping (T, Int) -> CGFloat) {
-        tableDelegate?.appendReaction(forSupplementaryKind: DTTableViewElementSectionFooter, modelClass: T.self, signature: .heightForFooterInSection, closure: closure)
+    open func heightForFooter<Model>(withItem type: Model.Type, _ closure: @escaping (Model, Int) -> CGFloat) {
+        tableDelegate?.appendReaction(forSupplementaryKind: DTTableViewElementSectionFooter, modelClass: Model.self, signature: .heightForFooterInSection, closure: closure)
     }
     
     /// Registers `closure` to be executed to determine estimated footer height in `UITableViewDelegate.tableView(_:estimatedHeightForFooterInSection:)` method, when it's called for footer which model is of `itemType`.
-    open func estimatedHeightForFooter<T>(withItem type: T.Type, _ closure: @escaping (T, Int) -> CGFloat) {
-        tableDelegate?.appendReaction(forSupplementaryKind: DTTableViewElementSectionFooter, modelClass: T.self, signature: .estimatedHeightForFooterInSection, closure: closure)
+    open func estimatedHeightForFooter<Model>(withItem type: Model.Type, _ closure: @escaping (Model, Int) -> CGFloat) {
+        tableDelegate?.appendReaction(forSupplementaryKind: DTTableViewElementSectionFooter, modelClass: Model.self, signature: .estimatedHeightForFooterInSection, closure: closure)
     }
     
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:willDisplayHeaderView:forSection:)` method is called for `headerClass`.
-    open func willDisplayHeaderView<T:ModelTransfer>(_ headerClass: T.Type, _ closure: @escaping (T, T.ModelType, Int) -> Void) where T: UIView
+    open func willDisplayHeaderView<View:ModelTransfer>(_ headerClass: View.Type, _ closure: @escaping (View, View.ModelType, Int) -> Void) where View: UIView
     {
-        tableDelegate?.appendReaction(forSupplementaryKind: DTTableViewElementSectionHeader, supplementaryClass: T.self, signature: .willDisplayHeaderForSection, closure: closure)
+        tableDelegate?.appendReaction(forSupplementaryKind: DTTableViewElementSectionHeader, supplementaryClass: View.self, signature: .willDisplayHeaderForSection, closure: closure)
     }
     
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:willDisplayFooterView:forSection:)` method is called for `footerClass`.
-    open func willDisplayFooterView<T:ModelTransfer>(_ footerClass: T.Type, _ closure: @escaping (T, T.ModelType, Int) -> Void) where T: UIView
+    open func willDisplayFooterView<View:ModelTransfer>(_ footerClass: View.Type, _ closure: @escaping (View, View.ModelType, Int) -> Void) where View: UIView
     {
-        tableDelegate?.appendReaction(forSupplementaryKind: DTTableViewElementSectionFooter, supplementaryClass: T.self, signature: .willDisplayFooterForSection, closure: closure)
+        tableDelegate?.appendReaction(forSupplementaryKind: DTTableViewElementSectionFooter, supplementaryClass: View.self, signature: .willDisplayFooterForSection, closure: closure)
     }
     
 #if os(iOS)
     @available(iOS, deprecated: 13.0)
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:editActionsForRowAt:)` method is called for `cellClass`.
-    open func editActions<T:ModelTransfer>(for cellClass: T.Type, _ closure: @escaping (T, T.ModelType, IndexPath) -> [UITableViewRowAction]?) where T: UITableViewCell {
-        tableDelegate?.appendReaction(for: T.self, signature: .editActionsForRowAtIndexPath, closure: closure)
+    open func editActions<Cell:ModelTransfer>(for cellClass: Cell.Type, _ closure: @escaping (Cell, Cell.ModelType, IndexPath) -> [UITableViewRowAction]?) where Cell: UITableViewCell {
+        tableDelegate?.appendReaction(for: Cell.self, signature: .editActionsForRowAtIndexPath, closure: closure)
     }
     
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:willBeginEditingRowAt:)` method is called for `cellClass`.
-    open func willBeginEditing<T:ModelTransfer>(_ cellClass:T.Type, _ closure: @escaping (T, T.ModelType, IndexPath) -> Void) where T: UITableViewCell
+    open func willBeginEditing<Cell:ModelTransfer>(_ cellClass:Cell.Type, _ closure: @escaping (Cell, Cell.ModelType, IndexPath) -> Void) where Cell: UITableViewCell
     {
-        tableDelegate?.appendReaction(for: T.self, signature: .willBeginEditingRowAtIndexPath, closure: closure)
+        tableDelegate?.appendReaction(for: Cell.self, signature: .willBeginEditingRowAtIndexPath, closure: closure)
     }
 
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:didEndEditingRowAt:)` method is called for `cellClass`.
-    open func didEndEditing<T:ModelTransfer>(_ cellClass:T.Type, _ closure: @escaping (T, T.ModelType, IndexPath) -> Void) where T: UITableViewCell
+    open func didEndEditing<Cell:ModelTransfer>(_ cellClass:Cell.Type, _ closure: @escaping (Cell, Cell.ModelType, IndexPath) -> Void) where Cell: UITableViewCell
     {
-        tableDelegate?.appendReaction(for: T.self, signature: .didEndEditingRowAtIndexPath, closure: closure)
+        tableDelegate?.appendReaction(for: Cell.self, signature: .didEndEditingRowAtIndexPath, closure: closure)
     }
     
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:titleForDeleteConfirmationButtonForRowAt:)` method is called for `cellClass`.
-    open func titleForDeleteConfirmationButton<T:ModelTransfer>(in cellClass:T.Type, _ closure: @escaping (T, T.ModelType, IndexPath) -> String?) where T: UITableViewCell
+    open func titleForDeleteConfirmationButton<Cell:ModelTransfer>(in cellClass:Cell.Type, _ closure: @escaping (Cell, Cell.ModelType, IndexPath) -> String?) where Cell: UITableViewCell
     {
-        tableDelegate?.appendReaction(for: T.self, signature: .titleForDeleteButtonForRowAtIndexPath, closure: closure)
+        tableDelegate?.appendReaction(for: Cell.self, signature: .titleForDeleteButtonForRowAtIndexPath, closure: closure)
     }
 #endif
     
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:editingStyleForRowAt:)` method is called for cell that contains item `ofType` at `indexPath`.
-    open func editingStyle<T>(forItem ofType:T.Type, _ closure: @escaping (T, IndexPath) -> UITableViewCell.EditingStyle)
+    open func editingStyle<Model>(forItem ofType:Model.Type, _ closure: @escaping (Model, IndexPath) -> UITableViewCell.EditingStyle)
     {
-        tableDelegate?.appendReaction(for: T.self, signature: .editingStyleForRowAtIndexPath, closure: closure)
+        tableDelegate?.appendReaction(viewType: .cell, for: Model.self, signature: .editingStyleForRowAtIndexPath, closure: closure)
     }
     
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:shouldIndentWhileEditingRowAt:)` method is called for `cellClass`.
-    open func shouldIndentWhileEditing<T:ModelTransfer>(_ cellClass:T.Type, _ closure: @escaping (T, T.ModelType, IndexPath) -> Bool) where T: UITableViewCell
+    open func shouldIndentWhileEditing<Cell:ModelTransfer>(_ cellClass:Cell.Type, _ closure: @escaping (Cell, Cell.ModelType, IndexPath) -> Bool) where Cell: UITableViewCell
     {
-        tableDelegate?.appendReaction(for: T.self, signature: .shouldIndentWhileEditingRowAtIndexPath, closure: closure)
+        tableDelegate?.appendReaction(for: Cell.self, signature: .shouldIndentWhileEditingRowAtIndexPath, closure: closure)
     }
     
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:didEndDisplayingCell:forRowAt:)` method is called for `cellClass`.
-    open func didEndDisplaying<T:ModelTransfer>(_ cellClass:T.Type, _ closure: @escaping (T, T.ModelType, IndexPath) -> Void) where T: UITableViewCell {
-        tableDelegate?.appendReaction(for: T.self, signature: .didEndDisplayingCellForRowAtIndexPath, closure: closure)
+    open func didEndDisplaying<Cell:ModelTransfer>(_ cellClass:Cell.Type, _ closure: @escaping (Cell, Cell.ModelType, IndexPath) -> Void) where Cell: UITableViewCell {
+        tableDelegate?.appendReaction(for: Cell.self, signature: .didEndDisplayingCellForRowAtIndexPath, closure: closure)
     }
     
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:didEndDisplayingHeaderView:forSection:)` method is called for `headerClass`.
-    open func didEndDisplayingHeaderView<T:ModelTransfer>(_ headerClass: T.Type, _ closure: @escaping (T, T.ModelType, Int) -> Void) where T: UIView
+    open func didEndDisplayingHeaderView<View:ModelTransfer>(_ headerClass: View.Type, _ closure: @escaping (View, View.ModelType, Int) -> Void) where View: UIView
     {
-        tableDelegate?.appendReaction(forSupplementaryKind: DTTableViewElementSectionHeader, supplementaryClass: T.self, signature: .didEndDisplayingHeaderViewForSection, closure: closure)
+        tableDelegate?.appendReaction(forSupplementaryKind: DTTableViewElementSectionHeader, supplementaryClass: View.self, signature: .didEndDisplayingHeaderViewForSection, closure: closure)
     }
     
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:didEndDisplayingFooterView:forSection:)` method is called for `footerClass`.
-    open func didEndDisplayingFooterView<T:ModelTransfer>(_ footerClass: T.Type, _ closure: @escaping (T, T.ModelType, Int) -> Void) where T: UIView
+    open func didEndDisplayingFooterView<View:ModelTransfer>(_ footerClass: View.Type, _ closure: @escaping (View, View.ModelType, Int) -> Void) where View: UIView
     {
-        tableDelegate?.appendReaction(forSupplementaryKind: DTTableViewElementSectionFooter, supplementaryClass: T.self, signature: .didEndDisplayingFooterViewForSection, closure: closure)
+        tableDelegate?.appendReaction(forSupplementaryKind: DTTableViewElementSectionFooter, supplementaryClass: View.self, signature: .didEndDisplayingFooterViewForSection, closure: closure)
     }
     
     @available(iOS, deprecated: 13.0)
     @available(tvOS, deprecated: 13.0)
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:shouldShowMenuForRowAt:)` method is called for `cellClass`.
-    open func shouldShowMenu<T:ModelTransfer>(for cellClass:T.Type, _ closure: @escaping (T, T.ModelType, IndexPath) -> Bool) where T: UITableViewCell
+    open func shouldShowMenu<Cell:ModelTransfer>(for cellClass:Cell.Type, _ closure: @escaping (Cell, Cell.ModelType, IndexPath) -> Bool) where Cell: UITableViewCell
     {
-        tableDelegate?.appendReaction(for: T.self, signature: .shouldShowMenuForRowAtIndexPath, closure: closure)
+        tableDelegate?.appendReaction(for: Cell.self, signature: .shouldShowMenuForRowAtIndexPath, closure: closure)
     }
     
     @available(iOS, deprecated: 13.0)
     @available(tvOS, deprecated: 13.0)
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:canPerformAction:forRowAt:withSender:)` method is called for `cellClass`.
-    open func canPerformAction<T:ModelTransfer>(for cellClass: T.Type, _ closure: @escaping (Selector, Any?, T, T.ModelType, IndexPath) -> Bool) where T: UITableViewCell {
-        tableDelegate?.append5ArgumentReaction(for: T.self,
+    open func canPerformAction<Cell:ModelTransfer>(for cellClass: Cell.Type, _ closure: @escaping (Selector, Any?, Cell, Cell.ModelType, IndexPath) -> Bool) where Cell: UITableViewCell {
+        tableDelegate?.append5ArgumentReaction(for: Cell.self,
                                                signature: .canPerformActionForRowAtIndexPath,
                                                closure: closure)
     }
@@ -182,34 +182,34 @@ extension DTTableViewManager {
     @available(iOS, deprecated: 13.0)
     @available(tvOS, deprecated: 13.0)
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:performAction:forRowAt:withSender:)` method is called for `cellClass`.
-    open func performAction<T:ModelTransfer>(for cellClass: T.Type, _ closure: @escaping (Selector, Any?, T, T.ModelType, IndexPath) -> Void) where T: UITableViewCell {
-        tableDelegate?.append5ArgumentReaction(for: T.self,
+    open func performAction<Cell:ModelTransfer>(for cellClass: Cell.Type, _ closure: @escaping (Selector, Any?, Cell, Cell.ModelType, IndexPath) -> Void) where Cell: UITableViewCell {
+        tableDelegate?.append5ArgumentReaction(for: Cell.self,
                                                signature: .performActionForRowAtIndexPath,
                                                closure: closure)
     }
     
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:shouldHighlightRowAt:)` method is called for `cellClass`.
-    open func shouldHighlight<T:ModelTransfer>(_ cellClass:T.Type, _ closure: @escaping (T, T.ModelType, IndexPath) -> Bool) where T: UITableViewCell
+    open func shouldHighlight<Cell:ModelTransfer>(_ cellClass:Cell.Type, _ closure: @escaping (Cell, Cell.ModelType, IndexPath) -> Bool) where Cell: UITableViewCell
     {
-        tableDelegate?.appendReaction(for: T.self, signature: .shouldHighlightRowAtIndexPath, closure: closure)
+        tableDelegate?.appendReaction(for: Cell.self, signature: .shouldHighlightRowAtIndexPath, closure: closure)
     }
     
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:didHighlightRowAt:)` method is called for `cellClass`.
-    open func didHighlight<T:ModelTransfer>(_ cellClass:T.Type, _ closure: @escaping (T, T.ModelType, IndexPath) -> Void) where T: UITableViewCell
+    open func didHighlight<Cell:ModelTransfer>(_ cellClass:Cell.Type, _ closure: @escaping (Cell, Cell.ModelType, IndexPath) -> Void) where Cell: UITableViewCell
     {
-        tableDelegate?.appendReaction(for: T.self, signature: .didHighlightRowAtIndexPath, closure: closure)
+        tableDelegate?.appendReaction(for: Cell.self, signature: .didHighlightRowAtIndexPath, closure: closure)
     }
     
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:didUnhighlightRowAt:)` method is called for `cellClass`.
-    open func didUnhighlight<T:ModelTransfer>(_ cellClass:T.Type, _ closure: @escaping (T, T.ModelType, IndexPath) -> Void) where T: UITableViewCell
+    open func didUnhighlight<Cell:ModelTransfer>(_ cellClass:Cell.Type, _ closure: @escaping (Cell, Cell.ModelType, IndexPath) -> Void) where Cell: UITableViewCell
     {
-        tableDelegate?.appendReaction(for: T.self, signature: .didUnhighlightRowAtIndexPath, closure: closure)
+        tableDelegate?.appendReaction(for: Cell.self, signature: .didUnhighlightRowAtIndexPath, closure: closure)
     }
     
     /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:canFocusRowAt:)` method is called for `cellClass`.
-    open func canFocus<T:ModelTransfer>(_ cellClass:T.Type, _ closure: @escaping (T, T.ModelType, IndexPath) -> Bool) where T: UITableViewCell
+    open func canFocus<Cell:ModelTransfer>(_ cellClass:Cell.Type, _ closure: @escaping (Cell, Cell.ModelType, IndexPath) -> Bool) where Cell: UITableViewCell
     {
-        tableDelegate?.appendReaction(for: T.self, signature: .canFocusRowAtIndexPath, closure: closure)
+        tableDelegate?.appendReaction(for: Cell.self, signature: .canFocusRowAtIndexPath, closure: closure)
     }
     
     /// Registers `closure` to be executed when `UITableViewDelegate.tableView(_:shouldUpdateFocusInContext:)` method is called.
@@ -231,30 +231,30 @@ extension DTTableViewManager {
     }
     
     /// Registers `closure` to be executed when `UITableViewDelegate.targetIndexPathForMoveFromRowAt(_:toProposed:)` method is called for `cellClass`
-    open func targetIndexPathForMove<T:ModelTransfer>(_ cellClass: T.Type, _ closure: @escaping (IndexPath, T, T.ModelType, IndexPath) -> IndexPath) where T:UITableViewCell {
-        tableDelegate?.append4ArgumentReaction(for: T.self,
+    open func targetIndexPathForMove<Cell:ModelTransfer>(_ cellClass: Cell.Type, _ closure: @escaping (IndexPath, Cell, Cell.ModelType, IndexPath) -> IndexPath) where Cell:UITableViewCell {
+        tableDelegate?.append4ArgumentReaction(for: Cell.self,
                                                signature: .targetIndexPathForMoveFromRowAtIndexPath,
                                                closure: closure)
     }
     
 #if os(iOS)
     /// Registers `closure` to be executed when `UITableViewDelegate.tableView(_:leadingSwipeActionsConfigurationForRowAt:)` method is called for `cellClass`
-    open func leadingSwipeActionsConfiguration<T:ModelTransfer>(for cellClass: T.Type, _ closure: @escaping (T, T.ModelType, IndexPath) -> UISwipeActionsConfiguration?) where T: UITableViewCell {
-        tableDelegate?.appendReaction(for: T.self,
+    open func leadingSwipeActionsConfiguration<Cell:ModelTransfer>(for cellClass: Cell.Type, _ closure: @escaping (Cell, Cell.ModelType, IndexPath) -> UISwipeActionsConfiguration?) where Cell: UITableViewCell {
+        tableDelegate?.appendReaction(for: Cell.self,
                                       signature: .leadingSwipeActionsConfigurationForRowAtIndexPath,
                                       closure: closure)
     }
     
     /// Registers `closure` to be executed when `UITableViewDelegate.tableView(_:trailingSwipeActionsConfigurationForRowAt:)` method is called for `cellClass`
-    open func trailingSwipeActionsConfiguration<T:ModelTransfer>(for cellClass: T.Type, _ closure: @escaping (T, T.ModelType, IndexPath) -> UISwipeActionsConfiguration?) where T: UITableViewCell {
-        tableDelegate?.appendReaction(for: T.self,
+    open func trailingSwipeActionsConfiguration<Cell:ModelTransfer>(for cellClass: Cell.Type, _ closure: @escaping (Cell, Cell.ModelType, IndexPath) -> UISwipeActionsConfiguration?) where Cell: UITableViewCell {
+        tableDelegate?.appendReaction(for: Cell.self,
                                       signature: .trailingSwipeActionsConfigurationForRowAtIndexPath,
                                       closure: closure)
     }
     
     /// Registers `closure` to be executed when `UITableViewDelegate.tableView(_:shouldSpringLoadRowAt:)` method is called for `cellClass`.
-    open func shouldSpringLoad<T:ModelTransfer>(_ cellClass: T.Type, _ closure: @escaping (UISpringLoadedInteractionContext, T, T.ModelType, IndexPath) -> Bool) where T: UITableViewCell {
-        tableDelegate?.append4ArgumentReaction(for: T.self,
+    open func shouldSpringLoad<Cell:ModelTransfer>(_ cellClass: Cell.Type, _ closure: @escaping (UISpringLoadedInteractionContext, Cell, Cell.ModelType, IndexPath) -> Bool) where Cell: UITableViewCell {
+        tableDelegate?.append4ArgumentReaction(for: Cell.self,
                                                signature: .shouldSpringLoadRowAtIndexPathWithContext,
                                                closure: closure)
     }
@@ -264,11 +264,11 @@ extension DTTableViewManager {
     /// Registers `closure` to be executed when `UITableViewDelegate.tableView(_:shouldBeginMultipleSelectionInteractionAt:)`method is called for `cellClass`.
     /// - Parameter Type: cell class to react for event
     /// - Parameter closure: closure to run.
-    open func shouldBeginMultipleSelectionInteraction<T:ModelTransfer>(for cellClass: T.Type,
-                                                              _ closure: @escaping (T, T.ModelType, IndexPath) -> Bool)
-        where T: UITableViewCell
+    open func shouldBeginMultipleSelectionInteraction<Cell:ModelTransfer>(for cellClass: Cell.Type,
+                                                              _ closure: @escaping (Cell, Cell.ModelType, IndexPath) -> Bool)
+        where Cell: UITableViewCell
     {
-        tableDelegate?.appendReaction(for: T.self,
+        tableDelegate?.appendReaction(for: Cell.self,
                                       signature: .shouldBeginMultipleSelectionInteractionAtIndexPath,
                                       closure: closure)
     }
@@ -277,11 +277,11 @@ extension DTTableViewManager {
     /// Registers `closure` to be executed when `UITableViewDelegate.tableView(_:didBeginMultipleSelectionInteractionAt:)`method is called for `cellClass`.
     /// - Parameter Type: cell class to react for event
     /// - Parameter closure: closure to run.
-    open func didBeginMultipleSelectionInteraction<T:ModelTransfer>(for cellClass: T.Type,
-                                                                    _ closure: @escaping (T, T.ModelType, IndexPath) -> Void)
-        where T: UITableViewCell
+    open func didBeginMultipleSelectionInteraction<Cell:ModelTransfer>(for cellClass: Cell.Type,
+                                                                    _ closure: @escaping (Cell, Cell.ModelType, IndexPath) -> Void)
+        where Cell: UITableViewCell
     {
-        tableDelegate?.appendReaction(for: T.self,
+        tableDelegate?.appendReaction(for: Cell.self,
                                       signature: .didBeginMultipleSelectionInteractionAtIndexPath,
                                       closure: closure)
     }
@@ -295,11 +295,11 @@ extension DTTableViewManager {
     
     @available(iOS 13.0, *)
     /// Registers `closure` to be executed when `UITableViewDelegate.contextMenuConfigurationForRowAt(_:point:)` method is called
-    open func contextMenuConfiguration<T:ModelTransfer>(for cellClass: T.Type,
-                                                        _ closure: @escaping (CGPoint, T, T.ModelType, IndexPath) -> UIContextMenuConfiguration?)
-        where T: UITableViewCell
+    open func contextMenuConfiguration<Cell:ModelTransfer>(for cellClass: Cell.Type,
+                                                        _ closure: @escaping (CGPoint, Cell, Cell.ModelType, IndexPath) -> UIContextMenuConfiguration?)
+        where Cell: UITableViewCell
     {
-        tableDelegate?.append4ArgumentReaction(for: T.self,
+        tableDelegate?.append4ArgumentReaction(for: Cell.self,
                                                signature: .contextMenuConfigurationForRowAtIndexPath,
                                                closure: closure)
     }
@@ -327,4 +327,246 @@ extension DTTableViewManager {
         #endif
     #endif
 #endif
+}
+
+extension ViewModelMapping where View: UITableViewCell {
+    /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:didSelectRowAt:)` method is called.
+    open func didSelect(_ closure: @escaping (View, Model, IndexPath) -> Void)
+    {
+        reactions.append(EventReaction(viewType: View.self, modelType: Model.self,
+                                       signature: EventMethodSignature.didSelectRowAtIndexPath.rawValue, closure))
+    }
+    
+    /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:willSelectRowAt:)` method is called.
+    open func willSelect(_ closure: @escaping (View, Model, IndexPath) -> IndexPath?) {
+        reactions.append(EventReaction(viewType: View.self, modelType: Model.self,
+                                       signature: EventMethodSignature.willSelectRowAtIndexPath.rawValue, closure))
+    }
+    
+    /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:willDeselectRowAt:)` method is called.
+    open func willDeselect(_ closure: @escaping (View, Model, IndexPath) -> IndexPath?) {
+        reactions.append(EventReaction(viewType: View.self, modelType: Model.self,
+                                       signature: EventMethodSignature.willDeselectRowAtIndexPath.rawValue, closure))
+    }
+    
+    /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:didDeselectRowAt:)` method is called.
+    open func didDeselect(_ closure: @escaping (View, Model, IndexPath) -> Void) {
+        reactions.append(EventReaction(viewType: View.self, modelType: Model.self,
+                                       signature: EventMethodSignature.didDeselectRowAtIndexPath.rawValue, closure))
+    }
+    
+    /// Registers `closure` to be executed to determine cell height in `UITableViewDelegate.tableView(_:heightForRowAt:)` method, when it's called.
+    open func heightForCell(_ closure: @escaping (Model, IndexPath) -> CGFloat) {
+        reactions.append(EventReaction(modelType: Model.self, signature: EventMethodSignature.heightForRowAtIndexPath.rawValue, closure))
+    }
+    
+    /// Registers `closure` to be executed to determine estimated cell height in `UITableViewDelegate.tableView(_:estimatedHeightForRowAt:)` method, when it's called.
+    open func estimatedHeightForCell(_ closure: @escaping (Model, IndexPath) -> CGFloat) {
+        reactions.append(EventReaction(modelType: Model.self, signature: EventMethodSignature.estimatedHeightForRowAtIndexPath.rawValue, closure))
+    }
+    
+    /// Registers `closure` to be executed to determine indentation level in `UITableViewDelegate.tableView(_:indentationLevelForRowAt:)` method, when it's called.
+    open func indentationLevelForCell(_ closure: @escaping (Model, IndexPath) -> Int) {
+        reactions.append(EventReaction(modelType: Model.self, signature: EventMethodSignature.indentationLevelForRowAtIndexPath.rawValue, closure))
+    }
+    
+    /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:willDisplayCell:forRowAt:)` method is called.
+    open func willDisplay(_ closure: @escaping (View, Model, IndexPath) -> Void)
+    {
+        reactions.append(EventReaction(viewType: View.self, modelType: Model.self,
+                                       signature: EventMethodSignature.willDisplayCellForRowAtIndexPath.rawValue, closure))
+    }
+    
+    /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:accessoryButtonTappedForRowAt:)` method is called.
+    open func accessoryButtonTapped(_ closure: @escaping (View, Model, IndexPath) -> Void) {
+        reactions.append(EventReaction(viewType: View.self, modelType: Model.self,
+                                       signature: EventMethodSignature.accessoryButtonTappedForRowAtIndexPath.rawValue, closure))
+    }
+    
+#if os(iOS)
+    /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:willBeginEditingRowAt:)` method is called.
+    open func willBeginEditing(_ closure: @escaping (View, Model, IndexPath) -> Void)
+    {
+        reactions.append(EventReaction(viewType: View.self, modelType: Model.self, signature: EventMethodSignature.willBeginEditingRowAtIndexPath.rawValue, closure))
+    }
+
+    /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:didEndEditingRowAt:)` method is called.
+    open func didEndEditing(_ closure: @escaping (View, Model, IndexPath) -> Void)
+    {
+        reactions.append(EventReaction(viewType: View.self, modelType: Model.self, signature: EventMethodSignature.didEndEditingRowAtIndexPath.rawValue, closure))
+    }
+    
+    /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:titleForDeleteConfirmationButtonForRowAt:)` method is called.
+    open func titleForDeleteConfirmationButton(_ closure: @escaping (View, Model, IndexPath) -> String?)
+    {
+        reactions.append(EventReaction(viewType: View.self, modelType: Model.self,
+                                       signature: EventMethodSignature.titleForDeleteButtonForRowAtIndexPath.rawValue, closure))
+    }
+#endif
+    
+    /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:editingStyleForRowAt:)` method is called.
+    open func editingStyle(_ closure: @escaping (Model, IndexPath) -> UITableViewCell.EditingStyle)
+    {
+        reactions.append(EventReaction(modelType: Model.self, signature: EventMethodSignature.editingStyleForRowAtIndexPath.rawValue, closure))
+    }
+    
+    /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:shouldIndentWhileEditingRowAt:)` method is called.
+    open func shouldIndentWhileEditing(_ closure: @escaping (View, Model, IndexPath) -> Bool)
+    {
+        reactions.append(EventReaction(viewType: View.self, modelType: Model.self, signature: EventMethodSignature.shouldIndentWhileEditingRowAtIndexPath.rawValue, closure))
+    }
+    
+    /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:didEndDisplayingCell:forRowAt:)` method is called.
+    open func didEndDisplaying(_ closure: @escaping (View, Model, IndexPath) -> Void) {
+        reactions.append(EventReaction(viewType: View.self, modelType: Model.self,
+                                       signature: EventMethodSignature.didEndDisplayingCellForRowAtIndexPath.rawValue, closure))
+    }
+    
+    /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:shouldHighlightRowAt:)` method is called.
+    open func shouldHighlight(_ closure: @escaping (View, Model, IndexPath) -> Bool)
+    {
+        reactions.append(EventReaction(viewType: View.self, modelType: Model.self,
+                                       signature: EventMethodSignature.shouldHighlightRowAtIndexPath.rawValue, closure))
+    }
+    
+    /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:didHighlightRowAt:)` method is called.
+    open func didHighlight(_ closure: @escaping (View, Model, IndexPath) -> Void)
+    {
+        reactions.append(EventReaction(viewType: View.self, modelType: Model.self,
+                                       signature: EventMethodSignature.didHighlightRowAtIndexPath.rawValue, closure))
+    }
+    
+    /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:didUnhighlightRowAt:)` method is called.
+    open func didUnhighlight(_ closure: @escaping (View, Model, IndexPath) -> Void)
+    {
+        reactions.append(EventReaction(viewType: View.self, modelType: Model.self,
+                                       signature: EventMethodSignature.didUnhighlightRowAtIndexPath.rawValue, closure))
+    }
+    
+    /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:canFocusRowAt:)` method is called.
+    open func canFocus(_ closure: @escaping (View, Model, IndexPath) -> Bool)
+    {
+        reactions.append(EventReaction(viewType: View.self, modelType: Model.self, signature: EventMethodSignature.canFocusRowAtIndexPath.rawValue, closure))
+    }
+    
+    /// Registers `closure` to be executed when `UITableViewDelegate.targetIndexPathForMoveFromRowAt(_:toProposed:)` method is called.
+    open func targetIndexPathForMove(_ closure: @escaping (IndexPath, View, Model, IndexPath) -> IndexPath) {
+        reactions.append(FourArgumentsEventReaction(View.self, modelType: Model.self,
+                                                    argument: IndexPath.self,
+                                                    signature: EventMethodSignature.targetIndexPathForMoveFromRowAtIndexPath.rawValue,
+                                                    closure))
+    }
+    
+#if os(iOS)
+    /// Registers `closure` to be executed when `UITableViewDelegate.tableView(_:leadingSwipeActionsConfigurationForRowAt:)` method is called.
+    open func leadingSwipeActionsConfiguration(_ closure: @escaping (View, Model, IndexPath) -> UISwipeActionsConfiguration?) {
+        reactions.append(EventReaction(viewType: View.self, modelType: Model.self,
+                                       signature: EventMethodSignature.leadingSwipeActionsConfigurationForRowAtIndexPath.rawValue,
+                                       closure))
+    }
+    
+    /// Registers `closure` to be executed when `UITableViewDelegate.tableView(_:trailingSwipeActionsConfigurationForRowAt:)` method is called.
+    open func trailingSwipeActionsConfiguration(_ closure: @escaping (View, Model, IndexPath) -> UISwipeActionsConfiguration?) {
+        reactions.append(EventReaction(viewType: View.self, modelType: Model.self,
+                                       signature: EventMethodSignature.trailingSwipeActionsConfigurationForRowAtIndexPath.rawValue,
+                                       closure))
+    }
+    
+    /// Registers `closure` to be executed when `UITableViewDelegate.tableView(_:shouldSpringLoadRowAt:)` method is called.
+    open func shouldSpringLoad(_ closure: @escaping (UISpringLoadedInteractionContext, View, Model, IndexPath) -> Bool) {
+        reactions.append(FourArgumentsEventReaction(View.self, modelType: Model.self, argument: UISpringLoadedInteractionContext.self,
+                                                    signature: EventMethodSignature.shouldSpringLoadRowAtIndexPathWithContext.rawValue,
+                                                    closure))
+    }
+    
+    #if compiler(>=5.1)
+    @available(iOS 13, *)
+    /// Registers `closure` to be executed when `UITableViewDelegate.tableView(_:shouldBeginMultipleSelectionInteractionAt:)`method is called.
+    /// - Parameter Type: cell class to react for event
+    /// - Parameter closure: closure to run.
+    open func shouldBeginMultipleSelectionInteraction(_ closure: @escaping (View, Model, IndexPath) -> Bool)
+    {
+        reactions.append(EventReaction(viewType: View.self, modelType: Model.self,
+                                       signature: EventMethodSignature.shouldBeginMultipleSelectionInteractionAtIndexPath.rawValue,
+                                       closure))
+    }
+    
+    @available(iOS 13, *)
+    /// Registers `closure` to be executed when `UITableViewDelegate.tableView(_:didBeginMultipleSelectionInteractionAt:)`method is called.
+    /// - Parameter Type: cell class to react for event
+    /// - Parameter closure: closure to run.
+    open func didBeginMultipleSelectionInteraction(_ closure: @escaping (View, Model, IndexPath) -> Void)
+    {
+        reactions.append(EventReaction(viewType: View.self, modelType: Model.self,
+                                       signature: EventMethodSignature.didBeginMultipleSelectionInteractionAtIndexPath.rawValue, closure))
+    }
+    
+    @available(iOS 13.0, *)
+    /// Registers `closure` to be executed when `UITableViewDelegate.contextMenuConfigurationForRowAt(_:point:)` method is called.
+    open func contextMenuConfiguration(_ closure: @escaping (CGPoint, View, Model, IndexPath) -> UIContextMenuConfiguration?)
+    {
+        reactions.append(FourArgumentsEventReaction(View.self, modelType: Model.self, argument: CGPoint.self,
+                                                    signature: EventMethodSignature.contextMenuConfigurationForRowAtIndexPath.rawValue,
+                                                    closure))
+    }
+    #endif
+#endif
+}
+
+extension ViewModelMapping where View: UITableViewHeaderFooterView {
+    private func appendReaction(signature: EventMethodSignature, _ closure: @escaping (Model, Int) -> CGFloat) {
+        reactions.append(EventReaction(modelType: Model.self, signature: signature.rawValue, { model, indexPath in
+            closure(model, indexPath.section)
+        }))
+    }
+    
+    private func appendReaction(signature: EventMethodSignature, supplementaryKind: String, _ closure: @escaping (View, Model, Int) -> Void) {
+        reactions.append(EventReaction(viewType: View.self, modelType: Model.self, signature: signature.rawValue, { view, model, indexPath in
+            closure(view, model, indexPath.section)
+        }))
+    }
+    
+    /// Registers `closure` to be executed to determine header height in `UITableViewDelegate.tableView(_:heightForHeaderInSection:)` method is called.
+    open func heightForHeader(_ closure: @escaping (Model, Int) -> CGFloat) {
+        appendReaction(signature: .heightForHeaderInSection, closure)
+    }
+    
+    /// Registers `closure` to be executed to determine estimated header height in `UITableViewDelegate.tableView(_:estimatedHeightForHeaderInSection:)` method is called.
+    open func estimatedHeightForHeader(_ closure: @escaping (Model, Int) -> CGFloat) {
+        appendReaction(signature: .estimatedHeightForHeaderInSection, closure)
+    }
+    
+    /// Registers `closure` to be executed to determine footer height in `UITableViewDelegate.tableView(_:heightForFooterInSection:)` method is called.
+    open func heightForFooter(_ closure: @escaping (Model, Int) -> CGFloat) {
+        appendReaction(signature: .heightForFooterInSection, closure)
+    }
+    
+    /// Registers `closure` to be executed to determine estimated footer height in `UITableViewDelegate.tableView(_:estimatedHeightForFooterInSection:)` method is called.
+    open func estimatedHeightForFooter(_ closure: @escaping (Model, Int) -> CGFloat) {
+        appendReaction(signature: .estimatedHeightForFooterInSection, closure)
+    }
+    
+    /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:willDisplayHeaderView:forSection:)` method is called.
+    open func willDisplayHeaderView(_ closure: @escaping (View, Model, Int) -> Void)
+    {
+        appendReaction(signature: .willDisplayHeaderForSection, supplementaryKind: DTTableViewElementSectionHeader, closure)
+    }
+    
+    /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:willDisplayFooterView:forSection:)` method is called.
+    open func willDisplayFooterView(_ closure: @escaping (View, Model, Int) -> Void)
+    {
+        appendReaction(signature: .willDisplayFooterForSection, supplementaryKind: DTTableViewElementSectionFooter, closure)
+    }
+    
+    /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:didEndDisplayingHeaderView:forSection:)` method is called.
+    open func didEndDisplayingHeaderView(_ closure: @escaping (View, Model, Int) -> Void)
+    {
+        appendReaction(signature: .didEndDisplayingHeaderViewForSection, supplementaryKind: DTTableViewElementSectionHeader, closure)
+    }
+    
+    /// Registers `closure` to be executed, when `UITableViewDelegate.tableView(_:didEndDisplayingFooterView:forSection:)` method is called.
+    open func didEndDisplayingFooterView(_ closure: @escaping (View, Model, Int) -> Void)
+    {
+        appendReaction(signature: .didEndDisplayingFooterViewForSection, supplementaryKind: DTTableViewElementSectionFooter, closure)
+    }
 }
