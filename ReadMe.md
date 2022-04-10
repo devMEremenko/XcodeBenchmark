@@ -120,7 +120,9 @@ If a device you are looking for is not on the list below, check out open [issues
 ## Custom Hardware - Xcode 13.3
 |        Device        |             CPU           | RAM |  SSD  | HDD |  Xcode  |   macOS   | Time(sec) |    Comments    |
 |:--------------------:|:-------------------------:|:---:|:-----:|:---:|:-------:|:---------:|:---------:|----------------|
+|      Hackintosh      | i7-12700f 2.1 Ghz 12-core |  32 |  1TB  |     |  13.3   |   12.3    |    98     |                |
 |      Hackintosh      | i9-10900k 3.7 Ghz 10-core |  64 | 512GB |     |  13.3   |  12.2.1   |    119    |                |
+
 
 ## Custom Hardware - Xcode 12.5 or above
 
