@@ -123,6 +123,7 @@ If a device you are looking for is not on the list below, check out open [issues
 |        Device        |             CPU           | RAM |  SSD  | HDD |  Xcode  |   macOS   | Time(sec) |    Comments    |
 |:--------------------:|:-------------------------:|:---:|:-----:|:---:|:-------:|:---------:|:---------:|----------------|
 |      Hackintosh      | i9-10900k 3.7 Ghz 10-core |  64 | 512GB |     |  13.3   |  12.2.1   |    119    |                |
+|VMWare 2.77ghz 16gb 8c| i7-10700 2.9 GHz 8-core   |  32 | 1TB   |     |  13.4.1 |  12.0.1   |    288    | 3070 graphics  |
 
 ## Custom Hardware - Xcode 12.5 or above
 
