@@ -16,6 +16,7 @@ If a device you are looking for is not on the list below, check out open [issues
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
 | Mac Studio 2022      |     M1 Ultra 20-core    |  64 | 2TB |     |  13.3 | 12.3    |     67    |
+| Mac Studio 2022      |     M1 Ultra 20-core    | 128 | 4TB |     | 13.3.1| 12.3.1  |     68    |
 | Mac Studio 2022      |     M1 Max 10-core      |  32 | 500 |     | 13.3.1| 12.3.1  |     89    |
 | MacBook Pro 14" 2021 |      M1 Max 10-core     |  32 | 2TB |     |  13.1 | 12.0.1  |     90    |
 | MacBook Pro 14" 2021 |      M1 Max 10-core     |  64 | 2TB |     |  13.1 | 12.0.1  |     92    |
