@@ -70,6 +70,7 @@ post_install do |pi|
     pi.pods_project.targets.each do |t|
         t.build_configurations.each do |config|
             config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = minimum_target
+            config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
         end
     end
 end
