@@ -11,6 +11,13 @@ I believe the results will help developers to make the right *cost/performance* 
 PR merging will be performed on a best-effort basis.  
 If a device you are looking for is not on the list below, check out open [issues](https://github.com/devMEremenko/XcodeBenchmark/issues) and [PRs](https://github.com/devMEremenko/XcodeBenchmark/pulls).
 
+## Xcode 14.0 or above
+
+|        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
+|:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
+| MacBook Air 13" 2020 |      M1 8-core          |  8  | 512 |     | 14.1  | 13.0.1  |    141    |
+
+
 ## Xcode 13.0 or above
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
