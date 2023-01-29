@@ -151,6 +151,7 @@ If a device you are looking for is not on the list below, check out open [issues
 |      Ryzentosh       | AMD 5950x 4.3 Ghz 16-c  |  32 | 1TB | 2TB |  13.1   |  11.6   |     71    |                |
 |      Hackintosh      | i7-9700K 3.6 Ghz 8-core |  16 | 512 | 2TB |  12.5.1 |  11.4   |    177    |                |
 |      Hackintosh      | i7-9700  3.0 Ghz 8-core |  32 | 1TB |     |  13.1   |  11.6.1 |    177    |                |
+|      Hackintosh      | i5-5300u 2.3 Ghz 2-core |  16 | 128 |     |  13.2.1 |  11.7.1 |   1020    |                |
 
 
 ## Custom Hardware - Xcode 12
@@ -317,3 +318,4 @@ Make sure:
 - [@alejedi](https://github.com/alejedi)
 - [@witekbobrowski](https://twitter.com/witekbobrowski)
 - [@santirodriguezaffonso](https://github.com/santirodriguezaffonso)
+- [@KAnggara75](https://github.com/KAnggara75)
