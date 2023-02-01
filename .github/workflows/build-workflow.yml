@@ -17,5 +17,5 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Build
-      run: ./benchmark.sh
+      run: sudo ./benchmark.sh
       shell: bash
