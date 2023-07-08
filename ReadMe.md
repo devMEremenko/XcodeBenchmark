@@ -133,7 +133,7 @@ If a device you are looking for is not on the list below, check out open [issues
 ## Custom Hardware - Xcode 14
 |        Device        |             CPU           | RAM |  SSD  | HDD |  Xcode  |   macOS   | Time(sec) |    Comments    |
 |:--------------------:|:-------------------------:|:---:|:-----:|:---:|:-------:|:---------:|:---------:|----------------|
-|      Hackintosh      |  i9-13900k 3Ghz 24-core   |  64 | 512GB |     |  14.3.1 |   13.4.1  |    59     |                |
+|      Hackintosh      |  i9-13900k 3Ghz 24-core   |  64 | 512GB |     |  14.3.1 |   13.4.1  |    57     |                |
 |      Hackintosh      |  i7-8700 3.2 Ghz 6-core   |  16 | 512GB |     |  14.0.1 |    12.6   |    181    | Dell Opt. 3060 |
 
 
