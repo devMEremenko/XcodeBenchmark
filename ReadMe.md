@@ -15,9 +15,11 @@ If a device you are looking for is not on the list below, check out open [issues
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
+| Mac Studio 2023      |     M2 Ultra 24-core    |  64 | 1TB |     | 14.3.1| 13.4    |     56    |
 | Mac Studio 2022      |     M1 Ultra 20-core    |  64 | 2TB |     |  13.3 | 12.3    |     67    |
 | Mac Studio 2022      |     M1 Ultra 20-core    | 128 | 4TB |     | 13.3.1| 12.3.1  |     68    |
 | MacBook Pro 16" 2023 |      M2 Max 12-core     |  32 | 1TB |     |  14.2 | 13.2    |     72    |
+| MacBook Pro 14" 2023 |      M2 Max 12-core     |  64 | 2TB |     |  14.2 | 13.2    |     72    |
 | Mac Mini 2023        |      M2 Pro 12-core     |  32 | 2TB |     |  14.2 | 13.2    |     80    |
 | MacBook Pro 14" 2023 |      M2 Pro 10-core     |  32 | 512 |     |  14.2 | 13.2    |     85    |
 | Mac Mini 2023        |     M2 Pro 10-core      |  16 | 512 |     | 14.2  | 13.2    |     85    |
