@@ -21,21 +21,52 @@ If a device you are looking for is not on the list below, check out open [issues
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
+| Mac Studio 2023      |     M2 Ultra 24-core    |  64 | 1TB |     | 14.3.1| 13.4    |     56    |
+| Mac Studio 2022      |     M1 Ultra 20-core    |  64 | 2TB |     |  13.3 | 12.3    |     67    |
+| Mac Studio 2022      |     M1 Ultra 20-core    | 128 | 4TB |     | 13.3.1| 12.3.1  |     68    |
+| MacBook Pro 16" 2023 |      M2 Max 12-core     |  32 | 1TB |     |  14.2 | 13.2    |     72    |
+| MacBook Pro 14" 2023 |      M2 Max 12-core     |  64 | 2TB |     |  14.2 | 13.2    |     72    |
+| Mac Mini 2023        |      M2 Pro 12-core     |  32 | 2TB |     |  14.2 | 13.2    |     80    |
+| MacBook Pro 14" 2023 |      M2 Pro 10-core     |  32 | 512 |     |  14.2 | 13.2    |     85    |
+| Mac Mini 2023        |     M2 Pro 10-core      |  16 | 512 |     | 14.2  | 13.2    |     85    |
+| MacBook Pro 16" 2021 |     M1 Max 10-core      |  64 | 2TB |     |  14.2 | 13.2    |     87    |
+| Mac Studio 2022      |     M1 Max 10-core      |  32 | 500 |     | 13.3.1| 12.3.1  |     89    |
+| MacBook Pro 14" 2021 |      M1 Max 10-core     |  32 | 2TB |     |  13.1 | 12.0.1  |     90    |
 | MacBook Pro 14" 2021 |      M1 Max 10-core     |  64 | 2TB |     |  13.1 | 12.0.1  |     92    |
+| MacBook Pro 16" 2021 |      M1 Pro 10-core     |  16 | 1TB |     |  13.2 | 12.2.1  |     92    |
+| MacBook Pro 14" 2021 |      M1 Pro 10-core     |  32 | 512 |     |  13.2 | 12.2.1  |     92    |
+| MacBook Pro 14" 2021 |      M1 Max 10-core     |  64 | 4TB |     |  13.3 | 12.2.1  |     93    |
+| MacBook Pro 16" 2021 |      M1 Max 10-core     |  64 | 4TB |     |  13.1 | 12.0.1  |     93    |
 | MacBook Pro 16" 2021 |      M1 Max 10-core     |  32 | 1TB |     |  13.1 | 12.0.1  |     98    |
+| MacBook Pro 16" 2021 |      M1 Pro 10-core     |  16 | 512 |     | 13.2.1| 12.2.1  |     98    |
 | MacBook Pro 16" 2021 |      M1 Pro 10-core     |  16 | 1TB |     |  13.1 | 12.0.1  |    102    |
 | MacBook Pro 14" 2021 |      M1 Pro 8-core      |  16 | 512 |     |  13.1 | 12.0.1  |    109    |
+|     Mac mini 2023    |      M2 8-core          |  16 | 512 |     |  14.2 | 13.2    |    111    |
+|     Mac mini 2023    |      M2 8-core          |   8 | 256 |     |  14.2 | 13.0    |    112    |
+| MacBook Air 13" 2022 |      M2 8-core          |  16 | 512 |     | 13.4.1| 12.5    |    122    |
+| MacBook Air 15" 2023 |      M2 8-core          |  16 | 512 |     | 14.3.1| 13.4    |    122    |
 | MacBook Pro 13" 2020 |      M1 8-core          |  16 | 1TB |     |  13.1 | 12.0.1  |    130    |
 |    iMac 24" 2021     |      M1 8-core          |  16 | 512 |     |  13.1 | 12.0.1  |    130    |
+|     Mac mini 2020    |      M1 8-core          |   8 | 256 |     |  13.3 | 12.0.1  |    155    |
+|     iMac 27" 2019    |    i9 3.6 GHz 8-core    |  64 | 2TB |     |  13.2 | 12.2.1  |    167    |
+| MacBook Pro 16" 2019 |    i9 2.3 GHz 8-core    |  16 | 1TB |     |  13.2 | 11.6.1  |    184    |
 | MacBook Pro 16" 2019 |    i9 2.4 GHz 8-core    |  64 | 1TB |     |  13.1 | 12.0.1  |    212    |
 | MacBook Pro 16" 2019 |    i9 2.4 GHz 8-core    |  32 | 1TB |     |  13.0 | 11.6    |    223    |
 |     Mac Pro 2012     |2 x Xeon 3.46 GHz 6-core |  48 | 500 |     |  13.1 | 12.0.1  |    230    |
 |     Mac mini 2018    |    i5 3.0 Ghz 6-core    |   8 | 256 |     |  13.0 | 12.0.1  |    235    |
 | MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  32 | 512 |     |  13.0 | 11.6    |    248    |
+|     Mac Pro 2013     |E5-2697v2 2.7 GHz 12-Core|  64 | 256 |     |  13.1 | 11.6    |    254    |
+| MacBook Pro 13" 2020 |    i7 2.3 GHz 4-core    |  32 | 512 |     |  13.1 | 12.0.1  |    255    |
 | MacBook Pro 15" 2018 |    i9 2.9 GHz 6-core    |  32 | 1TB |     |  13.0 | 11.6    |    263    |
+|     iMac 27" 2015    |    i7 4.0 GHz 4-core    |  32 | 1TB |     |  13.2 | 11.6.7  |    267    |
+| MacBook Pro 15" 2019 |    i7 2.6 GHz 6-core    |  32 | 256 |     |  13.2 | 12.0.1  |    277    |
 | MacBook Pro 13" 2018 |    i7 2.7 GHz 4-core    |   8 | 256 |     |  13.0 | 11.6    |    336    |
 | MacBook Pro 15" 2016 |    i7 2.6 GHz 4-core    |  16 | 256 |     |  13.1 | 12.0.1  |    362    |
+|     iMac 27" 2015    |    i5 3.3 GHz 4-core    |  32 | 1TB |     |  13.1 | 11.6    |    400    |
 | MacBook Pro 13" 2017 |    i5 2.3 GHz 2-core    |   8 | 256 |     |  13.1 | 11.5.1  |    511    |
+| MacBook Pro 13" 2016 |    i5 2.0 GHz 2-core    |   8 | 256 |     |  13.1 | 12.5.1  |    672    |
+| MacBook Pro 15" 2015 |    i7 2.8 GHz 4-core    |  16 | 1TB |     |  14.2 | 12.6.2  |    335    |
+| MacBook Pro 13" 2015 |    i5 2.7 GHz 2-core    |   8 | 256 |     |  13.2 | 12.0.1  |    860    |
 
 ## Xcode 12.5
 
@@ -61,6 +92,8 @@ If a device you are looking for is not on the list below, check out open [issues
 |     iMac 27" 2019    |    i9 3.6 GHz 8-core    |  40 | 512 |     |  12.2 | 11.0.1  |    163    |
 | MacBook Pro 16" 2019 |    i9 2.4 GHz 8-core    |  32 | 512 |     |  12.2 | 11.0.1  |    176    |
 |     Mac mini 2018    |    i7 3.2 GHz 6-core    |  32 | 512 |     |  12.2 | 11.0.1  |    192    |
+|     iMac 27" 2019    |    i5 3.7 GHz 6-core    |  40 |     | 1TB |  12.3 | 11.0.1  |    195    |
+| MacBook Pro 16" 2019 |    i7 2.6 GHz 6-core    |  32 | 1TB |     |  12.3 | 11.1    |    215    |
 | MacBook Pro 16" 2019 |    i9 2.3 GHz 8-core    |  32 | 1TB |     |  12.2 | 11.0.1  |    221    |
 |     Mac mini 2018    |    i7 3.2 GHz 6-core    |  16 | 1TB |     |  12.0 | 10.15.5 |    228    |
 |     iMac 27" 2017    |    i7 4.2 GHz 4-core    |  16 | 1TB |     |  12.2 | 11.0.1  |    246    |
@@ -79,6 +112,7 @@ If a device you are looking for is not on the list below, check out open [issues
 | MacBook Air 13" 2015 |    i7 2.2 Ghz 2-core    |   8 | 256 |     |  12.0 | 10.15.7 |    610    |
 | MacBook Air 13" 2020 |    i3 1.1 GHz 2-core    |   8 | 256 |     |  12.2 | 11.0.1  |    700    |
 |    iMac 21.5" 2017   |    i5 3.0 GHz 4-core    |  16 |     | 1TB |  12.2 | 11.0.1  |    725    |
+| MacBook Pro 15" 2012 |    i7 2.7 GHz 4-core    |  16 | 768 |     |  12.4 | 10.15.7 |    785    |
 |   MacBook Air 2014   |    i5 1.4 GHz 2-core    |   4 | 128 |     |  12.2 | 11.0.1  |    894    |
 |   MacBook Pro 2010   |    i5 2.4 GHz 2-core    |   8 | 480 |     |  12.4 | 10.15.7 |   1043    |
 
@@ -107,12 +141,30 @@ If a device you are looking for is not on the list below, check out open [issues
 |     Mac Mini 2014    |    i5 2.6 GHz 2-core    |  8  |     | 1TB |  11.7 | 10.15.6 |    1193   |
 
 
+## Custom Hardware - Xcode 14
+|        Device        |             CPU           | RAM |  SSD  | HDD |  Xcode  |   macOS   | Time(sec) |    Comments    |
+|:--------------------:|:-------------------------:|:---:|:-----:|:---:|:-------:|:---------:|:---------:|----------------|
+|      Hackintosh      |  i9-13900k 3Ghz 24-core   |  32 |  1TB  |     |   14.2  |   13.2.1  |    53     |     Not OC     |
+|      Hackintosh      |  i9-13900k 3Ghz 24-core   |  64 | 512GB |     |  14.3.1 |   13.4.1  |    57     |                |
+|      Hackintosh      |  i9-13900k 3Ghz 24-core   |  64 | 512GB |     |   14.1  |   13.0.1  |    62     |                |
+|      Hackintosh      | i7-13700k 3.42Ghz 16-core |  64 |  1TB  |     |   14.2  |   13.2.1  |    67     |                |
+|      Hackintosh      |  i7-8700 3.2 Ghz 6-core   |  16 | 512GB |     |  14.0.1 |    12.6   |    181    | Dell Opt. 3060 |
+
+
+## Custom Hardware - Xcode 13.3
+|        Device        |             CPU           | RAM |  SSD  | HDD |  Xcode  |   macOS   | Time(sec) |    Comments    |
+|:--------------------:|:-------------------------:|:---:|:-----:|:---:|:-------:|:---------:|:---------:|----------------|
+|      Hackintosh      | i7-12700f 2.1 Ghz 12-core |  32 |  1TB  |     |  13.3   |   12.3    |    98     |                |
+|      Hackintosh      | i9-10900k 3.7 Ghz 10-core |  64 | 512GB |     |  13.3   |  12.2.1   |    119    |                |
+
+
 ## Custom Hardware - Xcode 12.5 or above
 
 |        Device        |           CPU           | RAM | SSD | HDD |  Xcode  |  macOS  | Time(sec) |    Comments    |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-------:|:-------:|:---------:|----------------|
 |      Ryzentosh       | AMD 5950x 4.3 Ghz 16-c  |  32 | 1TB | 2TB |  13.1   |  11.6   |     71    |                |
 |      Hackintosh      | i7-9700K 3.6 Ghz 8-core |  16 | 512 | 2TB |  12.5.1 |  11.4   |    177    |                |
+|      Hackintosh      | i7-9700  3.0 Ghz 8-core |  32 | 1TB |     |  13.1   |  11.6.1 |    177    |                |
 
 
 ## Custom Hardware - Xcode 12
@@ -124,6 +176,7 @@ If a device you are looking for is not on the list below, check out open [issues
 |   NLEstation 2020    |    i9 3.6 GHz 8-core    |  64 | 1TB |     |  12.2 | 10.15.7 |    129    |                |
 |      Hackintosh      |i7-10700K 3.8 Ghz 8-core |  32 | 1TB |     |  12.2 | 10.15.7 |    130    |                |
 |      Hackintosh      |AMD 3800x 4.2 Ghz 8-core |  64 | 1TB |     |  12.2 | 10.15.6 |    137    |                |
+|      Hackintosh      | i9-9900K 3.6 Ghz 8-core |  32 | 1TB |     |  12.3 |  11.2   |    157    |                |
 |       Ryzentosh      | R9 3900 3.8 Ghz 12-core |  32 | 512 |     |  12.1 | 10.15.4 |    161    |                |
 |       Ryzentosh      |  R5 3600 3.6 Ghz 6-core |  16 | 512 |     |  12.3 | 10.15.7 |    175    |                |
 |      Hackintosh      |  i5-9400 2.9 Ghz 6-core |  32 | 512 | 2TB |  12.1 | 10.15.7 |    191    |                |
@@ -272,3 +325,11 @@ Make sure:
 - [@mlch911](https://github.com/mlch911)
 - [@apvex](https://github.com/apvex)
 - [@Jeehut](https://github.com/Jeehut)
+- [@ginamdar](https://github.com/ginamdar)
+- [@julianko13](https://github.com/julianko13/)
+- [@ispiropoulos](https://github.com/ispiropoulos)
+- [@alejedi](https://github.com/alejedi)
+- [@witekbobrowski](https://twitter.com/witekbobrowski)
+- [@santirodriguezaffonso](https://github.com/santirodriguezaffonso)
+- [@alexpereacode](https://github.com/alexpereacode)
+- [@fkorotkov](https://github.com/fkorotkov)
