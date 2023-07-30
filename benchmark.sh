@@ -5,14 +5,19 @@ clear
 
 echo "Preparing environment"
 
-START_TIME=$(date +"%T")
-
+readonly duration=$(defaults read com.apple.dt.Xcode ShowBuildOperationDuration)
 defaults write com.apple.dt.Xcode ShowBuildOperationDuration YES
+
+# We should build with the new build system
+readonly swift_build_system=$(defaults read com.apple.dt.XCBuild EnableSwiftBuildSystemIntegration)
+defaults write com.apple.dt.XCBuild EnableSwiftBuildSystemIntegration YES
+
+START_TIME=$(date +"%T")
 
 if [ -n "$PATH_TO_PROJECT" ]; then 
 
-	echo "Running XcodeBenchmark..."
-	echo "Please do not use your Mac while XcodeBenchmark is in progress\n\n"
+	echo "Please do not use your Mac while XcodeBenchmark is in progress\n\n"	
+	echo "Running XcodeBenchmark...\n\n"
 
 	xcodebuild -workspace "$PATH_TO_PROJECT" \
 			   -scheme XcodeBenchmark \
@@ -22,6 +27,8 @@ if [ -n "$PATH_TO_PROJECT" ]; then
 
 	echo "System Version:" "$(sw_vers -productVersion)"
 	xcodebuild -version | grep "Xcode"
+
+	echo "Swift Build System:" "$(defaults read com.apple.dt.XCBuild EnableSwiftBuildSystemIntegration)"
 
 	echo "Hardware Overview"
 	system_profiler SPHardwareDataType | grep "Model Name:"
@@ -55,8 +62,14 @@ if [ -n "$PATH_TO_PROJECT" ]; then
 	echo "2️⃣  Share your results at https://github.com/devMEremenko/XcodeBenchmark"
 
 	rm -rfd "$PATH_TO_DERIVED"
+
+	# Return environment to previous state
+	defaults write com.apple.dt.XCBuild EnableSwiftBuildSystemIntegration "$swift_build_system"
+	defaults write com.apple.dt.Xcode ShowBuildOperationDuration "$duration"
+	
+	echo ""
 	
 else
-    echo "XcodeBenchmark.xcworkspace was not found in the current folder"
-    echo "Are you running in the XcodeBenchmark folder?"
+    echo "XcodeBenchmark.xcworkspace was not found in the current folder\n"
+    echo "Are you running in the XcodeBenchmark folder?\n"
 fi
