@@ -11,7 +11,15 @@ I believe the results will help developers to make the right *cost/performance* 
 PR merging will be performed on a best-effort basis.  
 If a device you are looking for is not on the list below, check out open [issues](https://github.com/devMEremenko/XcodeBenchmark/issues) and [PRs](https://github.com/devMEremenko/XcodeBenchmark/pulls).
 
-## Xcode 13.0 or above
+## Xcode 15
+|        Device        |           CPU           | RAM | SSD | Xcode |  macOS | Time(sec) |
+|:--------------------:|:-----------------------:|:---:|:---:|:-----:|:------:|:---------:|
+| MacBook Pro 16" 2021 |     M1 Pro 10-core      |  32 | 512 |  15.0 | 13.5.2 |    143    |
+
+
+## Xcode 13-14
+
+**Important**: Do not compare these results with Xcode 15 and above.
 
 |        Device        |           CPU           | RAM | SSD | HDD | Xcode |  macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:---:|:-----:|:-------:|:---------:|
@@ -135,6 +143,12 @@ If a device you are looking for is not on the list below, check out open [issues
 |     Mac Mini 2014    |    i5 2.6 GHz 2-core    |  8  |     | 1TB |  11.7 | 10.15.6 |    1193   |
 
 
+## Custom Hardware - Xcode 15
+|     Device     |             CPU           | RAM |  SSD  |  Xcode  |   macOS   | Time(sec) |    Comments    |
+|:--------------:|:-------------------------:|:---:|:-----:|:-------:|:---------:|:---------:|----------------|
+|   Hackintosh   |           <empty>         | <_> |  <_>  |   <_>   |    <_>    |    <_>    |      <_>       |
+
+
 ## Custom Hardware - Xcode 14
 |        Device        |             CPU           | RAM |  SSD  | HDD |  Xcode  |   macOS   | Time(sec) |    Comments    |
 |:--------------------:|:-------------------------:|:---:|:-----:|:---:|:-------:|:---------:|:---------:|----------------|
@@ -189,7 +203,7 @@ If a device you are looking for is not on the list below, check out open [issues
 
 ## Set up
 
-**Since Oct 23, 2021, XcodeBenchmark only supports Xcode 13.0 or above.**
+**Since Oct 1st, 2023, XcodeBenchmark only supports Xcode 15.0 or above.**
 
 - Download and install [Xcode](https://apps.apple.com/us/app/xcode/id497799835).
 - Open Xcode and install `additional tools` (Xcode should suggest it automatically).
@@ -218,23 +232,22 @@ If a device you are looking for is not on the list below, check out open [issues
 
 **Q: What's inside?**
 
-A framework that includes **42** popular CocoaPods libraries and **70+** dependencies in total.
+A framework that includes **76** popular CocoaPods libraries and their dependencies.
 
 | Language      | files | blank  | comment | code   |
 |---------------|-------|--------|---------|--------|
-| C/C++ Header  | 2785  | 58618  | 143659  | 215644 |
-| C++           | 750   | 24771  | 30788   | 182663 |
-| Objective C   | 882   | 27797  | 23183   | 148244 |
-| Swift         | 1122  | 21821  | 35225   | 113945 |
-| C             | 390   | 15064  | 23319   | 84119  |
-| Objective C++ | 69    | 2980   | 2026    | 15561  |
-| Markdown      | 61    | 4865   | 1       | 15131  |
-| XML           | 144   | 1022   | 10      | 13047  |
-| Bourne Shell  | 3     | 244    | 209     | 1321   |
-| JSON          | 22    | 1      | 0       | 1114   |
-| Pascal        | 2     | 87     | 185     | 180    |
-| YAML          | 1     | 0      | 0       | 5      |
-| SUM:          | 6231  | 157270 | 258605  | 790974 |
+| C/C++ Header  | 3264  | 80455  | 182322  | 337652 |
+| C++           | 904   | 30864  | 39862   | 232192 |
+| Swift         | 1435  | 28212  | 47846   | 118088 |
+| C             | 613   | 18128  | 25512   | 110726 |
+| Objective-C   | 803   | 21240  | 19532   | 109893 |
+| XML           | 303   | 1254   | 10      | 24276  |
+| Objective-C++ | 104   | 4280   | 2812    | 22246  |
+| Markdown      | 62    | 5082   | 3       | 16449  |
+| JSON          | 23    | 3      | 0       | 1295   |
+| Bourne Shell  | 14    | 226    | 73      | 1203   |
+| SUM:          | 7544  | 190269 | 320242  | 975549 |
+
 
 **Q: What do the results mean?**
 1. First of all, the project is **huge**. Most projects are of a much smaller size.
@@ -254,7 +267,7 @@ Please make sure to add [the link](https://github.com/devMEremenko/XcodeBenchmar
 
 ## Contribution
 
-**Since May 3, 2021, XcodeBenchmark must be used with Xcode 12.5 or above.**
+**Since Oct 1st, 2023, XcodeBenchmark must be used with Xcode 15.0 or above.**
 
 - **If you have any non-Apple hardware components - submit your results to the `Custom Hardware` table.**
 - [Submit a pull request](https://github.com/devMEremenko/XcodeBenchmark/pulls).  
