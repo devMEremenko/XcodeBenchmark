@@ -1,0 +1,4 @@
+${PODS_ROOT}/Target Support Files/GoogleMaps/GoogleMaps-xcframeworks.sh
+${PODS_ROOT}/GoogleMaps/Base/Frameworks/GoogleMapsBase.xcframework
+${PODS_ROOT}/GoogleMaps/Maps/Frameworks/GoogleMaps.xcframework
+${PODS_ROOT}/GoogleMaps/Maps/Frameworks/GoogleMapsCore.xcframework

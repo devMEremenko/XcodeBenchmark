@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-#import "NSError+FIRMessaging.h"
-
-NSString *const kFIRMessagingDomain = @"com.google.fcm";
+#import "FirebaseMessaging/Sources/NSError+FIRMessaging.h"
+#import "FirebaseMessaging/Sources/Public/FirebaseMessaging/FIRMessaging.h"
 
 @implementation NSError (FIRMessaging)
 
@@ -24,7 +23,7 @@ NSString *const kFIRMessagingDomain = @"com.google.fcm";
                       failureReason:(NSString *)failureReason {
   NSMutableDictionary *userInfo = [NSMutableDictionary dictionary];
   userInfo[NSLocalizedFailureReasonErrorKey] = failureReason;
-  return [NSError errorWithDomain:kFIRMessagingDomain code:errorCode userInfo:userInfo];
+  return [NSError errorWithDomain:FIRMessagingErrorDomain code:errorCode userInfo:userInfo];
 }
 
 @end

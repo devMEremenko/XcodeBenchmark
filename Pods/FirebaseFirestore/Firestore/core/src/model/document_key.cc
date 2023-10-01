@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google
+ * Copyright 2018 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,6 @@
 namespace firebase {
 namespace firestore {
 namespace model {
-
 namespace {
 
 void AssertValidPath(const ResourcePath& path) {
@@ -51,16 +50,25 @@ DocumentKey::DocumentKey(ResourcePath&& path)
 }
 
 DocumentKey DocumentKey::FromPathString(const std::string& path) {
-  return DocumentKey{ResourcePath::FromStringView(path)};
+  return DocumentKey{ResourcePath::FromString(path)};
 }
 
 DocumentKey DocumentKey::FromSegments(std::initializer_list<std::string> list) {
   return DocumentKey{ResourcePath{list}};
 }
 
+DocumentKey DocumentKey::FromName(const std::string& name) {
+  auto resource_name = ResourcePath::FromString(name);
+  HARD_ASSERT(resource_name.size() > 4 && resource_name[0] == "projects" &&
+                  resource_name[2] == "databases" &&
+                  resource_name[4] == "documents",
+              "Tried to parse an invalid key: %s", name);
+  return DocumentKey{resource_name.PopFirst(5)};
+}
+
 const DocumentKey& DocumentKey::Empty() {
-  static const DocumentKey empty;
-  return empty;
+  static const DocumentKey* empty = new DocumentKey();
+  return *empty;
 }
 
 bool DocumentKey::IsDocumentKey(const ResourcePath& path) {
@@ -99,9 +107,18 @@ const ResourcePath& DocumentKey::path() const {
 }
 
 /** Returns true if the document is in the specified collection_id. */
-bool DocumentKey::HasCollectionId(const std::string& collection_id) const {
-  size_t size = path().size();
-  return size >= 2 && path()[size - 2] == collection_id;
+bool DocumentKey::HasCollectionGroup(absl::string_view collection_group) const {
+  const auto collection_id_opt = GetCollectionGroup();
+  return collection_id_opt.has_value() &&
+         collection_id_opt.value() == collection_group;
+}
+
+absl::optional<std::string> DocumentKey::GetCollectionGroup() const {
+  const size_t size = path().size();
+  if (size < 2) {
+    return absl::nullopt;
+  }
+  return path()[size - 2];
 }
 
 size_t DocumentKeyHash::operator()(const DocumentKey& key) const {

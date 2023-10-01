@@ -19,24 +19,29 @@
 #import "RLMProperty_Private.hpp"
 
 #import "RLMArray_Private.hpp"
-#import "RLMListBase.h"
+#import "RLMDictionary_Private.hpp"
 #import "RLMObject.h"
 #import "RLMObjectSchema_Private.hpp"
 #import "RLMObject_Private.h"
 #import "RLMSchema_Private.h"
+#import "RLMSet_Private.hpp"
 #import "RLMSwiftSupport.h"
 #import "RLMUtil.hpp"
 
-#import "property.hpp"
+#import <realm/object-store/property.hpp>
 
-static_assert((int)RLMPropertyTypeInt    == (int)realm::PropertyType::Int, "");
-static_assert((int)RLMPropertyTypeBool   == (int)realm::PropertyType::Bool, "");
-static_assert((int)RLMPropertyTypeFloat  == (int)realm::PropertyType::Float, "");
-static_assert((int)RLMPropertyTypeDouble == (int)realm::PropertyType::Double, "");
-static_assert((int)RLMPropertyTypeString == (int)realm::PropertyType::String, "");
-static_assert((int)RLMPropertyTypeData   == (int)realm::PropertyType::Data, "");
-static_assert((int)RLMPropertyTypeDate   == (int)realm::PropertyType::Date, "");
-static_assert((int)RLMPropertyTypeObject == (int)realm::PropertyType::Object, "");
+static_assert((int)RLMPropertyTypeInt        == (int)realm::PropertyType::Int);
+static_assert((int)RLMPropertyTypeBool       == (int)realm::PropertyType::Bool);
+static_assert((int)RLMPropertyTypeFloat      == (int)realm::PropertyType::Float);
+static_assert((int)RLMPropertyTypeDouble     == (int)realm::PropertyType::Double);
+static_assert((int)RLMPropertyTypeString     == (int)realm::PropertyType::String);
+static_assert((int)RLMPropertyTypeData       == (int)realm::PropertyType::Data);
+static_assert((int)RLMPropertyTypeDate       == (int)realm::PropertyType::Date);
+static_assert((int)RLMPropertyTypeObject     == (int)realm::PropertyType::Object);
+static_assert((int)RLMPropertyTypeObjectId   == (int)realm::PropertyType::ObjectId);
+static_assert((int)RLMPropertyTypeDecimal128 == (int)realm::PropertyType::Decimal);
+static_assert((int)RLMPropertyTypeUUID       == (int)realm::PropertyType::UUID);
+static_assert((int)RLMPropertyTypeAny        == (int)realm::PropertyType::Mixed);
 
 BOOL RLMPropertyTypeIsComputed(RLMPropertyType propertyType) {
     return propertyType == RLMPropertyTypeLinkingObjects;
@@ -88,9 +93,19 @@ static bool rawTypeShouldBeTreatedAsComputedProperty(NSString *rawType) {
                                  objectClassName:prop.object_type.length() ? @(prop.object_type.c_str()) : nil
                           linkOriginPropertyName:prop.link_origin_property_name.length() ? @(prop.link_origin_property_name.c_str()) : nil
                                          indexed:prop.is_indexed
-                                        optional:is_nullable(prop.type)];
+                                        optional:isNullable(prop.type)];
     if (is_array(prop.type)) {
         ret->_array = true;
+    }
+    if (is_set(prop.type)) {
+        ret->_set = true;
+    }
+    if (is_dictionary(prop.type)) {
+        // TODO: We need a way to store the dictionary
+        // key type in realm::Property once we support more
+        // key types.
+        ret->_dictionaryKeyType = RLMPropertyTypeString;
+        ret->_dictionary = true;
     }
     if (!prop.public_name.empty()) {
         ret->_columnName = ret->_name;
@@ -119,11 +134,6 @@ static bool rawTypeShouldBeTreatedAsComputedProperty(NSString *rawType) {
     return self;
 }
 
-- (void)setName:(NSString *)name {
-    _name = name;
-    [self updateAccessors];
-}
-
 - (void)updateAccessors {
     // populate getter/setter names if generic
     if (!_getterName) {
@@ -142,7 +152,10 @@ static bool rawTypeShouldBeTreatedAsComputedProperty(NSString *rawType) {
     _setterSel = NSSelectorFromString(_setterName);
 }
 
-static realm::util::Optional<RLMPropertyType> typeFromProtocolString(const char *type) {
+static std::optional<RLMPropertyType> typeFromProtocolString(const char *type) {
+    if (strcmp(type, "RLMValue>\"") == 0) {
+        return RLMPropertyTypeAny;
+    }
     if (strncmp(type, "RLM", 3)) {
         return realm::none;
     }
@@ -167,6 +180,15 @@ static realm::util::Optional<RLMPropertyType> typeFromProtocolString(const char 
     }
     if (strcmp(type, "Date>\"") == 0) {
         return RLMPropertyTypeDate;
+    }
+    if (strcmp(type, "Decimal128>\"") == 0) {
+        return RLMPropertyTypeDecimal128;
+    }
+    if (strcmp(type, "ObjectId>\"") == 0) {
+        return RLMPropertyTypeObjectId;
+    }
+    if (strcmp(type, "UUID>\"") == 0) {
+        return RLMPropertyTypeUUID;
     }
     return realm::none;
 }
@@ -201,11 +223,21 @@ static realm::util::Optional<RLMPropertyType> typeFromProtocolString(const char 
     static const char arrayPrefix[] = "@\"RLMArray<";
     static const int arrayPrefixLen = sizeof(arrayPrefix) - 1;
 
+    static const char setPrefix[] = "@\"RLMSet<";
+    static const int setPrefixLen = sizeof(setPrefix) - 1;
+
+    static const char dictionaryPrefix[] = "@\"RLMDictionary<";
+    static const int dictionaryPrefixLen = sizeof(dictionaryPrefix) - 1;
+
     static const char numberPrefix[] = "@\"NSNumber<";
     static const int numberPrefixLen = sizeof(numberPrefix) - 1;
 
     static const char linkingObjectsPrefix[] = "@\"RLMLinkingObjects";
     static const int linkingObjectsPrefixLen = sizeof(linkingObjectsPrefix) - 1;
+
+    _array = strncmp(code, arrayPrefix, arrayPrefixLen) == 0;
+    _set = strncmp(code, setPrefix, setPrefixLen) == 0;
+    _dictionary = strncmp(code, dictionaryPrefix, dictionaryPrefixLen) == 0;
 
     if (strcmp(code, "@\"NSString\"") == 0) {
         _type = RLMPropertyTypeString;
@@ -216,26 +248,72 @@ static realm::util::Optional<RLMPropertyType> typeFromProtocolString(const char 
     else if (strcmp(code, "@\"NSData\"") == 0) {
         _type = RLMPropertyTypeData;
     }
-    else if (strncmp(code, arrayPrefix, arrayPrefixLen) == 0) {
-        _array = true;
-        if (auto type = typeFromProtocolString(code + arrayPrefixLen)) {
+    else if (strcmp(code, "@\"RLMDecimal128\"") == 0) {
+        _type = RLMPropertyTypeDecimal128;
+    }
+    else if (strcmp(code, "@\"RLMObjectId\"") == 0) {
+        _type = RLMPropertyTypeObjectId;
+    }
+    else if (strcmp(code, "@\"NSUUID\"") == 0) {
+        _type = RLMPropertyTypeUUID;
+    }
+    else if (strcmp(code, "@\"<RLMValue>\"") == 0) {
+        _type = RLMPropertyTypeAny;
+        // Mixed can represent a null type but can't explicitly be an optional type.
+        _optional = false;
+    }
+    else if (_array || _set || _dictionary) {
+        size_t prefixLen = 0;
+        NSString *collectionName;
+        if (_array) {
+            prefixLen = arrayPrefixLen;
+            collectionName = @"RLMArray";
+        }
+        else if (_set) {
+            prefixLen = setPrefixLen;
+            collectionName = @"RLMSet";
+        }
+        else if (_dictionary) {
+            // get the type, by working backward from RLMDictionary<Key, Type>
+            size_t typeLen = 0;
+            size_t codeSize = strlen(code);
+            for (size_t i = codeSize; i > 0; i--) {
+                if (code[i] == '>' && i != (codeSize-2)) { // -2 means we skip the first time we see '>'
+                    typeLen = i;
+                    break;
+                }
+            }
+            prefixLen = typeLen+size_t(2); // +2 start at the type name
+            collectionName = @"RLMDictionary";
+
+            // Get the key type
+            if (strstr(code + dictionaryPrefixLen, "RLMString><") != NULL) {
+                _dictionaryKeyType = RLMPropertyTypeString;
+            }
+        }
+
+        if (auto type = typeFromProtocolString(code + prefixLen)) {
             _type = *type;
             return YES;
         }
 
-        // get object class from type string - @"RLMArray<objectClassName>"
-        _objectClassName = [[NSString alloc] initWithBytes:code + arrayPrefixLen
-                                                    length:strlen(code + arrayPrefixLen) - 2 // drop trailing >"
+        // get object class from type string - @"RLMSomeCollection<objectClassName>"
+        _objectClassName = [[NSString alloc] initWithBytes:code + prefixLen
+                                                    length:strlen(code + prefixLen) - 2 // drop trailing >"
                                                   encoding:NSUTF8StringEncoding];
 
         if ([RLMSchema classForString:_objectClassName]) {
-            _optional = false;
+            // Dictionaries require object types to be nullable. This is due to
+            // the fact that if you delete a realm object that exists in a dictionary
+            // the key should stay present but the value should be null.
+            _optional = _dictionary;
             _type = RLMPropertyTypeObject;
             return YES;
         }
-        @throw RLMException(@"Property '%@' is of type 'RLMArray<%@>' which is not a supported RLMArray object type. "
-                            @"RLMArrays can only contain instances of RLMObject subclasses. "
-                            @"See https://realm.io/docs/objc/latest/#to-many for more information.", _name, _objectClassName);
+        @throw RLMException(@"Property '%@' is of type '%@<%@>' which is not a supported %@ object type. "
+                            @"%@ can only contain instances of RLMObject subclasses. "
+                            @"See https://www.mongodb.com/docs/realm/sdk/swift/fundamentals/relationships/#to-many-relationship "
+                            @"for more information.", _name, collectionName, _objectClassName, collectionName, collectionName);
     }
     else if (strncmp(code, numberPrefix, numberPrefixLen) == 0) {
         auto type = typeFromProtocolString(code + numberPrefixLen);
@@ -245,7 +323,8 @@ static realm::util::Optional<RLMPropertyType> typeFromProtocolString(const char 
         }
         @throw RLMException(@"Property '%@' is of type %s which is not a supported NSNumber object type. "
                             @"NSNumbers can only be RLMInt, RLMFloat, RLMDouble, and RLMBool at the moment. "
-                            @"See https://realm.io/docs/objc/latest for more information.", _name, code + 1);
+                            @"See https://www.mongodb.com/docs/realm/sdk/swift/data-types/supported-property-types/ "
+                            @"for more information.", _name, code + 1);
     }
     else if (strncmp(code, linkingObjectsPrefix, linkingObjectsPrefixLen) == 0 &&
              (code[linkingObjectsPrefixLen] == '"' || code[linkingObjectsPrefixLen] == '<')) {
@@ -277,6 +356,12 @@ static realm::util::Optional<RLMPropertyType> typeFromProtocolString(const char 
     else if (strcmp(code, "@\"RLMArray\"") == 0) {
         @throw RLMException(@"Property '%@' requires a protocol defining the contained type - example: RLMArray<Person>.", _name);
     }
+    else if (strcmp(code, "@\"RLMSet\"") == 0) {
+        @throw RLMException(@"Property '%@' requires a protocol defining the contained type - example: RLMSet<Person>.", _name);
+    }
+    else if (strcmp(code, "@\"RLMDictionary\"") == 0) {
+        @throw RLMException(@"Property '%@' requires a protocol defining the contained type - example: RLMDictionary<NSString *, Person *><RLMString, Person>.", _name);
+    }
     else {
         NSString *className;
         Class cls = nil;
@@ -291,8 +376,10 @@ static realm::util::Optional<RLMPropertyType> typeFromProtocolString(const char 
 
         if (!cls) {
             @throw RLMException(@"Property '%@' is declared as '%@', which is not a supported RLMObject property type. "
-                                @"All properties must be primitives, NSString, NSDate, NSData, NSNumber, RLMArray, RLMLinkingObjects, or subclasses of RLMObject. "
-                                @"See https://realm.io/docs/objc/latest/api/Classes/RLMObject.html for more information.", _name, className);
+                                @"All properties must be primitives, NSString, NSDate, NSData, NSNumber, RLMArray, RLMSet, "
+                                @"RLMDictionary, RLMLinkingObjects, RLMDecimal128, RLMObjectId, or subclasses of RLMObject. "
+                                @"See https://www.mongodb.com/docs/realm-legacy/docs/objc/latest/api/Classes/RLMObject.html "
+                                @"for more information.", _name, className);
         }
 
         _type = RLMPropertyTypeObject;
@@ -420,7 +507,7 @@ static realm::util::Optional<RLMPropertyType> typeFromProtocolString(const char 
         }
     }
 
-    // convert array types to objc variant
+    // convert array / set / dictionary types to objc variant
     if ([rawType isEqualToString:@"@\"RLMArray\""]) {
         RLMArray *value = propertyValue;
         _type = value.type;
@@ -430,7 +517,35 @@ static realm::util::Optional<RLMPropertyType> typeFromProtocolString(const char 
         if (_type == RLMPropertyTypeObject && ![RLMSchema classForString:_objectClassName]) {
             @throw RLMException(@"Property '%@' is of type 'RLMArray<%@>' which is not a supported RLMArray object type. "
                                 @"RLMArrays can only contain instances of RLMObject subclasses. "
-                                @"See https://realm.io/docs/objc/latest/#to-many for more information.", _name, _objectClassName);
+                                @"See https://www.mongodb.com/docs/realm/sdk/swift/fundamentals/relationships/#to-many-relationship "
+                                @"for more information.", _name, _objectClassName);
+        }
+    }
+    else if ([rawType isEqualToString:@"@\"RLMSet\""]) {
+        RLMSet *value = propertyValue;
+        _type = value.type;
+        _optional = value.optional;
+        _set = true;
+        _objectClassName = value.objectClassName;
+        if (_type == RLMPropertyTypeObject && ![RLMSchema classForString:_objectClassName]) {
+            @throw RLMException(@"Property '%@' is of type 'RLMSet<%@>' which is not a supported RLMSet object type. "
+                                @"RLMSets can only contain instances of RLMObject subclasses. "
+                                @"See https://www.mongodb.com/docs/realm/sdk/swift/fundamentals/relationships/#to-many-relationship "
+                                @"for more information.", _name, _objectClassName);
+        }
+    }
+    else if ([rawType isEqualToString:@"@\"RLMDictionary\""]) {
+        RLMDictionary *value = propertyValue;
+        _type = value.type;
+        _dictionaryKeyType = value.keyType;
+        _optional = value.optional;
+        _dictionary = true;
+        _objectClassName = value.objectClassName;
+        if (_type == RLMPropertyTypeObject && ![RLMSchema classForString:_objectClassName]) {
+            @throw RLMException(@"Property '%@' is of type 'RLMDictionary<KeyType, %@>' which is not a supported RLMDictionary object type. "
+                                @"RLMDictionarys can only contain instances of RLMObject subclasses. "
+                                @"See https://www.mongodb.com/docs/realm/sdk/swift/fundamentals/relationships/#to-many-relationship "
+                                @"for more information.", _name, _objectClassName);
         }
     }
     else if ([rawType isEqualToString:@"@\"NSNumber\""]) {
@@ -526,12 +641,16 @@ static realm::util::Optional<RLMPropertyType> typeFromProtocolString(const char 
     prop->_type = _type;
     prop->_objectClassName = _objectClassName;
     prop->_array = _array;
+    prop->_set = _set;
+    prop->_dictionary = _dictionary;
+    prop->_dictionaryKeyType = _dictionaryKeyType;
     prop->_indexed = _indexed;
     prop->_getterName = _getterName;
     prop->_setterName = _setterName;
     prop->_getterSel = _getterSel;
     prop->_setterSel = _setterSel;
     prop->_isPrimary = _isPrimary;
+    prop->_swiftAccessor = _swiftAccessor;
     prop->_swiftIvar = _swiftIvar;
     prop->_optional = _optional;
     prop->_linkOriginPropertyName = _linkOriginPropertyName;
@@ -563,22 +682,38 @@ static realm::util::Optional<RLMPropertyType> typeFromProtocolString(const char 
             [_linkOriginPropertyName isEqualToString:property->_linkOriginPropertyName]);
 }
 
+- (BOOL)collection {
+    return self.set || self.array || self.dictionary;
+}
+
 - (NSString *)description {
+    NSString *objectClassName = @"";
+    if (self.type == RLMPropertyTypeObject || self.type == RLMPropertyTypeLinkingObjects) {
+        objectClassName = [NSString stringWithFormat:
+                           @"\tobjectClassName = %@;\n"
+                           @"\tlinkOriginPropertyName = %@;\n",
+                           self.objectClassName, self.linkOriginPropertyName];
+    }
     return [NSString stringWithFormat:
             @"%@ {\n"
              "\ttype = %@;\n"
-             "\tobjectClassName = %@;\n"
-             "\tlinkOriginPropertyName = %@;\n"
+             "%@"
+             "\tcolumnName = %@;\n"
              "\tindexed = %@;\n"
              "\tisPrimary = %@;\n"
              "\tarray = %@;\n"
+             "\tset = %@;\n"
+             "\tdictionary = %@;\n"
              "\toptional = %@;\n"
              "}",
-            self.name, RLMTypeToString(self.type), self.objectClassName,
-            self.linkOriginPropertyName,
+            self.name, RLMTypeToString(self.type),
+            objectClassName,
+            self.columnName,
             self.indexed ? @"YES" : @"NO",
             self.isPrimary ? @"YES" : @"NO",
             self.array ? @"YES" : @"NO",
+            self.set ? @"YES" : @"NO",
+            self.dictionary ? @"YES" : @"NO",
             self.optional ? @"YES" : @"NO"];
 }
 
@@ -589,6 +724,9 @@ static realm::util::Optional<RLMPropertyType> typeFromProtocolString(const char 
 - (realm::Property)objectStoreCopy:(RLMSchema *)schema {
     realm::Property p;
     p.name = self.columnName.UTF8String;
+    if (_columnName) {
+        p.public_name = _name.UTF8String;
+    }
     if (_objectClassName) {
         RLMObjectSchema *targetSchema = schema[_objectClassName];
         p.object_type = (targetSchema.objectName ?: _objectClassName).UTF8String;
@@ -601,10 +739,34 @@ static realm::util::Optional<RLMPropertyType> typeFromProtocolString(const char 
     if (_array) {
         p.type |= realm::PropertyType::Array;
     }
-    if (_optional) {
+    if (_set) {
+        p.type |= realm::PropertyType::Set;
+    }
+    if (_dictionary) {
+        p.type |= realm::PropertyType::Dictionary;
+    }
+    if (_optional || p.type == realm::PropertyType::Mixed) {
         p.type |= realm::PropertyType::Nullable;
     }
     return p;
+}
+
+- (NSString *)typeName {
+    if (!self.collection) {
+        return RLMTypeToString(_type);
+    }
+    NSString *collectionName;
+    if (_swiftAccessor) {
+        collectionName = _array ? @"List" :
+                         _set   ? @"MutableSet" :
+                                  @"Map";
+    }
+    else {
+        collectionName = _array ? @"RLMArray" :
+                         _set   ? @"RLMSet" :
+                                  @"RLMDictionary";
+    }
+    return [NSString stringWithFormat:@"%@<%@>", collectionName, RLMTypeToString(_type)];
 }
 
 @end

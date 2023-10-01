@@ -50,7 +50,7 @@ typedef struct grpc_closure_list {
  *              describing what went wrong.
  *              Error contract: it is not the cb's job to unref this error;
  *              the closure scheduler will do that after the cb returns */
-typedef void (*grpc_iomgr_cb_func)(void* arg, grpc_error* error);
+typedef void (*grpc_iomgr_cb_func)(void* arg, grpc_error_handle error);
 
 /** A closure over a grpc_iomgr_cb_func. */
 struct grpc_closure {
@@ -72,7 +72,7 @@ struct grpc_closure {
 
   /** Once queued, the result of the closure. Before then: scratch space */
   union {
-    grpc_error* error;
+    uintptr_t error;
     uintptr_t scratch;
   } error_data;
 
@@ -98,7 +98,7 @@ inline grpc_closure* grpc_closure_init(grpc_closure* closure,
 #endif
   closure->cb = cb;
   closure->cb_arg = cb_arg;
-  closure->error_data.error = GRPC_ERROR_NONE;
+  closure->error_data.error = 0;
 #ifndef NDEBUG
   closure->scheduled = false;
   closure->file_initiated = nullptr;
@@ -121,13 +121,12 @@ inline grpc_closure* grpc_closure_init(grpc_closure* closure,
 
 namespace closure_impl {
 
-typedef struct {
+struct wrapped_closure {
   grpc_iomgr_cb_func cb;
   void* cb_arg;
   grpc_closure wrapper;
-} wrapped_closure;
-
-inline void closure_wrapper(void* arg, grpc_error* error) {
+};
+inline void closure_wrapper(void* arg, grpc_error_handle error) {
   wrapped_closure* wc = static_cast<wrapped_closure*>(arg);
   grpc_iomgr_cb_func cb = wc->cb;
   void* cb_arg = wc->cb_arg;
@@ -173,15 +172,12 @@ inline void grpc_closure_list_init(grpc_closure_list* closure_list) {
 }
 
 /** add \a closure to the end of \a list
-    and set \a closure's result to \a error
     Returns true if \a list becomes non-empty */
 inline bool grpc_closure_list_append(grpc_closure_list* closure_list,
-                                     grpc_closure* closure, grpc_error* error) {
+                                     grpc_closure* closure) {
   if (closure == nullptr) {
-    GRPC_ERROR_UNREF(error);
     return false;
   }
-  closure->error_data.error = error;
   closure->next_data.next = nullptr;
   bool was_empty = (closure_list->head == nullptr);
   if (was_empty) {
@@ -193,12 +189,27 @@ inline bool grpc_closure_list_append(grpc_closure_list* closure_list,
   return was_empty;
 }
 
+/** add \a closure to the end of \a list
+    and set \a closure's result to \a error
+    Returns true if \a list becomes non-empty */
+inline bool grpc_closure_list_append(grpc_closure_list* closure_list,
+                                     grpc_closure* closure,
+                                     grpc_error_handle error) {
+  if (closure == nullptr) {
+    GRPC_ERROR_UNREF(error);
+    return false;
+  }
+  closure->error_data.error = grpc_core::internal::StatusAllocHeapPtr(error);
+  return grpc_closure_list_append(closure_list, closure);
+}
+
 /** force all success bits in \a list to false */
 inline void grpc_closure_list_fail_all(grpc_closure_list* list,
-                                       grpc_error* forced_failure) {
+                                       grpc_error_handle forced_failure) {
   for (grpc_closure* c = list->head; c != nullptr; c = c->next_data.next) {
-    if (c->error_data.error == GRPC_ERROR_NONE) {
-      c->error_data.error = GRPC_ERROR_REF(forced_failure);
+    if (c->error_data.error == 0) {
+      c->error_data.error =
+          grpc_core::internal::StatusAllocHeapPtr(forced_failure);
     }
   }
   GRPC_ERROR_UNREF(forced_failure);
@@ -228,7 +239,7 @@ namespace grpc_core {
 class Closure {
  public:
   static void Run(const DebugLocation& location, grpc_closure* closure,
-                  grpc_error* error) {
+                  grpc_error_handle error) {
     (void)location;
     if (closure == nullptr) {
       GRPC_ERROR_UNREF(error);

@@ -53,11 +53,11 @@
  * (eay@cryptsoft.com).  This product includes software written by Tim
  * Hudson (tjh@cryptsoft.com). */
 
-#include <openssl/evp.h>
+#include <openssl_grpc/evp.h>
 
 #include <string.h>
 
-#include <openssl/hmac.h>
+#include <openssl_grpc/hmac.h>
 
 #include "../internal.h"
 

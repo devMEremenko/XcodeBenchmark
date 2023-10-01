@@ -22,32 +22,31 @@
 
 #include <string.h>
 
-#include "src/core/lib/channel/channel_args.h"
-#include "src/core/lib/surface/api_trace.h"
-#include "src/core/tsi/ssl_transport_security.h"
+#include <string>
+#include <utility>
 
+#include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
+
+#include <grpc/impl/codegen/grpc_types.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
 #include <grpc/support/string_util.h>
+
+#include "src/core/lib/channel/channel_args.h"
+#include "src/core/lib/debug/trace.h"
+#include "src/core/lib/security/security_connector/ssl_utils.h"
+#include "src/core/lib/surface/api_trace.h"
+#include "src/core/tsi/ssl/session_cache/ssl_session_cache.h"
+#include "src/core/tsi/ssl_transport_security.h"
 
 //
 // SSL Channel Credentials.
 //
 
-void grpc_tsi_ssl_pem_key_cert_pairs_destroy(tsi_ssl_pem_key_cert_pair* kp,
-                                             size_t num_key_cert_pairs) {
-  if (kp == nullptr) return;
-  for (size_t i = 0; i < num_key_cert_pairs; i++) {
-    gpr_free((void*)kp[i].private_key);
-    gpr_free((void*)kp[i].cert_chain);
-  }
-  gpr_free(kp);
-}
-
 grpc_ssl_credentials::grpc_ssl_credentials(
     const char* pem_root_certs, grpc_ssl_pem_key_cert_pair* pem_key_cert_pair,
-    const grpc_ssl_verify_peer_options* verify_options)
-    : grpc_channel_credentials(GRPC_CHANNEL_CREDENTIALS_TYPE_SSL) {
+    const grpc_ssl_verify_peer_options* verify_options) {
   build_config(pem_root_certs, pem_key_cert_pair, verify_options);
 }
 
@@ -63,33 +62,26 @@ grpc_ssl_credentials::~grpc_ssl_credentials() {
 grpc_core::RefCountedPtr<grpc_channel_security_connector>
 grpc_ssl_credentials::create_security_connector(
     grpc_core::RefCountedPtr<grpc_call_credentials> call_creds,
-    const char* target, const grpc_channel_args* args,
-    grpc_channel_args** new_args) {
-  const char* overridden_target_name = nullptr;
-  tsi_ssl_session_cache* ssl_session_cache = nullptr;
-  for (size_t i = 0; args && i < args->num_args; i++) {
-    grpc_arg* arg = &args->args[i];
-    if (strcmp(arg->key, GRPC_SSL_TARGET_NAME_OVERRIDE_ARG) == 0 &&
-        arg->type == GRPC_ARG_STRING) {
-      overridden_target_name = arg->value.string;
-    }
-    if (strcmp(arg->key, GRPC_SSL_SESSION_CACHE_ARG) == 0 &&
-        arg->type == GRPC_ARG_POINTER) {
-      ssl_session_cache =
-          static_cast<tsi_ssl_session_cache*>(arg->value.pointer.p);
-    }
-  }
+    const char* target, grpc_core::ChannelArgs* args) {
+  absl::optional<std::string> overridden_target_name =
+      args->GetOwnedString(GRPC_SSL_TARGET_NAME_OVERRIDE_ARG);
+  auto* ssl_session_cache = args->GetObject<tsi::SslSessionLRUCache>();
   grpc_core::RefCountedPtr<grpc_channel_security_connector> sc =
       grpc_ssl_channel_security_connector_create(
           this->Ref(), std::move(call_creds), &config_, target,
-          overridden_target_name, ssl_session_cache);
+          overridden_target_name.has_value() ? overridden_target_name->c_str()
+                                             : nullptr,
+          ssl_session_cache == nullptr ? nullptr : ssl_session_cache->c_ptr());
   if (sc == nullptr) {
     return sc;
   }
-  grpc_arg new_arg = grpc_channel_arg_string_create(
-      (char*)GRPC_ARG_HTTP2_SCHEME, (char*)"https");
-  *new_args = grpc_channel_args_copy_and_add(args, &new_arg, 1);
+  *args = args->Set(GRPC_ARG_HTTP2_SCHEME, "https");
   return sc;
+}
+
+grpc_core::UniqueTypeName grpc_ssl_credentials::Type() {
+  static grpc_core::UniqueTypeName::Factory kFactory("Ssl");
+  return kFactory.Create();
 }
 
 void grpc_ssl_credentials::build_config(
@@ -115,6 +107,16 @@ void grpc_ssl_credentials::build_config(
     // Otherwise set all options to default values
     memset(&config_.verify_options, 0, sizeof(verify_peer_options));
   }
+}
+
+void grpc_ssl_credentials::set_min_tls_version(
+    grpc_tls_version min_tls_version) {
+  config_.min_tls_version = min_tls_version;
+}
+
+void grpc_ssl_credentials::set_max_tls_version(
+    grpc_tls_version max_tls_version) {
+  config_.max_tls_version = max_tls_version;
 }
 
 /* Deprecated in favor of grpc_ssl_credentials_create_ex. Will be removed
@@ -161,8 +163,7 @@ struct grpc_ssl_server_credentials_options {
 };
 
 grpc_ssl_server_credentials::grpc_ssl_server_credentials(
-    const grpc_ssl_server_credentials_options& options)
-    : grpc_server_credentials(GRPC_CHANNEL_CREDENTIALS_TYPE_SSL) {
+    const grpc_ssl_server_credentials_options& options) {
   if (options.certificate_config_fetcher != nullptr) {
     config_.client_certificate_request = options.client_certificate_request;
     certificate_config_fetcher_ = *options.certificate_config_fetcher;
@@ -180,8 +181,14 @@ grpc_ssl_server_credentials::~grpc_ssl_server_credentials() {
   gpr_free(config_.pem_root_certs);
 }
 grpc_core::RefCountedPtr<grpc_server_security_connector>
-grpc_ssl_server_credentials::create_security_connector() {
+grpc_ssl_server_credentials::create_security_connector(
+    const grpc_core::ChannelArgs& /* args */) {
   return grpc_ssl_server_security_connector_create(this->Ref());
+}
+
+grpc_core::UniqueTypeName grpc_ssl_server_credentials::Type() {
+  static grpc_core::UniqueTypeName::Factory kFactory("Ssl");
+  return kFactory.Create();
 }
 
 tsi_ssl_pem_key_cert_pair* grpc_convert_grpc_to_tsi_cert_pairs(
@@ -213,6 +220,16 @@ void grpc_ssl_server_credentials::build_config(
   config_.num_key_cert_pairs = num_key_cert_pairs;
 }
 
+void grpc_ssl_server_credentials::set_min_tls_version(
+    grpc_tls_version min_tls_version) {
+  config_.min_tls_version = min_tls_version;
+}
+
+void grpc_ssl_server_credentials::set_max_tls_version(
+    grpc_tls_version max_tls_version) {
+  config_.max_tls_version = max_tls_version;
+}
+
 grpc_ssl_server_certificate_config* grpc_ssl_server_certificate_config_create(
     const char* pem_root_certs,
     const grpc_ssl_pem_key_cert_pair* pem_key_cert_pairs,
@@ -242,8 +259,8 @@ void grpc_ssl_server_certificate_config_destroy(
     grpc_ssl_server_certificate_config* config) {
   if (config == nullptr) return;
   for (size_t i = 0; i < config->num_key_cert_pairs; i++) {
-    gpr_free((void*)config->pem_key_cert_pairs[i].private_key);
-    gpr_free((void*)config->pem_key_cert_pairs[i].cert_chain);
+    gpr_free(const_cast<char*>(config->pem_key_cert_pairs[i].private_key));
+    gpr_free(const_cast<char*>(config->pem_key_cert_pairs[i].cert_chain));
   }
   gpr_free(config->pem_key_cert_pairs);
   gpr_free(config->pem_root_certs);

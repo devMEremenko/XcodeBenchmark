@@ -58,7 +58,7 @@
 
 #include <openssl_grpc/bio.h>
 
-int i2a_ASN1_INTEGER(BIO *bp, ASN1_INTEGER *a)
+int i2a_ASN1_INTEGER(BIO *bp, const ASN1_INTEGER *a)
 {
     int i, n = 0;
     static const char *h = "0123456789ABCDEF";
@@ -94,4 +94,9 @@ int i2a_ASN1_INTEGER(BIO *bp, ASN1_INTEGER *a)
     return (n);
  err:
     return (-1);
+}
+
+int i2a_ASN1_ENUMERATED(BIO *bp, const ASN1_ENUMERATED *a)
+{
+    return i2a_ASN1_INTEGER(bp, a);
 }

@@ -19,12 +19,20 @@
 #ifndef GRPC_CORE_LIB_DEBUG_TRACE_H
 #define GRPC_CORE_LIB_DEBUG_TRACE_H
 
+#if defined(__has_feature)
+#if __has_feature(thread_sanitizer)
+#define GRPC_THREADSAFE_TRACER
+#endif
+#endif
+
 #include <grpc/support/port_platform.h>
 
-#include <grpc/support/atm.h>
-#include <stdbool.h>
+#ifdef GRPC_THREADSAFE_TRACER
+#include <atomic>
+#endif
 
 #include "src/core/lib/gprpp/global_config.h"
+#include "src/core/lib/gprpp/memory.h"
 
 GPR_GLOBAL_CONFIG_DECLARE_STRING(grpc_trace);
 
@@ -34,12 +42,6 @@ void grpc_tracer_init(const char* env_var_name);
 
 void grpc_tracer_init();
 void grpc_tracer_shutdown(void);
-
-#if defined(__has_feature)
-#if __has_feature(thread_sanitizer)
-#define GRPC_THREADSAFE_TRACER
-#endif
-#endif
 
 namespace grpc_core {
 
@@ -55,7 +57,7 @@ class TraceFlagList {
 };
 
 namespace testing {
-void grpc_tracer_enable_flag(grpc_core::TraceFlag* flag);
+void grpc_tracer_enable_flag(TraceFlag* flag);
 }
 
 class TraceFlag {
@@ -79,7 +81,7 @@ class TraceFlag {
 #if defined(GRPC_USE_TRACERS) || !defined(NDEBUG)
   bool enabled() {
 #ifdef GRPC_THREADSAFE_TRACER
-    return gpr_atm_no_barrier_load(&value_) != 0;
+    return value_.load(std::memory_order_relaxed);
 #else
     return value_;
 #endif  // GRPC_THREADSAFE_TRACER
@@ -89,12 +91,12 @@ class TraceFlag {
 #endif /* defined(GRPC_USE_TRACERS) || !defined(NDEBUG) */
 
  private:
-  friend void grpc_core::testing::grpc_tracer_enable_flag(TraceFlag* flag);
+  friend void testing::grpc_tracer_enable_flag(TraceFlag* flag);
   friend class TraceFlagList;
 
   void set_enabled(bool enabled) {
 #ifdef GRPC_THREADSAFE_TRACER
-    gpr_atm_no_barrier_store(&value_, enabled);
+    value_.store(enabled, std::memory_order_relaxed);
 #else
     value_ = enabled;
 #endif
@@ -103,7 +105,7 @@ class TraceFlag {
   TraceFlag* next_tracer_;
   const char* const name_;
 #ifdef GRPC_THREADSAFE_TRACER
-  gpr_atm value_;
+  std::atomic<bool> value_;
 #else
   bool value_;
 #endif

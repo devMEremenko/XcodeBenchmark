@@ -18,11 +18,11 @@
 
 #include <utility>
 
-#include "Firestore/core/src/model/maybe_document.h"
+#include "Firestore/core/src/model/document.h"
+#include "Firestore/core/src/model/document_key.h"
 #include "Firestore/core/src/model/mutation.h"
 #include "Firestore/core/src/model/patch_mutation.h"
 #include "Firestore/core/src/model/set_mutation.h"
-#include "Firestore/core/src/model/transform_mutation.h"
 #include "Firestore/core/src/model/transform_operation.h"
 #include "Firestore/core/src/util/exception.h"
 #include "absl/memory/memory.h"
@@ -41,7 +41,6 @@ using model::ObjectValue;
 using model::PatchMutation;
 using model::Precondition;
 using model::SetMutation;
-using model::TransformMutation;
 using model::TransformOperation;
 using util::ThrowInvalidArgument;
 
@@ -74,6 +73,7 @@ void ParseAccumulator::AddToFieldMask(FieldPath field_path) {
 
 void ParseAccumulator::AddToFieldTransforms(
     FieldPath field_path, TransformOperation transform_operation) {
+  // TODO(mrschmidt): Validate that the paths are unique
   field_transforms_.emplace_back(std::move(field_path),
                                  std::move(transform_operation));
 }
@@ -102,7 +102,7 @@ ParsedSetData ParseAccumulator::SetData(ObjectValue data) && {
 }
 
 ParsedUpdateData ParseAccumulator::UpdateData(ObjectValue data) && {
-  return ParsedUpdateData{data, FieldMask{std::move(field_mask_)},
+  return ParsedUpdateData{std::move(data), FieldMask{std::move(field_mask_)},
                           std::move(field_transforms_)};
 }
 
@@ -224,24 +224,15 @@ ParsedSetData::ParsedSetData(ObjectValue data,
       patch_{true} {
 }
 
-std::vector<Mutation> ParsedSetData::ToMutations(
-    const DocumentKey& key, const Precondition& precondition) && {
-  std::vector<Mutation> mutations;
+Mutation ParsedSetData::ToMutation(const DocumentKey& key,
+                                   const Precondition& precondition) && {
   if (patch_) {
-    PatchMutation mutation(key, std::move(data_), std::move(field_mask_),
-                           precondition);
-    mutations.push_back(mutation);
+    return PatchMutation(key, std::move(data_), std::move(field_mask_),
+                         precondition, std::move(field_transforms_));
   } else {
-    SetMutation mutation(key, std::move(data_), precondition);
-    mutations.push_back(mutation);
+    return SetMutation(key, std::move(data_), precondition,
+                       std::move(field_transforms_));
   }
-
-  if (!field_transforms_.empty()) {
-    TransformMutation mutation(key, std::move(field_transforms_));
-    mutations.push_back(mutation);
-  }
-
-  return mutations;
 }
 
 // MARK: - ParsedUpdateData
@@ -255,20 +246,10 @@ ParsedUpdateData::ParsedUpdateData(
       field_transforms_{std::move(field_transforms)} {
 }
 
-std::vector<Mutation> ParsedUpdateData::ToMutations(
-    const DocumentKey& key, const Precondition& precondition) && {
-  std::vector<Mutation> mutations;
-
-  PatchMutation mutation(key, std::move(data_), std::move(field_mask_),
-                         precondition);
-  mutations.push_back(mutation);
-
-  if (!field_transforms_.empty()) {
-    TransformMutation mutation(key, std::move(field_transforms_));
-    mutations.push_back(mutation);
-  }
-
-  return mutations;
+Mutation ParsedUpdateData::ToMutation(const DocumentKey& key,
+                                      const Precondition& precondition) && {
+  return PatchMutation(key, std::move(data_), std::move(field_mask_),
+                       precondition, std::move(field_transforms_));
 }
 
 }  // namespace core

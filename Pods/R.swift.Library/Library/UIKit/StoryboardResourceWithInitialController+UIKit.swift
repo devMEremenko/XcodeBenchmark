@@ -7,6 +7,7 @@
 //  License: MIT License
 //
 
+#if !os(watchOS)
 import Foundation
 import UIKit
 
@@ -20,3 +21,4 @@ public extension StoryboardResourceWithInitialControllerType {
     return UIStoryboard(resource: self).instantiateInitialViewController() as? InitialController
   }
 }
+#endif

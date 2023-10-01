@@ -26,7 +26,7 @@
 #include "Firestore/core/src/core/view_snapshot.h"
 #include "Firestore/core/src/model/document_key.h"
 #include "Firestore/core/src/model/document_key_set.h"
-#include "Firestore/core/src/model/maybe_document.h"
+#include "Firestore/core/src/model/mutable_document.h"
 #include "Firestore/core/src/model/snapshot_version.h"
 #include "Firestore/core/src/model/types.h"
 #include "Firestore/core/src/nanopb/byte_string.h"
@@ -40,6 +40,8 @@ class TargetData;
 }  // namespace local
 
 namespace remote {
+
+enum class BloomFilterApplicationStatus { kSuccess, kSkipped, kFalsePositive };
 
 /**
  * Interface implemented by `RemoteStore` to expose target metadata to the
@@ -62,6 +64,9 @@ class TargetMetadataProvider {
    */
   virtual absl::optional<local::TargetData> GetTargetDataForTarget(
       model::TargetId target_id) const = 0;
+
+  /** Returns the database ID of the Firestore instance. */
+  virtual const model::DatabaseId& GetDatabaseId() const = 0;
 };
 
 /**
@@ -75,8 +80,9 @@ class TargetMetadataProvider {
  */
 class TargetChange {
  public:
-  static TargetChange CreateSynthesizedTargetChange(bool current) {
-    return TargetChange(current);
+  static TargetChange CreateSynthesizedTargetChange(
+      bool current, nanopb::ByteString resume_token) {
+    return TargetChange(std::move(resume_token), current);
   }
 
   TargetChange() = default;
@@ -137,7 +143,8 @@ class TargetChange {
   }
 
  private:
-  explicit TargetChange(bool current) : current_{current} {
+  TargetChange(nanopb::ByteString resume_token, bool current)
+      : resume_token_(std::move(resume_token)), current_{current} {
   }
 
   nanopb::ByteString resume_token_;
@@ -241,15 +248,13 @@ class TargetState {
 class RemoteEvent {
  public:
   using TargetChangeMap = std::unordered_map<model::TargetId, TargetChange>;
-  using TargetSet = std::unordered_set<model::TargetId>;
-  using DocumentUpdateMap = std::unordered_map<model::DocumentKey,
-                                               model::MaybeDocument,
-                                               model::DocumentKeyHash>;
+  using TargetMismatchMap =
+      std::unordered_map<model::TargetId, local::QueryPurpose>;
 
   RemoteEvent(model::SnapshotVersion snapshot_version,
               TargetChangeMap target_changes,
-              TargetSet target_mismatches,
-              DocumentUpdateMap document_updates,
+              TargetMismatchMap target_mismatches,
+              model::DocumentUpdateMap document_updates,
               model::DocumentKeySet limbo_document_changes)
       : snapshot_version_{snapshot_version},
         target_changes_{std::move(target_changes)},
@@ -269,10 +274,11 @@ class RemoteEvent {
   }
 
   /**
-   * A set of targets that is known to be inconsistent. Listens for these
-   * targets should be re-established without resume tokens.
+   * A map of targets that is known to be inconsistent, and the purpose for
+   * re-listening. Listens for these targets should be re-established without
+   * resume tokens.
    */
-  const TargetSet& target_mismatches() const {
+  const TargetMismatchMap& target_mismatches() const {
     return target_mismatches_;
   }
 
@@ -280,7 +286,7 @@ class RemoteEvent {
    * A set of which documents have changed or been deleted, along with the doc's
    * new values (if not deleted).
    */
-  const DocumentUpdateMap& document_updates() const {
+  const model::DocumentUpdateMap& document_updates() const {
     return document_updates_;
   }
 
@@ -294,8 +300,8 @@ class RemoteEvent {
  private:
   model::SnapshotVersion snapshot_version_;
   TargetChangeMap target_changes_;
-  TargetSet target_mismatches_;
-  DocumentUpdateMap document_updates_;
+  TargetMismatchMap target_mismatches_;
+  model::DocumentUpdateMap document_updates_;
   model::DocumentKeySet limbo_document_changes_;
 };
 
@@ -356,7 +362,7 @@ class WatchChangeAggregator {
    * document key to the given target's mapping.
    */
   void AddDocumentToTarget(model::TargetId target_id,
-                           const model::MaybeDocument& document);
+                           const model::MutableDocument& document);
 
   /**
    * Removes the provided document from the target mapping. If the document no
@@ -368,7 +374,7 @@ class WatchChangeAggregator {
   void RemoveDocumentFromTarget(
       model::TargetId target_id,
       const model::DocumentKey& key,
-      const absl::optional<model::MaybeDocument>& updated_document);
+      const absl::optional<model::MutableDocument>& updated_document);
 
   /**
    * Returns the current count of documents in the target. This includes both
@@ -411,11 +417,33 @@ class WatchChangeAggregator {
   bool TargetContainsDocument(model::TargetId target_id,
                               const model::DocumentKey& key);
 
+  /**
+   * Parse the bloom filter from the "unchanged_names" field of an existence
+   * filter.
+   */
+  static absl::optional<BloomFilter> ParseBloomFilter(
+      const ExistenceFilterWatchChange& existence_filter);
+
+  /**
+   * Apply bloom filter to remove the deleted documents, and return the
+   * application status.
+   */
+  BloomFilterApplicationStatus ApplyBloomFilter(
+      const BloomFilter& bloom_filter,
+      const ExistenceFilterWatchChange& existence_filter,
+      int current_count);
+
+  /**
+   * Filter out removed documents based on bloom filter membership result and
+   * return number of documents removed.
+   */
+  int FilterRemovedDocuments(const BloomFilter& bloom_filter, int target_id);
+
   /** The internal state of all tracked targets. */
   std::unordered_map<model::TargetId, TargetState> target_states_;
 
   /** Keeps track of the documents to update since the last raised snapshot. */
-  RemoteEvent::DocumentUpdateMap pending_document_updates_;
+  model::DocumentUpdateMap pending_document_updates_;
 
   /** A mapping of document keys to their set of target IDs. */
   std::unordered_map<model::DocumentKey,
@@ -424,11 +452,11 @@ class WatchChangeAggregator {
       pending_document_target_mappings_;
 
   /**
-   * A list of targets with existence filter mismatches. These targets are known
+   * A map of targets with existence filter mismatches. These targets are known
    * to be inconsistent and their listens needs to be re-established by
    * `RemoteStore`.
    */
-  RemoteEvent::TargetSet pending_target_resets_;
+  RemoteEvent::TargetMismatchMap pending_target_resets_;
 
   TargetMetadataProvider* target_metadata_provider_ = nullptr;
 };

@@ -18,16 +18,55 @@
 
 #include <grpc/support/port_platform.h>
 
-#include <grpc/slice_buffer.h>
+#include "src/core/lib/slice/slice_buffer.h"
 
 #include <string.h>
 
+#include <cstdint>
+#include <utility>
+
+#include <grpc/slice.h>
+#include <grpc/slice_buffer.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
 
-#include "src/core/lib/gpr/useful.h"
-#include "src/core/lib/iomgr/exec_ctx.h"
 #include "src/core/lib/slice/slice_internal.h"
+#include "src/core/lib/slice/slice_refcount.h"
+
+namespace grpc_core {
+
+void SliceBuffer::Append(Slice slice) {
+  grpc_slice_buffer_add(&slice_buffer_, slice.TakeCSlice());
+}
+
+size_t SliceBuffer::AppendIndexed(Slice slice) {
+  return grpc_slice_buffer_add_indexed(&slice_buffer_, slice.TakeCSlice());
+}
+
+Slice SliceBuffer::TakeFirst() {
+  return Slice(grpc_slice_buffer_take_first(&slice_buffer_));
+}
+
+void SliceBuffer::Prepend(Slice slice) {
+  grpc_slice_buffer_undo_take_first(&slice_buffer_, slice.TakeCSlice());
+}
+
+Slice SliceBuffer::RefSlice(size_t index) const {
+  return Slice(grpc_slice_ref_internal(slice_buffer_.slices[index]));
+}
+
+std::string SliceBuffer::JoinIntoString() const {
+  std::string result;
+  result.reserve(slice_buffer_.length);
+  for (size_t i = 0; i < slice_buffer_.count; i++) {
+    result.append(reinterpret_cast<const char*>(
+                      GRPC_SLICE_START_PTR(slice_buffer_.slices[i])),
+                  GRPC_SLICE_LENGTH(slice_buffer_.slices[i]));
+  }
+  return result;
+}
+
+}  // namespace grpc_core
 
 /* grow a buffer; requires GRPC_SLICE_BUFFER_INLINE_ELEMENTS > 1 */
 #define GROW(x) (3 * (x) / 2)
@@ -85,15 +124,10 @@ void grpc_slice_buffer_destroy_internal(grpc_slice_buffer* sb) {
   grpc_slice_buffer_reset_and_unref_internal(sb);
   if (sb->base_slices != sb->inlined) {
     gpr_free(sb->base_slices);
-  }
-}
-
-void grpc_slice_buffer_destroy(grpc_slice_buffer* sb) {
-  if (grpc_core::ExecCtx::Get() == nullptr) {
-    grpc_core::ExecCtx exec_ctx;
-    grpc_slice_buffer_destroy_internal(sb);
-  } else {
-    grpc_slice_buffer_destroy_internal(sb);
+    // As a precaution, set sb->base_slices to equal sb->inlined
+    // to prevent a double free attempt if grpc_slice_buffer_destroy_internal
+    // is invoked two times on the same slice buffer.
+    sb->base_slices = sb->slices = sb->inlined;
   }
 }
 
@@ -106,8 +140,9 @@ uint8_t* grpc_slice_buffer_tiny_add(grpc_slice_buffer* sb, size_t n) {
   if (sb->count == 0) goto add_first;
   back = &sb->slices[sb->count - 1];
   if (back->refcount) goto add_new;
-  if ((back->data.inlined.length + n) > sizeof(back->data.inlined.bytes))
+  if ((back->data.inlined.length + n) > sizeof(back->data.inlined.bytes)) {
     goto add_new;
+  }
   out = back->data.inlined.bytes + back->data.inlined.length;
   back->data.inlined.length =
       static_cast<uint8_t>(back->data.inlined.length + n);
@@ -134,13 +169,29 @@ size_t grpc_slice_buffer_add_indexed(grpc_slice_buffer* sb, grpc_slice s) {
 
 void grpc_slice_buffer_add(grpc_slice_buffer* sb, grpc_slice s) {
   size_t n = sb->count;
-  /* if both the last slice in the slice buffer and the slice being added
+  grpc_slice* back = nullptr;
+  if (n != 0) {
+    back = &sb->slices[n - 1];
+  }
+  if (s.refcount != nullptr && back != nullptr &&
+      s.refcount == back->refcount &&
+      GRPC_SLICE_START_PTR(s) == GRPC_SLICE_END_PTR(*back)) {
+    // Merge the two slices into one because they are contiguous and share the
+    // same refcount object.
+    back->data.refcounted.length += GRPC_SLICE_LENGTH(s);
+    sb->length += GRPC_SLICE_LENGTH(s);
+    // Unref the merged slice.
+    grpc_slice_unref_internal(s);
+    // early out
+    return;
+  }
+
+  if (!s.refcount && n) {
+    /* if both the last slice in the slice buffer and the slice being added
      are inlined (that is, that they carry their data inside the slice data
      structure), and the back slice is not full, then concatenate directly
      into the back slice, preventing many small slices being passed into
      writes */
-  if (!s.refcount && n) {
-    grpc_slice* back = &sb->slices[n - 1];
     if (!back->refcount &&
         back->data.inlined.length < GRPC_SLICE_INLINED_SIZE) {
       if (s.data.inlined.length + back->data.inlined.length <=
@@ -195,15 +246,6 @@ void grpc_slice_buffer_reset_and_unref_internal(grpc_slice_buffer* sb) {
   sb->slices = sb->base_slices;
 }
 
-void grpc_slice_buffer_reset_and_unref(grpc_slice_buffer* sb) {
-  if (grpc_core::ExecCtx::Get() == nullptr) {
-    grpc_core::ExecCtx exec_ctx;
-    grpc_slice_buffer_reset_and_unref_internal(sb);
-  } else {
-    grpc_slice_buffer_reset_and_unref_internal(sb);
-  }
-}
-
 void grpc_slice_buffer_swap(grpc_slice_buffer* a, grpc_slice_buffer* b) {
   size_t a_offset = static_cast<size_t>(a->slices - a->base_slices);
   size_t b_offset = static_cast<size_t>(b->slices - b->base_slices);
@@ -231,19 +273,19 @@ void grpc_slice_buffer_swap(grpc_slice_buffer* a, grpc_slice_buffer* b) {
     memcpy(a->base_slices, b->inlined, b_count * sizeof(grpc_slice));
   } else {
     /* no inlining: easy swap */
-    GPR_SWAP(grpc_slice*, a->base_slices, b->base_slices);
+    std::swap(a->base_slices, b->base_slices);
   }
 
-  /* Update the slices pointers (cannot do a GPR_SWAP on slices fields here).
+  /* Update the slices pointers (cannot do a std::swap on slices fields here).
    * Also note that since the base_slices pointers are already swapped we need
    * use 'b_offset' for 'a->base_slices' and vice versa */
   a->slices = a->base_slices + b_offset;
   b->slices = b->base_slices + a_offset;
 
   /* base_slices and slices fields are correctly set. Swap all other fields */
-  GPR_SWAP(size_t, a->count, b->count);
-  GPR_SWAP(size_t, a->capacity, b->capacity);
-  GPR_SWAP(size_t, a->length, b->length);
+  std::swap(a->count, b->count);
+  std::swap(a->capacity, b->capacity);
+  std::swap(a->length, b->length);
 }
 
 void grpc_slice_buffer_move_into(grpc_slice_buffer* src,
@@ -336,6 +378,24 @@ void grpc_slice_buffer_move_first_into_buffer(grpc_slice_buffer* src, size_t n,
       n -= slice_len;
       grpc_slice_unref_internal(slice);
     }
+  }
+}
+
+void grpc_slice_buffer_copy_first_into_buffer(grpc_slice_buffer* src, size_t n,
+                                              void* dst) {
+  uint8_t* dstp = static_cast<uint8_t*>(dst);
+  GPR_ASSERT(src->length >= n);
+
+  for (size_t i = 0; i < src->count; i++) {
+    grpc_slice slice = src->slices[i];
+    size_t slice_len = GRPC_SLICE_LENGTH(slice);
+    if (slice_len >= n) {
+      memcpy(dstp, GRPC_SLICE_START_PTR(slice), n);
+      return;
+    }
+    memcpy(dstp, GRPC_SLICE_START_PTR(slice), slice_len);
+    dstp += slice_len;
+    n -= slice_len;
   }
 }
 

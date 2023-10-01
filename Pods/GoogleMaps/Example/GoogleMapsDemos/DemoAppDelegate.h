@@ -17,7 +17,6 @@
 
 @interface DemoAppDelegate : UIResponder <UIApplicationDelegate>
 
-@property(nonatomic) UIWindow *window;
-@property(nonatomic) UISplitViewController *splitViewController;
+@property(nonatomic, nullable) id servicesHandle;
 
 @end

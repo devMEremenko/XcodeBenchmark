@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Google
+ * Copyright 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,25 +14,27 @@
  * limitations under the License.
  */
 
+// TODO(wuandy): Delete this once isPersistenceEnabled and cacheSizeBytes are removed.
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
 #import "FIRFirestoreSettings.h"
+#import <Foundation/NSObject.h>
+#import "FIRLocalCacheSettings+Internal.h"
+#include "Firestore/Source/Public/FirebaseFirestore/FIRLocalCacheSettings.h"
 
 #include "Firestore/core/src/api/settings.h"
 #include "Firestore/core/src/util/exception.h"
 #include "Firestore/core/src/util/string_apple.h"
-#include "Firestore/core/src/util/warnings.h"
-#include "absl/base/attributes.h"
-#include "absl/memory/memory.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 namespace api = firebase::firestore::api;
-namespace util = firebase::firestore::util;
 using api::Settings;
-using util::ThrowInvalidArgument;
+using firebase::firestore::util::MakeString;
+using firebase::firestore::util::ThrowInvalidArgument;
 
 // Public constant
-ABSL_CONST_INIT extern "C" const int64_t kFIRFirestoreCacheSizeUnlimited =
-    api::Settings::CacheSizeUnlimited;
+extern "C" const int64_t kFIRFirestoreCacheSizeUnlimited = Settings::CacheSizeUnlimited;
 
 @implementation FIRFirestoreSettings
 
@@ -42,7 +44,6 @@ ABSL_CONST_INIT extern "C" const int64_t kFIRFirestoreCacheSizeUnlimited =
     _sslEnabled = Settings::DefaultSslEnabled;
     _dispatchQueue = dispatch_get_main_queue();
     _persistenceEnabled = Settings::DefaultPersistenceEnabled;
-    _timestampsInSnapshotsEnabled = Settings::DefaultTimestampsInSnapshotsEnabled;
     _cacheSizeBytes = Settings::DefaultCacheSizeBytes;
   }
   return self;
@@ -56,14 +57,19 @@ ABSL_CONST_INIT extern "C" const int64_t kFIRFirestoreCacheSizeUnlimited =
   }
 
   FIRFirestoreSettings *otherSettings = (FIRFirestoreSettings *)other;
-  SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN()
-  return [self.host isEqual:otherSettings.host] &&
-         self.isSSLEnabled == otherSettings.isSSLEnabled &&
-         self.dispatchQueue == otherSettings.dispatchQueue &&
-         self.isPersistenceEnabled == otherSettings.isPersistenceEnabled &&
-         self.timestampsInSnapshotsEnabled == otherSettings.timestampsInSnapshotsEnabled &&
-         self.cacheSizeBytes == otherSettings.cacheSizeBytes;
-  SUPPRESS_END()
+  BOOL equal = [self.host isEqual:otherSettings.host] &&
+               self.isSSLEnabled == otherSettings.isSSLEnabled &&
+               self.dispatchQueue == otherSettings.dispatchQueue &&
+               self.isPersistenceEnabled == otherSettings.isPersistenceEnabled &&
+               self.cacheSizeBytes == otherSettings.cacheSizeBytes;
+
+  if (equal && self.cacheSettings != nil && otherSettings.cacheSettings != nil) {
+    equal = [self.cacheSettings isEqual:otherSettings];
+  } else if (equal) {
+    equal = (self.cacheSettings == otherSettings.cacheSettings);
+  }
+
+  return equal;
 }
 
 - (NSUInteger)hash {
@@ -71,10 +77,16 @@ ABSL_CONST_INIT extern "C" const int64_t kFIRFirestoreCacheSizeUnlimited =
   result = 31 * result + (self.isSSLEnabled ? 1231 : 1237);
   // Ignore the dispatchQueue to avoid having to deal with sizeof(dispatch_queue_t).
   result = 31 * result + (self.isPersistenceEnabled ? 1231 : 1237);
-  SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN()
-  result = 31 * result + (self.timestampsInSnapshotsEnabled ? 1231 : 1237);
-  SUPPRESS_END()
   result = 31 * result + (NSUInteger)self.cacheSizeBytes;
+
+  if ([_cacheSettings isKindOfClass:[FIRPersistentCacheSettings class]]) {
+    FIRPersistentCacheSettings *casted = (FIRPersistentCacheSettings *)_cacheSettings;
+    result = 31 * result + casted.internalSettings.Hash();
+  } else if ([_cacheSettings isKindOfClass:[FIRMemoryCacheSettings class]]) {
+    FIRMemoryCacheSettings *casted = (FIRMemoryCacheSettings *)_cacheSettings;
+    result = 31 * result + casted.internalSettings.Hash();
+  }
+
   return result;
 }
 
@@ -84,10 +96,8 @@ ABSL_CONST_INIT extern "C" const int64_t kFIRFirestoreCacheSizeUnlimited =
   copy.sslEnabled = _sslEnabled;
   copy.dispatchQueue = _dispatchQueue;
   copy.persistenceEnabled = _persistenceEnabled;
-  SUPPRESS_DEPRECATED_DECLARATIONS_BEGIN()
-  copy.timestampsInSnapshotsEnabled = _timestampsInSnapshotsEnabled;
-  SUPPRESS_END()
   copy.cacheSizeBytes = _cacheSizeBytes;
+  copy.cacheSettings = _cacheSettings;
   return copy;
 }
 
@@ -119,13 +129,30 @@ ABSL_CONST_INIT extern "C" const int64_t kFIRFirestoreCacheSizeUnlimited =
   _cacheSizeBytes = cacheSizeBytes;
 }
 
-- (api::Settings)internalSettings {
-  api::Settings settings;
-  settings.set_host(util::MakeString(_host));
+- (void)setCacheSettings:(id<FIRLocalCacheSettings, NSObject>)cacheSettings {
+  _cacheSettings = cacheSettings;
+}
+
+- (BOOL)isUsingDefaultHost {
+  NSString *defaultHost = [NSString stringWithUTF8String:Settings::DefaultHost];
+  return [self.host isEqualToString:defaultHost];
+}
+
+- (Settings)internalSettings {
+  Settings settings;
+  settings.set_host(MakeString(_host));
   settings.set_ssl_enabled(_sslEnabled);
   settings.set_persistence_enabled(_persistenceEnabled);
-  settings.set_timestamps_in_snapshots_enabled(_timestampsInSnapshotsEnabled);
   settings.set_cache_size_bytes(_cacheSizeBytes);
+
+  if ([_cacheSettings isKindOfClass:[FIRPersistentCacheSettings class]]) {
+    FIRPersistentCacheSettings *casted = (FIRPersistentCacheSettings *)_cacheSettings;
+    settings.set_local_cache_settings(casted.internalSettings);
+  } else if ([_cacheSettings isKindOfClass:[FIRMemoryCacheSettings class]]) {
+    FIRMemoryCacheSettings *casted = (FIRMemoryCacheSettings *)_cacheSettings;
+    settings.set_local_cache_settings(casted.internalSettings);
+  }
+
   return settings;
 }
 

@@ -18,13 +18,18 @@
 #define FIRESTORE_CORE_SRC_LOCAL_LEVELDB_REMOTE_DOCUMENT_CACHE_H_
 
 #include <memory>
+#include <string>
 #include <thread>  // NOLINT(build/c++11)
 #include <vector>
 
+#include "Firestore/core/src/core/query.h"
+#include "Firestore/core/src/local/leveldb_index_manager.h"
 #include "Firestore/core/src/local/remote_document_cache.h"
 #include "Firestore/core/src/model/model_fwd.h"
+#include "Firestore/core/src/model/overlay.h"
 #include "Firestore/core/src/model/types.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
 
 namespace firebase {
 namespace firestore {
@@ -32,6 +37,11 @@ namespace firestore {
 namespace util {
 class Executor;
 }  // namespace util
+
+namespace model {
+class MutableDocument;
+class SnapshotVersion;
+}  // namespace model
 
 namespace local {
 
@@ -45,30 +55,47 @@ class LevelDbRemoteDocumentCache : public RemoteDocumentCache {
                              LocalSerializer* serializer);
   ~LevelDbRemoteDocumentCache();
 
-  void Add(const model::MaybeDocument& document,
+  void Add(const model::MutableDocument& document,
            const model::SnapshotVersion& read_time) override;
   void Remove(const model::DocumentKey& key) override;
 
-  absl::optional<model::MaybeDocument> Get(
-      const model::DocumentKey& key) override;
-  model::OptionalMaybeDocumentMap GetAll(
-      const model::DocumentKeySet& keys) override;
-  model::DocumentMap GetMatching(
+  model::MutableDocument Get(const model::DocumentKey& key) const override;
+  model::MutableDocumentMap GetAll(
+      const model::DocumentKeySet& keys) const override;
+  model::MutableDocumentMap GetAll(const std::string& collection_group,
+                                   const model::IndexOffset& offset,
+                                   size_t limit) const override;
+  model::MutableDocumentMap GetDocumentsMatchingQuery(
       const core::Query& query,
-      const model::SnapshotVersion& since_read_time) override;
+      const model::IndexOffset& offset,
+      absl::optional<size_t> limit = absl::nullopt,
+      const model::OverlayByDocumentKeyMap& mutated_docs = {}) const override;
+  model::MutableDocumentMap GetDocumentsMatchingQuery(
+      const core::Query& query,
+      const model::IndexOffset& offset,
+      absl::optional<QueryContext>& context,
+      absl::optional<size_t> limit = absl::nullopt,
+      const model::OverlayByDocumentKeyMap& mutated_docs = {}) const override;
+
+  void SetIndexManager(IndexManager* manager) override;
 
  private:
   /**
    * Looks up a set of entries in the cache, returning only existing entries of
-   * Type::Document.
+   * Type::Document together with its SnapshotVersion.
    */
-  model::DocumentMap GetAllExisting(const model::DocumentKeySet& keys);
+  model::MutableDocumentMap GetAllExisting(
+      model::DocumentVersionMap&& remote_map,
+      const core::Query& query,
+      const model::OverlayByDocumentKeyMap& mutated_docs = {}) const;
 
-  model::MaybeDocument DecodeMaybeDocument(absl::string_view encoded,
-                                           const model::DocumentKey& key);
+  model::MutableDocument DecodeMaybeDocument(
+      absl::string_view encoded, const model::DocumentKey& key) const;
 
   // The LevelDbRemoteDocumentCache instance is owned by LevelDbPersistence.
   LevelDbPersistence* db_;
+  // The LevelDbIndexManager instance is owned by LevelDbPersistence.
+  IndexManager* index_manager_ = nullptr;
   // Owned by LevelDbPersistence.
   LocalSerializer* serializer_ = nullptr;
 

@@ -63,6 +63,13 @@ extern "C" {
 #endif
 
 
+struct pkcs8_priv_key_info_st {
+  ASN1_INTEGER *version;
+  X509_ALGOR *pkeyalg;
+  ASN1_OCTET_STRING *pkey;
+  STACK_OF(X509_ATTRIBUTE) *attributes;
+};
+
 // pkcs8_pbe_decrypt decrypts |in| using the PBE scheme described by
 // |algorithm|, which should be a serialized AlgorithmIdentifier structure. On
 // success, it sets |*out| to a newly-allocated buffer containing the decrypted
@@ -105,7 +112,6 @@ struct pbe_suite {
                       const char *pass, size_t pass_len, CBS *param);
 };
 
-#define PKCS5_DEFAULT_ITERATIONS 2048
 #define PKCS5_SALT_LEN 8
 
 int PKCS5_pbe2_decrypt_init(const struct pbe_suite *suite, EVP_CIPHER_CTX *ctx,

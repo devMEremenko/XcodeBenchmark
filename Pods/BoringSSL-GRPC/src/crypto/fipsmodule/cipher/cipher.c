@@ -57,6 +57,7 @@
 #include <openssl_grpc/cipher.h>
 
 #include <assert.h>
+#include <limits.h>
 #include <string.h>
 
 #include <openssl_grpc/err.h>
@@ -224,7 +225,6 @@ int EVP_CipherInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *cipher,
 
   ctx->buf_len = 0;
   ctx->final_used = 0;
-  ctx->block_mask = ctx->cipher->block_size - 1;
   return 1;
 }
 
@@ -238,16 +238,31 @@ int EVP_DecryptInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *cipher,
   return EVP_CipherInit_ex(ctx, cipher, impl, key, iv, 0);
 }
 
+// block_remainder returns the number of bytes to remove from |len| to get a
+// multiple of |ctx|'s block size.
+static int block_remainder(const EVP_CIPHER_CTX *ctx, int len) {
+  // |block_size| must be a power of two.
+  assert(ctx->cipher->block_size != 0);
+  assert((ctx->cipher->block_size & (ctx->cipher->block_size - 1)) == 0);
+  return len & (ctx->cipher->block_size - 1);
+}
+
 int EVP_EncryptUpdate(EVP_CIPHER_CTX *ctx, uint8_t *out, int *out_len,
                       const uint8_t *in, int in_len) {
-  int i, j, bl;
+  // Ciphers that use blocks may write up to |bl| extra bytes. Ensure the output
+  // does not overflow |*out_len|.
+  int bl = ctx->cipher->block_size;
+  if (bl > 1 && in_len > INT_MAX - bl) {
+    OPENSSL_PUT_ERROR(CIPHER, ERR_R_OVERFLOW);
+    return 0;
+  }
 
   if (ctx->cipher->flags & EVP_CIPH_FLAG_CUSTOM_CIPHER) {
-    i = ctx->cipher->cipher(ctx, out, in, in_len);
-    if (i < 0) {
+    int ret = ctx->cipher->cipher(ctx, out, in, in_len);
+    if (ret < 0) {
       return 0;
     } else {
-      *out_len = i;
+      *out_len = ret;
     }
     return 1;
   }
@@ -257,7 +272,7 @@ int EVP_EncryptUpdate(EVP_CIPHER_CTX *ctx, uint8_t *out, int *out_len,
     return in_len == 0;
   }
 
-  if (ctx->buf_len == 0 && (in_len & ctx->block_mask) == 0) {
+  if (ctx->buf_len == 0 && block_remainder(ctx, in_len) == 0) {
     if (ctx->cipher->cipher(ctx, out, in, in_len)) {
       *out_len = in_len;
       return 1;
@@ -267,8 +282,7 @@ int EVP_EncryptUpdate(EVP_CIPHER_CTX *ctx, uint8_t *out, int *out_len,
     }
   }
 
-  i = ctx->buf_len;
-  bl = ctx->cipher->block_size;
+  int i = ctx->buf_len;
   assert(bl <= (int)sizeof(ctx->buf));
   if (i != 0) {
     if (bl - i > in_len) {
@@ -277,7 +291,7 @@ int EVP_EncryptUpdate(EVP_CIPHER_CTX *ctx, uint8_t *out, int *out_len,
       *out_len = 0;
       return 1;
     } else {
-      j = bl - i;
+      int j = bl - i;
       OPENSSL_memcpy(&ctx->buf[i], in, j);
       if (!ctx->cipher->cipher(ctx, out, ctx->buf, bl)) {
         return 0;
@@ -291,7 +305,7 @@ int EVP_EncryptUpdate(EVP_CIPHER_CTX *ctx, uint8_t *out, int *out_len,
     *out_len = 0;
   }
 
-  i = in_len & ctx->block_mask;
+  i = block_remainder(ctx, in_len);
   in_len -= i;
   if (in_len > 0) {
     if (!ctx->cipher->cipher(ctx, out, in, in_len)) {
@@ -353,8 +367,13 @@ int EVP_EncryptFinal_ex(EVP_CIPHER_CTX *ctx, uint8_t *out, int *out_len) {
 
 int EVP_DecryptUpdate(EVP_CIPHER_CTX *ctx, uint8_t *out, int *out_len,
                       const uint8_t *in, int in_len) {
-  int fix_len;
-  unsigned int b;
+  // Ciphers that use blocks may write up to |bl| extra bytes. Ensure the output
+  // does not overflow |*out_len|.
+  unsigned int b = ctx->cipher->block_size;
+  if (b > 1 && in_len > INT_MAX - (int)b) {
+    OPENSSL_PUT_ERROR(CIPHER, ERR_R_OVERFLOW);
+    return 0;
+  }
 
   if (ctx->cipher->flags & EVP_CIPH_FLAG_CUSTOM_CIPHER) {
     int r = ctx->cipher->cipher(ctx, out, in, in_len);
@@ -376,15 +395,12 @@ int EVP_DecryptUpdate(EVP_CIPHER_CTX *ctx, uint8_t *out, int *out_len,
     return EVP_EncryptUpdate(ctx, out, out_len, in, in_len);
   }
 
-  b = ctx->cipher->block_size;
   assert(b <= sizeof(ctx->final));
-
+  int fix_len = 0;
   if (ctx->final_used) {
     OPENSSL_memcpy(out, ctx->final, b);
     out += b;
     fix_len = 1;
-  } else {
-    fix_len = 0;
   }
 
   if (!EVP_EncryptUpdate(ctx, out, out_len, in, in_len)) {
@@ -611,6 +627,18 @@ int EVP_EncryptInit(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *cipher,
 int EVP_DecryptInit(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *cipher,
                     const uint8_t *key, const uint8_t *iv) {
   return EVP_CipherInit(ctx, cipher, key, iv, 0);
+}
+
+int EVP_CipherFinal(EVP_CIPHER_CTX *ctx, uint8_t *out, int *out_len) {
+  return EVP_CipherFinal_ex(ctx, out, out_len);
+}
+
+int EVP_EncryptFinal(EVP_CIPHER_CTX *ctx, uint8_t *out, int *out_len) {
+  return EVP_EncryptFinal_ex(ctx, out, out_len);
+}
+
+int EVP_DecryptFinal(EVP_CIPHER_CTX *ctx, uint8_t *out, int *out_len) {
+  return EVP_DecryptFinal_ex(ctx, out, out_len);
 }
 
 int EVP_add_cipher_alias(const char *a, const char *b) {

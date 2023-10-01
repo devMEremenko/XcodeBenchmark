@@ -7,11 +7,10 @@
  */
 
 #import "SDAsyncBlockOperation.h"
+#import "SDInternalMacros.h"
 
 @interface SDAsyncBlockOperation ()
 
-@property (assign, nonatomic, getter = isExecuting) BOOL executing;
-@property (assign, nonatomic, getter = isFinished) BOOL finished;
 @property (nonatomic, copy, nonnull) SDAsyncBlock executionBlock;
 
 @end
@@ -40,16 +39,17 @@
             self.finished = YES;
             return;
         }
-        
         self.finished = NO;
         self.executing = YES;
-        
-        if (self.executionBlock) {
-            self.executionBlock(self);
-        } else {
-            self.executing = NO;
-            self.finished = YES;
-        }
+    }
+    SDAsyncBlock executionBlock = self.executionBlock;
+    if (executionBlock) {
+        @weakify(self);
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+            @strongify(self);
+            if (!self) return;
+            executionBlock(self);
+        });
     }
 }
 
@@ -71,7 +71,7 @@
             self.executing = NO;
         }
     }
- }
+}
 
 - (void)setFinished:(BOOL)finished {
     [self willChangeValueForKey:@"isFinished"];
@@ -85,7 +85,7 @@
     [self didChangeValueForKey:@"isExecuting"];
 }
 
-- (BOOL)isConcurrent {
+- (BOOL)isAsynchronous {
     return YES;
 }
 

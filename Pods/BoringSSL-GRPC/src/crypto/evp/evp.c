@@ -76,6 +76,10 @@
 // TODO(davidben): Fix Node to not touch the error queue itself and remove this.
 OPENSSL_DECLARE_ERROR_REASON(EVP, NOT_XOF_OR_INVALID_LENGTH)
 
+// The HPKE module uses the EVP error namespace, but it lives in another
+// directory.
+OPENSSL_DECLARE_ERROR_REASON(EVP, EMPTY_PSK)
+
 EVP_PKEY *EVP_PKEY_new(void) {
   EVP_PKEY *ret;
 
@@ -423,6 +427,15 @@ int EVP_PKEY_CTX_set_signature_md(EVP_PKEY_CTX *ctx, const EVP_MD *md) {
 int EVP_PKEY_CTX_get_signature_md(EVP_PKEY_CTX *ctx, const EVP_MD **out_md) {
   return EVP_PKEY_CTX_ctrl(ctx, -1, EVP_PKEY_OP_TYPE_SIG, EVP_PKEY_CTRL_GET_MD,
                            0, (void *)out_md);
+}
+
+void *EVP_PKEY_get0(const EVP_PKEY *pkey) {
+  // Node references, but never calls this function, so for now we return NULL.
+  // If other projects require complete support, call |EVP_PKEY_get0_RSA|, etc.,
+  // rather than reading |pkey->pkey.ptr| directly. This avoids problems if our
+  // internal representation does not match the type the caller expects from
+  // OpenSSL.
+  return NULL;
 }
 
 void OpenSSL_add_all_algorithms(void) {}

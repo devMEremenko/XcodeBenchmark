@@ -1,5 +1,5 @@
 ![CI](https://github.com/MLSDev/LoadableViews/workflows/CI/badge.svg)
-[![codecov.io](http://codecov.io/github/MLSDev/LoadableViews/coverage.svg?branch=master)](http://codecov.io/github/MLSDev/LoadableViews?branch=master)
+[![codecov.io](http://codecov.io/github/MLSDev/LoadableViews/coverage.svg?branch=main)](http://codecov.io/github/MLSDev/LoadableViews?branch=main)
 [![Platform](https://img.shields.io/cocoapods/p/LoadableViews.svg?style=flat)](https://mlsdev.github.io/LoadableViews)
 [![CocoaPods Compatible](https://img.shields.io/cocoapods/v/LoadableViews.svg)](https://img.shields.io/cocoapods/v/LoadableViews.svg)
 [![Swift Package Manager compatible](https://img.shields.io/badge/Swift%20Package%20Manager-compatible-brightgreen.svg)](https://github.com/apple/swift-package-manager)
@@ -39,6 +39,7 @@ IBInspectables automatically render themselves if your view is IBDesignable. Usu
 - [x] UICollectionViewCell - `LoadableCollectionViewCell`
 - [x] UICollectionReusableView - `LoadableCollectionReusableView`
 - [x] UITextField - `LoadableTextField`
+- [x] NSView - `LoadableView` using `AppKit`
 
 To use loading from xibs, for example for UICollectionViewCells, drop UIView instead of UICollectionViewCell in InterfaceBuilder, and follow basic setup. Then, on your storyboard, set a class of your cell, and it will be automatically updated.
 
@@ -66,7 +67,7 @@ Change view container
 
 ## Making your custom views loadable
 
-* Adopt `NibLoadableProtocol` on your custom `UIView` subclass.
+* Adopt `NibLoadableProtocol` on your custom `UIView` or `NSView` subclass.
 * Override `nibName` and `nibContainerView` properties, if necessary.
 * Call `setupNib` method in both `init(frame:)` and `init(coder:)` methods.
 
@@ -80,7 +81,8 @@ Change view container
 
 * iOS 8+
 * tvOS 9.0+
-* Swift 4.0 / 3.2
+* macOS 10.12+
+* Swift 5 / 4.0 / 3.2
 
 ## Installation
 

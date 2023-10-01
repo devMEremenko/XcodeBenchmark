@@ -87,10 +87,10 @@ static bool read_frame_size(const grpc_slice_buffer* sb,
   }
   GPR_ASSERT(remaining == 0);
   /* Gets little-endian frame size.  */
-  uint32_t frame_size = (((uint32_t)frame_size_buffer[3]) << 24) |
-                        (((uint32_t)frame_size_buffer[2]) << 16) |
-                        (((uint32_t)frame_size_buffer[1]) << 8) |
-                        ((uint32_t)frame_size_buffer[0]);
+  uint32_t frame_size = (static_cast<uint32_t>(frame_size_buffer[3]) << 24) |
+                        (static_cast<uint32_t>(frame_size_buffer[2]) << 16) |
+                        (static_cast<uint32_t>(frame_size_buffer[1]) << 8) |
+                        static_cast<uint32_t>(frame_size_buffer[0]);
   if (frame_size > kMaxFrameLength) {
     gpr_log(GPR_ERROR, "Frame size is larger than maximum frame size");
     return false;
@@ -174,7 +174,7 @@ static tsi_result alts_zero_copy_grpc_protector_protect(
 
 static tsi_result alts_zero_copy_grpc_protector_unprotect(
     tsi_zero_copy_grpc_protector* self, grpc_slice_buffer* protected_slices,
-    grpc_slice_buffer* unprotected_slices) {
+    grpc_slice_buffer* unprotected_slices, int* min_progress_size) {
   if (self == nullptr || unprotected_slices == nullptr ||
       protected_slices == nullptr) {
     gpr_log(GPR_ERROR,
@@ -213,6 +213,14 @@ static tsi_result alts_zero_copy_grpc_protector_unprotect(
     if (status != TSI_OK) {
       grpc_slice_buffer_reset_and_unref_internal(&protector->protected_sb);
       return status;
+    }
+  }
+  if (min_progress_size != nullptr) {
+    if (protector->parsed_frame_size > kZeroCopyFrameLengthFieldSize) {
+      *min_progress_size =
+          protector->parsed_frame_size - protector->protected_sb.length;
+    } else {
+      *min_progress_size = 1;
     }
   }
   return TSI_OK;
@@ -278,9 +286,9 @@ tsi_result alts_zero_copy_grpc_protector_create(
       size_t max_protected_frame_size_to_set = kDefaultFrameLength;
       if (max_protected_frame_size != nullptr) {
         *max_protected_frame_size =
-            GPR_MIN(*max_protected_frame_size, kMaxFrameLength);
+            std::min(*max_protected_frame_size, kMaxFrameLength);
         *max_protected_frame_size =
-            GPR_MAX(*max_protected_frame_size, kMinFrameLength);
+            std::max(*max_protected_frame_size, kMinFrameLength);
         max_protected_frame_size_to_set = *max_protected_frame_size;
       }
       impl->max_protected_frame_size = max_protected_frame_size_to_set;

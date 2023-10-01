@@ -2,7 +2,7 @@
   <img height="160" src="web/logo_github.png" />
 </p>
 
-# Moya 14.0.0
+# Moya 15.0.0
 
 [![CircleCI](https://img.shields.io/circleci/project/github/Moya/Moya/master.svg)](https://circleci.com/gh/Moya/Moya/tree/master)
 [![codecov.io](https://codecov.io/github/Moya/Moya/coverage.svg?branch=master)](https://codecov.io/github/Moya/Moya?branch=master)
@@ -73,18 +73,21 @@ _Note: If you are using Swift 4.2 in your project, but you are using Xcode 10.2,
 
 ### Swift Package Manager
 
-To integrate using Apple's Swift package manager, add the following as a dependency to your `Package.swift`:
+_Note: Instructions below are for using **SwiftPM** without the Xcode UI. It's the easiest to go to your Project Settings -> Swift Packages and add Moya from there._
+
+To integrate using Apple's Swift package manager, without Xcode integration, add the following as a dependency to your `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/Moya/Moya.git", .upToNextMajor(from: "14.0.0"))
+.package(url: "https://github.com/Moya/Moya.git", .upToNextMajor(from: "15.0.0"))
 ```
 
 and then specify `"Moya"` as a dependency of the Target in which you wish to use Moya.
-If you want to use reactive extensions, add also `"ReactiveMoya"` or `"RxMoya"` as your Target dependency respectively.
+If you want to use reactive extensions, add also `"ReactiveMoya"`, `"RxMoya"` or
+`"CombineMoya"` as your target dependency respectively.
 Here's an example `PackageDescription`:
 
 ```swift
-// swift-tools-version:5.0
+// swift-tools-version:5.3
 import PackageDescription
 
 let package = Package(
@@ -95,7 +98,7 @@ let package = Package(
             targets: ["MyPackage"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/Moya/Moya.git", .upToNextMajor(from: "14.0.0"))
+        .package(url: "https://github.com/Moya/Moya.git", .upToNextMajor(from: "15.0.0"))
     ],
     targets: [
         .target(
@@ -107,6 +110,10 @@ let package = Package(
 
 Note: If you are using **ReactiveMoya**, we are using [our own fork of ReactiveSwift](https://github.com/Moya/ReactiveSwift). This fork adds 2 commits to remove testing dependencies on releases (starting 6.1.0). This is to prevent Xcode Previews on Xcode 11/11.1 to build testing dependencies (FB7316430). If you don't want to use our fork, you can just add another dependency to your SPM package list: `git@github.com:ReactiveCocoa/ReactiveSwift.git` and it should fetch the original repository.
 
+Combine note: if you're using **CombineMoya**, make sure that you use Xcode 11.5.0 
+or later. With earlier versions of Xcode you will have to manually add Combine as
+a weakly linked framework to your application target.
+
 ### Accio
 
 [Accio](https://github.com/JamitLabs/Accio) is a dependency manager based on SwiftPM which can build frameworks for iOS/macOS/tvOS/watchOS. Therefore the integration steps of Moya are exactly the same as described above. Once your `Package.swift` file is configured, run `accio update` instead of `swift package update`.
@@ -116,15 +123,19 @@ Note: If you are using **ReactiveMoya**, we are using [our own fork of ReactiveS
 For Moya, use the following entry in your Podfile:
 
 ```rb
-pod 'Moya', '~> 14.0'
+pod 'Moya', '~> 15.0'
 
 # or 
 
-pod 'Moya/RxSwift', '~> 14.0'
+pod 'Moya/RxSwift', '~> 15.0'
 
 # or
 
-pod 'Moya/ReactiveSwift', '~> 14.0'
+pod 'Moya/ReactiveSwift', '~> 15.0'
+
+#or
+
+pod 'Moya/Combine', '~> 15.0'
 ```
 
 Then run `pod install`.
@@ -135,19 +146,20 @@ import the framework with `import Moya`.
 ### Carthage
 
 Carthage users can point to this repository and use whichever
-generated framework they'd like, `Moya`, `RxMoya`, or `ReactiveMoya`.
+generated framework they'd like, `Moya`, `RxMoya`, `ReactiveMoya`, or
+`CombineMoya`.
 
 Make the following entry in your Cartfile:
 
 ```
-github "Moya/Moya" ~> 14.0
+github "Moya/Moya" ~> 15.0
 ```
 
-Then run `carthage update`.
+Then run `carthage update --use-xcframeworks`.
 
 If this is your first time using Carthage in the project, you'll need to go through some additional steps as explained [over at Carthage](https://github.com/Carthage/Carthage#adding-frameworks-to-an-application).
 
-> NOTE: At this time, Carthage does not provide a way to build only specific repository submodules. All submodules and their dependencies will be built with the above command. However, you don't need to copy frameworks you aren't using into your project. For instance, if you aren't using `ReactiveSwift`, feel free to delete that framework along with `ReactiveMoya` from the Carthage Build directory after `carthage update` completes. Or if you are using `ReactiveSwift` but not `RxSwift`, then `RxMoya`, `RxTest`, `RxCocoa`, etc. can safely be deleted.
+> NOTE: At this time, Carthage does not provide a way to build only specific repository submodules. All submodules and their dependencies will be built with the above command. However, you don't need to copy frameworks you aren't using into your project. For instance, if you aren't using `ReactiveSwift`, feel free to delete that framework along with `ReactiveMoya` from the Carthage Build directory after `carthage update` completes. Or if you are using `ReactiveSwift` but not `RxSwift` or `Combine`, then `RxMoya`, `RxTest`, `RxCocoa`, `CombineMoya` etc. can safely be deleted.
 
 ### Manually
 
@@ -157,15 +169,14 @@ If this is your first time using Carthage in the project, you'll need to go thro
 $ git init
 ```
 
-- Add Alamofire, Result & Moya as a git [submodule](http://git-scm.com/docs/git-submodule) by running the following commands:
+- Add Alamofire & Moya as a git [submodule](http://git-scm.com/docs/git-submodule) by running the following commands:
 
 ```bash
 $ git submodule add https://github.com/Alamofire/Alamofire.git
-$ git submodule add https://github.com/antitypical/Result.git
 $ git submodule add https://github.com/Moya/Moya.git
 ```
 
-- Open the new `Alamofire` folder, and drag the `Alamofire.xcodeproj` into the Project Navigator of your application's Xcode project. Do the same with the `Result.xcodeproj` in the `Result` folder and `Moya.xcodeproj` in the `Moya` folder.
+- Open the new `Alamofire` folder, and drag the `Alamofire.xcodeproj` into the Project Navigator of your application's Xcode project. Do the same with the `Moya.xcodeproj` in the `Moya` folder.
 
 > They should appear nested underneath your application's blue project icon. Whether it is above or below all the other Xcode groups does not matter.
 
@@ -181,8 +192,7 @@ $ git submodule add https://github.com/Moya/Moya.git
 
 > You can verify which one you selected by inspecting the build log for your project. The build target for `Alamofire` will be listed as either `Alamofire iOS`, `Alamofire macOS`, `Alamofire tvOS` or `Alamofire watchOS`.
 
-- Click on the `+` button under "Embedded Binaries" again and add the build target you need for `Result`.
-- Click on the `+` button again and add the correct build target for `Moya`.
+- Click on the `+` button under "Embedded Binaries" again and add the correct build target for `Moya`.
 
 - And that's it!
 
@@ -227,8 +237,9 @@ For more examples, see the [documentation](https://github.com/Moya/Moya/blob/mas
 ## Reactive Extensions
 
 Even cooler are the reactive extensions. Moya provides reactive extensions for
-[ReactiveSwift](https://github.com/ReactiveCocoa/ReactiveSwift) and
-[RxSwift](https://github.com/ReactiveX/RxSwift).
+[ReactiveSwift](https://github.com/ReactiveCocoa/ReactiveSwift),
+[RxSwift](https://github.com/ReactiveX/RxSwift), and 
+[Combine](https://developer.apple.com/documentation/combine).
 
 ### ReactiveSwift
 
@@ -282,6 +293,27 @@ or a string, with `mapImage()`, `mapJSON()`, and `mapString()`, respectively. If
 for filtering out certain status codes. This means that you can place your code for
 handling API errors like 400's in the same places as code for handling invalid
 responses.
+
+### Combine
+
+`Combine` extension provides `requestPublisher(:callbackQueue:)` and
+`requestWithProgressPublisher(:callbackQueue)` returning 
+`AnyPublisher<Response, MoyaError>` and `AnyPublisher<ProgressResponse, MoyaError>`
+respectively.
+
+Here's an example of `requestPublisher` usage:
+
+```swift
+provider = MoyaProvider<GitHub>()
+let cancellable = provider.requestPublisher(.userProfile("ashfurrow"))
+    .sink(receiveCompletion: { completion in
+        guard case let .failure(error) = completion else { return }
+
+        print(error)
+    }, receiveValue: { response in
+        image = UIImage(data: response.data)
+    })
+```
 
 ## Community Projects
 

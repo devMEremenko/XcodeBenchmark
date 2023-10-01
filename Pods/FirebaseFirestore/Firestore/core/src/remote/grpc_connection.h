@@ -22,8 +22,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "Firestore/core/src/auth/token.h"
 #include "Firestore/core/src/core/database_info.h"
+#include "Firestore/core/src/credentials/auth_token.h"
 #include "Firestore/core/src/remote/connectivity_monitor.h"
 #include "Firestore/core/src/remote/grpc_call.h"
 #include "Firestore/core/src/remote/grpc_stream.h"
@@ -45,6 +45,8 @@ namespace firebase {
 namespace firestore {
 namespace remote {
 
+class FirebaseMetadataProvider;
+
 // PORTING NOTE: this class has limited resemblance to `GrpcConnection` in Web
 // client. However, unlike Web client, it's not meant to hide different
 // implementations of a `Connection` under a single interface.
@@ -58,7 +60,8 @@ class GrpcConnection {
   GrpcConnection(const core::DatabaseInfo& database_info,
                  const std::shared_ptr<util::AsyncQueue>& worker_queue,
                  grpc::CompletionQueue* grpc_queue,
-                 ConnectivityMonitor* connectivity_monitor);
+                 ConnectivityMonitor* connectivity_monitor,
+                 FirebaseMetadataProvider* firebase_metadata_provider);
 
   void Shutdown();
 
@@ -68,22 +71,28 @@ class GrpcConnection {
    */
   // PORTING NOTE: unlike Web client, the created stream is not open and has to
   // be started manually.
-  std::unique_ptr<GrpcStream> CreateStream(absl::string_view rpc_name,
-                                           const auth::Token& token,
-                                           GrpcStreamObserver* observer);
+  std::unique_ptr<GrpcStream> CreateStream(
+      absl::string_view rpc_name,
+      const credentials::AuthToken& auth_token,
+      const std::string& app_check_token,
+      GrpcStreamObserver* observer);
 
   std::unique_ptr<GrpcUnaryCall> CreateUnaryCall(
       absl::string_view rpc_name,
-      const auth::Token& token,
+      const credentials::AuthToken& auth_token,
+      const std::string& app_check_token,
       const grpc::ByteBuffer& message);
 
   std::unique_ptr<GrpcStreamingReader> CreateStreamingReader(
       absl::string_view rpc_name,
-      const auth::Token& token,
+      const credentials::AuthToken& auth_token,
+      const std::string& app_check_token,
       const grpc::ByteBuffer& message);
 
   void Register(GrpcCall* call);
   void Unregister(GrpcCall* call);
+
+  static void SetClientLanguage(std::string language_token);
 
   /**
    * Don't use SSL, send all traffic unencrypted. Call before creating any
@@ -101,7 +110,8 @@ class GrpcConnection {
 
  private:
   std::unique_ptr<grpc::ClientContext> CreateContext(
-      const auth::Token& credential) const;
+      const credentials::AuthToken& auth_token,
+      const std::string& app_check_token) const;
   std::shared_ptr<grpc::Channel> CreateChannel() const;
   void EnsureActiveStub();
 
@@ -116,6 +126,8 @@ class GrpcConnection {
 
   ConnectivityMonitor* connectivity_monitor_ = nullptr;
   std::vector<GrpcCall*> active_calls_;
+
+  FirebaseMetadataProvider* firebase_metadata_provider_ = nullptr;
 };
 
 }  // namespace remote

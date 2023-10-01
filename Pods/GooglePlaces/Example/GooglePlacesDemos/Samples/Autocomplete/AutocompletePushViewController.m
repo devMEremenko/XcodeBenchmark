@@ -16,6 +16,7 @@
 #import "GooglePlacesDemos/Samples/Autocomplete/AutocompletePushViewController.h"
 
 #import <GooglePlaces/GooglePlaces.h>
+#import "GooglePlacesDemos/Support/BaseDemoViewController.h"
 
 @interface AutocompletePushViewController () <GMSAutocompleteViewControllerDelegate>
 @end
@@ -47,7 +48,6 @@
       [[GMSAutocompleteViewController alloc] init];
   autocompleteViewController.delegate = self;
   autocompleteViewController.autocompleteFilter = self.autocompleteFilter;
-  autocompleteViewController.placeFields = self.placeFields;
 
   // Returns new GMSAutocompleteViewController instance.
   return autocompleteViewController;
