@@ -50,13 +50,13 @@
  * (eay@cryptsoft.com).  This product includes software written by Tim
  * Hudson (tjh@cryptsoft.com). */
 
-#include <openssl/bio.h>
+#include <openssl_grpc/bio.h>
 
 #include <assert.h>
 #include <string.h>
 
-#include <openssl/err.h>
-#include <openssl/mem.h>
+#include <openssl_grpc/err.h>
+#include <openssl_grpc/mem.h>
 
 #include "../internal.h"
 
@@ -127,12 +127,7 @@ static void bio_destroy_pair(BIO *bio) {
 }
 
 static int bio_free(BIO *bio) {
-  struct bio_bio_st *b;
-
-  if (bio == NULL) {
-    return 0;
-  }
-  b = bio->ptr;
+  struct bio_bio_st *b = bio->ptr;
 
   assert(b != NULL);
 

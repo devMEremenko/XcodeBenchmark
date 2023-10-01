@@ -36,7 +36,7 @@ struct ThreadState {
   size_t depth;  // Number of closures in the closure list
   bool shutdown;
   bool queued_long_job;
-  grpc_core::Thread thd;
+  Thread thd;
 };
 
 enum class ExecutorType {
@@ -54,7 +54,7 @@ enum class ExecutorJobType {
 
 class Executor {
  public:
-  Executor(const char* executor_name);
+  explicit Executor(const char* executor_name);
 
   void Init();
 
@@ -70,7 +70,7 @@ class Executor {
 
   /** Enqueue the closure onto the executor. is_short is true if the closure is
    * a short job (i.e expected to not block and complete quickly) */
-  void Enqueue(grpc_closure* closure, grpc_error* error, bool is_short);
+  void Enqueue(grpc_closure* closure, grpc_error_handle error, bool is_short);
 
   // TODO(sreek): Currently we have two executors (available globally): The
   // default executor and the resolver executor.
@@ -83,7 +83,7 @@ class Executor {
   // Initialize ALL the executors
   static void InitAll();
 
-  static void Run(grpc_closure* closure, grpc_error* error,
+  static void Run(grpc_closure* closure, grpc_error_handle error,
                   ExecutorType executor_type = ExecutorType::DEFAULT,
                   ExecutorJobType job_type = ExecutorJobType::SHORT);
 
@@ -113,9 +113,6 @@ class Executor {
   gpr_atm num_threads_;
   gpr_spinlock adding_thread_lock_;
 };
-
-// Global initializer for executor
-void grpc_executor_global_init();
 
 }  // namespace grpc_core
 

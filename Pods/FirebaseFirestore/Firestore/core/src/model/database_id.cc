@@ -18,8 +18,10 @@
 
 #include <ostream>
 
+#include "Firestore/core/src/model/resource_path.h"
 #include "Firestore/core/src/util/hard_assert.h"
 #include "Firestore/core/src/util/hashing.h"
+#include "absl/strings/string_view.h"
 
 namespace firebase {
 namespace firestore {
@@ -28,10 +30,20 @@ namespace model {
 constexpr const char* DatabaseId::kDefault;
 
 DatabaseId::DatabaseId(std::string project_id, std::string database_id) {
-  HARD_ASSERT(!project_id.empty());
-  HARD_ASSERT(!database_id.empty());
-
   rep_ = std::make_shared<Rep>(std::move(project_id), std::move(database_id));
+}
+
+DatabaseId DatabaseId::FromName(const std::string& name) {
+  auto resource_name = ResourcePath::FromString(name);
+  HARD_ASSERT(resource_name.size() > 3 && resource_name[0] == "projects" &&
+                  resource_name[2] == "databases",
+              "Tried to parse an invalid resource name: %s", name);
+  // project_id not empty
+  HARD_ASSERT(!resource_name[1].empty());
+  // database_id not empty
+  HARD_ASSERT(!resource_name[3].empty());
+
+  return DatabaseId{resource_name[1], resource_name[3]};
 }
 
 util::ComparisonResult DatabaseId::CompareTo(

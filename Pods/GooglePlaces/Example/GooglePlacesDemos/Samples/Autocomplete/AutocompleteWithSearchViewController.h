@@ -15,9 +15,7 @@
 
 #import "GooglePlacesDemos/Samples/Autocomplete/AutocompleteBaseViewController.h"
 
-/**
- * Demo showing the use of GMSAutocompleteViewController with a UISearchController.
- */
+/** Demo showing the use of GMSAutocompleteViewController with a UISearchController. */
 @interface AutocompleteWithSearchViewController : AutocompleteBaseViewController
 
 @end

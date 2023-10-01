@@ -20,11 +20,16 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <unordered_map>
 
-#include "Firestore/core/src/auth/user.h"
+#include "Firestore/core/src/credentials/user.h"
+#include "Firestore/core/src/local/leveldb_bundle_cache.h"
+#include "Firestore/core/src/local/leveldb_document_overlay_cache.h"
 #include "Firestore/core/src/local/leveldb_index_manager.h"
 #include "Firestore/core/src/local/leveldb_lru_reference_delegate.h"
+#include "Firestore/core/src/local/leveldb_migrations.h"
 #include "Firestore/core/src/local/leveldb_mutation_queue.h"
+#include "Firestore/core/src/local/leveldb_overlay_migration_manager.h"
 #include "Firestore/core/src/local/leveldb_remote_document_cache.h"
 #include "Firestore/core/src/local/leveldb_target_cache.h"
 #include "Firestore/core/src/local/leveldb_transaction.h"
@@ -77,27 +82,45 @@ class LevelDbPersistence : public Persistence {
 
   void Shutdown() override;
 
-  LevelDbMutationQueue* GetMutationQueueForUser(
-      const auth::User& user) override;
+  LevelDbBundleCache* bundle_cache() override;
+
+  LevelDbDocumentOverlayCache* GetDocumentOverlayCache(
+      const credentials::User& user) override;
+  LevelDbOverlayMigrationManager* GetOverlayMigrationManager(
+      const credentials::User& user) override;
+
+  LevelDbMutationQueue* GetMutationQueue(const credentials::User& user,
+                                         IndexManager* index_manager) override;
 
   LevelDbTargetCache* target_cache() override;
 
   LevelDbRemoteDocumentCache* remote_document_cache() override;
 
-  LevelDbIndexManager* index_manager() override;
+  LevelDbIndexManager* GetIndexManager(const credentials::User& user) override;
 
   LevelDbLruReferenceDelegate* reference_delegate() override;
+
+  void ReleaseOtherUserSpecificComponents(const std::string& uid) override;
 
  protected:
   void RunInternal(absl::string_view label,
                    std::function<void()> block) override;
 
  private:
+  friend class LevelDbOverlayMigrationManagerTest;
+  friend class LevelDbLocalStoreTest;
+  friend class LevelDbIndexManager;
+
   LevelDbPersistence(std::unique_ptr<leveldb::DB> db,
                      util::Path directory,
                      std::set<std::string> users,
                      LocalSerializer serializer,
                      const LruParams& lru_params);
+
+  /**
+   * The maximum number of operation per transaction.
+   */
+  static const size_t kMaxOperationPerTransaction = 1000U;
 
   /**
    * Ensures that the given directory exists.
@@ -108,6 +131,21 @@ class LevelDbPersistence : public Persistence {
   static util::StatusOr<std::unique_ptr<leveldb::DB>> OpenDb(
       const util::Path& dir);
 
+  static util::StatusOr<std::unique_ptr<LevelDbPersistence>> Create(
+      util::Path dir,
+      LevelDbMigrations::SchemaVersion schema_version,
+      LocalSerializer serializer,
+      const LruParams& lru_params);
+
+  void DeleteAllFieldIndexes() override;
+
+  /**
+   * Remove the database entry (if any) for all "key" starting with given
+   * prefix. It is a no-op if the key does not exist.
+   */
+  void DeleteEverythingWithPrefix(absl::string_view label,
+                                  const std::string& prefix);
+
   std::unique_ptr<leveldb::DB> db_;
 
   util::Path directory_;
@@ -115,10 +153,18 @@ class LevelDbPersistence : public Persistence {
   LocalSerializer serializer_;
   bool started_ = false;
 
-  std::unique_ptr<LevelDbMutationQueue> current_mutation_queue_;
+  std::unique_ptr<LevelDbBundleCache> bundle_cache_;
+  std::unordered_map<std::string, std::unique_ptr<LevelDbDocumentOverlayCache>>
+      document_overlay_caches_;
+  std::unordered_map<std::string,
+                     std::unique_ptr<LevelDbOverlayMigrationManager>>
+      overlay_migration_managers_;
+  std::unordered_map<std::string, std::unique_ptr<LevelDbMutationQueue>>
+      mutation_queues_;
   std::unique_ptr<LevelDbTargetCache> target_cache_;
   std::unique_ptr<LevelDbRemoteDocumentCache> document_cache_;
-  std::unique_ptr<LevelDbIndexManager> index_manager_;
+  std::unordered_map<std::string, std::unique_ptr<LevelDbIndexManager>>
+      index_managers_;
   std::unique_ptr<LevelDbLruReferenceDelegate> reference_delegate_;
 
   std::unique_ptr<LevelDbTransaction> transaction_;

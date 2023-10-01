@@ -60,17 +60,16 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
-#include <openssl/conf.h>
-#include <openssl/err.h>
-#include <openssl/mem.h>
-#include <openssl/obj.h>
-#include <openssl/stack.h>
-#include <openssl/x509v3.h>
+#include <openssl_grpc/asn1.h>
+#include <openssl_grpc/asn1t.h>
+#include <openssl_grpc/conf.h>
+#include <openssl_grpc/err.h>
+#include <openssl_grpc/mem.h>
+#include <openssl_grpc/obj.h>
+#include <openssl_grpc/stack.h>
+#include <openssl_grpc/x509v3.h>
 
 #include "internal.h"
-#include "pcy_int.h"
 
 /* Certificate policies extension support: this one is a bit complex... */
 
@@ -239,13 +238,12 @@ static POLICYINFO *policy_section(X509V3_CTX *ctx,
                 goto merr;
             if (!sk_POLICYQUALINFO_push(pol->qualifiers, qual))
                 goto merr;
-            /* TODO(fork): const correctness */
-            qual->pqualid = (ASN1_OBJECT *)OBJ_nid2obj(NID_id_qt_cps);
+            qual->pqualid = OBJ_nid2obj(NID_id_qt_cps);
             if (qual->pqualid == NULL) {
                 OPENSSL_PUT_ERROR(X509V3, ERR_R_INTERNAL_ERROR);
                 goto err;
             }
-            qual->d.cpsuri = M_ASN1_IA5STRING_new();
+            qual->d.cpsuri = ASN1_IA5STRING_new();
             if (qual->d.cpsuri == NULL) {
                 goto err;
             }
@@ -307,8 +305,7 @@ static POLICYQUALINFO *notice_section(X509V3_CTX *ctx,
     POLICYQUALINFO *qual;
     if (!(qual = POLICYQUALINFO_new()))
         goto merr;
-    /* TODO(fork): const correctness */
-    qual->pqualid = (ASN1_OBJECT *)OBJ_nid2obj(NID_id_qt_unotice);
+    qual->pqualid = OBJ_nid2obj(NID_id_qt_unotice);
     if (qual->pqualid == NULL) {
         OPENSSL_PUT_ERROR(X509V3, ERR_R_INTERNAL_ERROR);
         goto err;
@@ -319,7 +316,7 @@ static POLICYQUALINFO *notice_section(X509V3_CTX *ctx,
     for (i = 0; i < sk_CONF_VALUE_num(unot); i++) {
         cnf = sk_CONF_VALUE_value(unot, i);
         if (!strcmp(cnf->name, "explicitText")) {
-            not->exptext = M_ASN1_VISIBLESTRING_new();
+            not->exptext = ASN1_VISIBLESTRING_new();
             if (not->exptext == NULL)
                 goto merr;
             if (!ASN1_STRING_set(not->exptext, cnf->value,
@@ -434,8 +431,8 @@ static void print_qualifiers(BIO *out, STACK_OF(POLICYQUALINFO) *quals,
         qualinfo = sk_POLICYQUALINFO_value(quals, i);
         switch (OBJ_obj2nid(qualinfo->pqualid)) {
         case NID_id_qt_cps:
-            BIO_printf(out, "%*sCPS: %s\n", indent, "",
-                       qualinfo->d.cpsuri->data);
+            BIO_printf(out, "%*sCPS: %.*s\n", indent, "",
+                       qualinfo->d.cpsuri->length, qualinfo->d.cpsuri->data);
             break;
 
         case NID_id_qt_unotice:
@@ -459,8 +456,8 @@ static void print_notice(BIO *out, USERNOTICE *notice, int indent)
     if (notice->noticeref) {
         NOTICEREF *ref;
         ref = notice->noticeref;
-        BIO_printf(out, "%*sOrganization: %s\n", indent, "",
-                   ref->organization->data);
+        BIO_printf(out, "%*sOrganization: %.*s\n", indent, "",
+                   ref->organization->length, ref->organization->data);
         BIO_printf(out, "%*sNumber%s: ", indent, "",
                    sk_ASN1_INTEGER_num(ref->noticenos) > 1 ? "s" : "");
         for (i = 0; i < sk_ASN1_INTEGER_num(ref->noticenos); i++) {
@@ -482,8 +479,8 @@ static void print_notice(BIO *out, USERNOTICE *notice, int indent)
         BIO_puts(out, "\n");
     }
     if (notice->exptext)
-        BIO_printf(out, "%*sExplicit Text: %s\n", indent, "",
-                   notice->exptext->data);
+        BIO_printf(out, "%*sExplicit Text: %.*s\n", indent, "",
+                   notice->exptext->length, notice->exptext->data);
 }
 
 void X509_POLICY_NODE_print(BIO *out, X509_POLICY_NODE *node, int indent)

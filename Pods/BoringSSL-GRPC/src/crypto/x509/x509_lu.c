@@ -64,6 +64,7 @@
 #include <openssl_grpc/x509v3.h>
 
 #include "../internal.h"
+#include "internal.h"
 
 X509_LOOKUP *X509_LOOKUP_new(X509_LOOKUP_METHOD *method)
 {
@@ -401,11 +402,6 @@ int X509_STORE_add_crl(X509_STORE *ctx, X509_CRL *x)
     CRYPTO_MUTEX_unlock_write(&ctx->objs_lock);
 
     return ret;
-}
-
-void X509_STORE_set0_additional_untrusted(X509_STORE *ctx,
-                                          STACK_OF(X509) *untrusted) {
-  ctx->additional_untrusted = untrusted;
 }
 
 int X509_OBJECT_up_ref_count(X509_OBJECT *a)

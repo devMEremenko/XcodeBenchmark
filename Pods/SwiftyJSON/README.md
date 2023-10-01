@@ -28,8 +28,6 @@ Platform | Build Status
 6. [Work with Moya](#work-with-moya)
 7. [SwiftyJSON Model Generator](#swiftyjson-model-generator)
 
-> [中文介绍](http://tangplin.github.io/swiftyjson/)
-
 
 ## Why is the typical JSON handling in Swift NOT good?
 
@@ -466,7 +464,7 @@ If both JSONs contain a value for the same key, _mostly_ this value gets overwri
 - In case of both values being a `JSON.Type.array` the values form the array found in the `other` JSON getting appended to the original JSON's array value.
 - In case of both values being a `JSON.Type.dictionary` both JSON-values are getting merged the same way the encapsulating JSON is merged.
 
-In case, where two fields in a JSON have a different types, the value will get always overwritten.
+In a case where two fields in a JSON have different types, the value will get always overwritten.
 
 There are two different fashions for merging: `merge` modifies the original JSON, whereas `merged` works non-destructively on a copy.
 

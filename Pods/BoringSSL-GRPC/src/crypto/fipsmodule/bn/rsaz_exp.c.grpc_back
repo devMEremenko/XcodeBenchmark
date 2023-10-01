@@ -16,7 +16,7 @@
 
 #if defined(RSAZ_ENABLED)
 
-#include <openssl/mem.h>
+#include <openssl_grpc/mem.h>
 
 #include "internal.h"
 #include "../../internal.h"

@@ -38,6 +38,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @implementation OIDExternalUserAgentCatalyst {
   UIViewController *_presentingViewController;
+  BOOL _prefersEphemeralSession;
 
   BOOL _externalUserAgentFlowInProgress;
   __weak id<OIDExternalUserAgentSession> _session;
@@ -49,6 +50,16 @@ NS_ASSUME_NONNULL_BEGIN
   self = [super init];
   if (self) {
     _presentingViewController = presentingViewController;
+  }
+  return self;
+}
+
+- (nullable instancetype)initWithPresentingViewController:
+    (UIViewController *)presentingViewController
+                                  prefersEphemeralSession:(BOOL)prefersEphemeralSession {
+  self = [self initWithPresentingViewController:presentingViewController];
+  if (self) {
+    _prefersEphemeralSession = prefersEphemeralSession;
   }
   return self;
 }
@@ -89,6 +100,7 @@ NS_ASSUME_NONNULL_BEGIN
   }];
       
   authenticationVC.presentationContextProvider = self;
+  authenticationVC.prefersEphemeralWebBrowserSession = _prefersEphemeralSession;
   _webAuthenticationVC = authenticationVC;
   openedUserAgent = [authenticationVC start];
 

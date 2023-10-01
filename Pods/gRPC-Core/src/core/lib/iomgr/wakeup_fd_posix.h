@@ -59,15 +59,13 @@ void grpc_wakeup_fd_global_destroy(void);
 void grpc_wakeup_fd_global_init_force_fallback(void);
 
 int grpc_has_wakeup_fd(void);
-int grpc_cv_wakeup_fds_enabled(void);
-void grpc_enable_cv_wakeup_fds(int enable);
 
 typedef struct grpc_wakeup_fd grpc_wakeup_fd;
 
 typedef struct grpc_wakeup_fd_vtable {
-  grpc_error* (*init)(grpc_wakeup_fd* fd_info);
-  grpc_error* (*consume)(grpc_wakeup_fd* fd_info);
-  grpc_error* (*wakeup)(grpc_wakeup_fd* fd_info);
+  grpc_error_handle (*init)(grpc_wakeup_fd* fd_info);
+  grpc_error_handle (*consume)(grpc_wakeup_fd* fd_info);
+  grpc_error_handle (*wakeup)(grpc_wakeup_fd* fd_info);
   void (*destroy)(grpc_wakeup_fd* fd_info);
   /* Must be called before calling any other functions */
   int (*check_availability)(void);
@@ -83,10 +81,12 @@ extern int grpc_allow_pipe_wakeup_fd;
 
 #define GRPC_WAKEUP_FD_GET_READ_FD(fd_info) ((fd_info)->read_fd)
 
-grpc_error* grpc_wakeup_fd_init(grpc_wakeup_fd* fd_info) GRPC_MUST_USE_RESULT;
-grpc_error* grpc_wakeup_fd_consume_wakeup(grpc_wakeup_fd* fd_info)
+grpc_error_handle grpc_wakeup_fd_init(grpc_wakeup_fd* fd_info)
     GRPC_MUST_USE_RESULT;
-grpc_error* grpc_wakeup_fd_wakeup(grpc_wakeup_fd* fd_info) GRPC_MUST_USE_RESULT;
+grpc_error_handle grpc_wakeup_fd_consume_wakeup(grpc_wakeup_fd* fd_info)
+    GRPC_MUST_USE_RESULT;
+grpc_error_handle grpc_wakeup_fd_wakeup(grpc_wakeup_fd* fd_info)
+    GRPC_MUST_USE_RESULT;
 void grpc_wakeup_fd_destroy(grpc_wakeup_fd* fd_info);
 
 /* Defined in some specialized implementation's .c file, or by

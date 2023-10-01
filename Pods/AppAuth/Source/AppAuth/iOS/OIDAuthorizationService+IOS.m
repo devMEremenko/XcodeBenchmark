@@ -41,6 +41,22 @@ NS_ASSUME_NONNULL_BEGIN
   return [self presentAuthorizationRequest:request externalUserAgent:externalUserAgent callback:callback];
 }
 
++ (id<OIDExternalUserAgentSession>) presentAuthorizationRequest:(OIDAuthorizationRequest *)request
+    presentingViewController:(UIViewController *)presentingViewController
+     prefersEphemeralSession:(BOOL)prefersEphemeralSession
+                    callback:(OIDAuthorizationCallback)callback {
+  id<OIDExternalUserAgent> externalUserAgent;
+#if TARGET_OS_MACCATALYST
+  externalUserAgent = [[OIDExternalUserAgentCatalyst alloc]
+      initWithPresentingViewController:presentingViewController
+                       prefersEphemeralSession:prefersEphemeralSession];
+#else // TARGET_OS_MACCATALYST
+  externalUserAgent = [[OIDExternalUserAgentIOS alloc] initWithPresentingViewController:presentingViewController
+               prefersEphemeralSession:prefersEphemeralSession];
+#endif // TARGET_OS_MACCATALYST
+  return [self presentAuthorizationRequest:request externalUserAgent:externalUserAgent callback:callback];
+}
+
 @end
 
 NS_ASSUME_NONNULL_END

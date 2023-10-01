@@ -15,8 +15,16 @@ import GoogleMaps
 import UIKit
 
 class MyLocationViewController: UIViewController {
+
+  private let cameraLatitude: CLLocationDegrees = -33.868
+
+  private let cameraLongitude: CLLocationDegrees = 151.2086
+
+  private let cameraZoom: Float = 12
+
   lazy var mapView: GMSMapView = {
-    let camera = GMSCameraPosition(latitude: -33.868, longitude: 151.2086, zoom: 1)
+    let camera = GMSCameraPosition(
+      latitude: cameraLatitude, longitude: cameraLongitude, zoom: cameraZoom)
     return GMSMapView(frame: .zero, camera: camera)
   }()
 

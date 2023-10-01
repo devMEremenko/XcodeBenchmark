@@ -20,18 +20,23 @@
 
 #include "src/core/ext/filters/client_channel/lb_policy/grpclb/client_load_reporting_filter.h"
 
-#include <string.h>
+#include <new>
 
-#include <grpc/support/atm.h>
+#include "absl/types/optional.h"
+
 #include <grpc/support/log.h>
 
-#include "src/core/ext/filters/client_channel/lb_policy/grpclb/grpclb.h"
 #include "src/core/ext/filters/client_channel/lb_policy/grpclb/grpclb_client_stats.h"
+#include "src/core/lib/gprpp/debug_location.h"
+#include "src/core/lib/gprpp/ref_counted_ptr.h"
+#include "src/core/lib/iomgr/closure.h"
 #include "src/core/lib/iomgr/error.h"
 #include "src/core/lib/profiling/timers.h"
+#include "src/core/lib/transport/metadata_batch.h"
+#include "src/core/lib/transport/transport.h"
 
-static grpc_error* clr_init_channel_elem(grpc_channel_element* /*elem*/,
-                                         grpc_channel_element_args* /*args*/) {
+static grpc_error_handle clr_init_channel_elem(
+    grpc_channel_element* /*elem*/, grpc_channel_element_args* /*args*/) {
   return GRPC_ERROR_NONE;
 }
 
@@ -54,18 +59,18 @@ struct call_data {
 
 }  // namespace
 
-static void on_complete_for_send(void* arg, grpc_error* error) {
+static void on_complete_for_send(void* arg, grpc_error_handle error) {
   call_data* calld = static_cast<call_data*>(arg);
-  if (error == GRPC_ERROR_NONE) {
+  if (GRPC_ERROR_IS_NONE(error)) {
     calld->send_initial_metadata_succeeded = true;
   }
   grpc_core::Closure::Run(DEBUG_LOCATION, calld->original_on_complete_for_send,
                           GRPC_ERROR_REF(error));
 }
 
-static void recv_initial_metadata_ready(void* arg, grpc_error* error) {
+static void recv_initial_metadata_ready(void* arg, grpc_error_handle error) {
   call_data* calld = static_cast<call_data*>(arg);
-  if (error == GRPC_ERROR_NONE) {
+  if (GRPC_ERROR_IS_NONE(error)) {
     calld->recv_initial_metadata_succeeded = true;
   }
   grpc_core::Closure::Run(DEBUG_LOCATION,
@@ -73,8 +78,8 @@ static void recv_initial_metadata_ready(void* arg, grpc_error* error) {
                           GRPC_ERROR_REF(error));
 }
 
-static grpc_error* clr_init_call_elem(grpc_call_element* elem,
-                                      const grpc_call_element_args* args) {
+static grpc_error_handle clr_init_call_elem(
+    grpc_call_element* elem, const grpc_call_element_args* args) {
   GPR_ASSERT(args->context != nullptr);
   new (elem->call_data) call_data();
   return GRPC_ERROR_NONE;
@@ -101,20 +106,11 @@ static void clr_start_transport_stream_op_batch(
   // Handle send_initial_metadata.
   if (batch->send_initial_metadata) {
     // Grab client stats object from metadata.
-    grpc_linked_mdelem* client_stats_md =
-        batch->payload->send_initial_metadata.send_initial_metadata->list.head;
-    for (; client_stats_md != nullptr;
-         client_stats_md = client_stats_md->next) {
-      if (GRPC_SLICE_START_PTR(GRPC_MDKEY(client_stats_md->md)) ==
-          static_cast<const void*>(grpc_core::kGrpcLbClientStatsMetadataKey)) {
-        break;
-      }
-    }
-    if (client_stats_md != nullptr) {
-      grpc_core::GrpcLbClientStats* client_stats =
-          const_cast<grpc_core::GrpcLbClientStats*>(
-              reinterpret_cast<const grpc_core::GrpcLbClientStats*>(
-                  GRPC_SLICE_START_PTR(GRPC_MDVALUE(client_stats_md->md))));
+    auto client_stats_md =
+        batch->payload->send_initial_metadata.send_initial_metadata->Take(
+            grpc_core::GrpcLbClientStatsMetadata());
+    if (client_stats_md.has_value()) {
+      grpc_core::GrpcLbClientStats* client_stats = *client_stats_md;
       if (client_stats != nullptr) {
         calld->client_stats.reset(client_stats);
         // Intercept completion.
@@ -123,10 +119,6 @@ static void clr_start_transport_stream_op_batch(
                           calld, grpc_schedule_on_exec_ctx);
         batch->on_complete = &calld->on_complete_for_send;
       }
-      // Remove metadata so it doesn't go out on the wire.
-      grpc_metadata_batch_remove(
-          batch->payload->send_initial_metadata.send_initial_metadata,
-          client_stats_md);
     }
   }
   // Intercept completion of recv_initial_metadata.
@@ -145,6 +137,7 @@ static void clr_start_transport_stream_op_batch(
 
 const grpc_channel_filter grpc_client_load_reporting_filter = {
     clr_start_transport_stream_op_batch,
+    nullptr,
     grpc_channel_next_op,
     sizeof(call_data),
     clr_init_call_elem,
@@ -152,6 +145,7 @@ const grpc_channel_filter grpc_client_load_reporting_filter = {
     clr_destroy_call_elem,
     0,  // sizeof(channel_data)
     clr_init_channel_elem,
+    grpc_channel_stack_no_post_init,
     clr_destroy_channel_elem,
     grpc_channel_next_get_info,
     "client_load_reporting"};

@@ -29,8 +29,10 @@ import UIKit
 open class DTTableViewDataSource : DTTableViewDelegateWrapper, UITableViewDataSource {
     
     override func delegateWasReset() {
-        tableView?.dataSource = nil
-        tableView?.dataSource = self
+        if tableView?.dataSource === self {
+            tableView?.dataSource = nil
+            tableView?.dataSource = self
+        }
     }
     
     /// Implementation for `UITableViewDataSource` protocol

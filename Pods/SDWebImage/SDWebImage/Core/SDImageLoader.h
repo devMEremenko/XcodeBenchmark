@@ -9,6 +9,7 @@
 #import "SDWebImageCompat.h"
 #import "SDWebImageDefine.h"
 #import "SDWebImageOperation.h"
+#import "SDImageCoder.h"
 
 typedef void(^SDImageLoaderProgressBlock)(NSInteger receivedSize, NSInteger expectedSize, NSURL * _Nullable targetURL);
 typedef void(^SDImageLoaderCompletedBlock)(UIImage * _Nullable image, NSData * _Nullable data, NSError * _Nullable error, BOOL finished);
@@ -50,6 +51,18 @@ FOUNDATION_EXPORT UIImage * _Nullable SDImageLoaderDecodeImageData(NSData * _Non
  */
 FOUNDATION_EXPORT UIImage * _Nullable SDImageLoaderDecodeProgressiveImageData(NSData * _Nonnull imageData, NSURL * _Nonnull imageURL, BOOL finished,  id<SDWebImageOperation> _Nonnull operation, SDWebImageOptions options, SDWebImageContext * _Nullable context);
 
+/**
+ This function get the progressive decoder for current loading operation. If no progressive decoding is happended or decoder is not able to construct, return nil.
+ @return The progressive decoder associated with the loading operation.
+ */
+FOUNDATION_EXPORT id<SDProgressiveImageCoder> _Nullable SDImageLoaderGetProgressiveCoder(id<SDWebImageOperation> _Nonnull operation);
+
+/**
+ This function set the progressive decoder for current loading operation. If no progressive decoding is happended, pass nil.
+ @param operation The loading operation to associate the progerssive decoder.
+ */
+FOUNDATION_EXPORT void SDImageLoaderSetProgressiveCoder(id<SDWebImageOperation> _Nonnull operation, id<SDProgressiveImageCoder> _Nullable progressiveCoder);
+
 #pragma mark - SDImageLoader
 
 /**
@@ -60,6 +73,7 @@ FOUNDATION_EXPORT UIImage * _Nullable SDImageLoaderDecodeProgressiveImageData(NS
 */
 @protocol SDImageLoader <NSObject>
 
+@required
 /**
  Whether current image loader supports to load the provide image URL.
  This will be checked every time a new image request come for loader. If this return NO, we will mark this image load as failed. If return YES, we will start to call `requestImageWithURL:options:context:progress:completed:`.
@@ -67,8 +81,23 @@ FOUNDATION_EXPORT UIImage * _Nullable SDImageLoaderDecodeProgressiveImageData(NS
  @param url The image URL to be loaded.
  @return YES to continue download, NO to stop download.
  */
-- (BOOL)canRequestImageForURL:(nullable NSURL *)url;
+- (BOOL)canRequestImageForURL:(nullable NSURL *)url API_DEPRECATED_WITH_REPLACEMENT("canRequestImageForURL:options:context:", macos(10.10, API_TO_BE_DEPRECATED), ios(8.0, API_TO_BE_DEPRECATED), tvos(9.0, API_TO_BE_DEPRECATED), watchos(2.0, API_TO_BE_DEPRECATED));
 
+@optional
+/**
+ Whether current image loader supports to load the provide image URL, with associated options and context.
+ This will be checked every time a new image request come for loader. If this return NO, we will mark this image load as failed. If return YES, we will start to call `requestImageWithURL:options:context:progress:completed:`.
+
+ @param url The image URL to be loaded.
+ @param options A mask to specify options to use for this request
+ @param context A context contains different options to perform specify changes or processes, see `SDWebImageContextOption`. This hold the extra objects which `options` enum can not hold.
+ @return YES to continue download, NO to stop download.
+ */
+- (BOOL)canRequestImageForURL:(nullable NSURL *)url
+                      options:(SDWebImageOptions)options
+                      context:(nullable SDWebImageContext *)context;
+
+@required
 /**
  Load the image and image data with the given URL and return the image data. You're responsible for producing the image instance.
 
@@ -96,6 +125,22 @@ FOUNDATION_EXPORT UIImage * _Nullable SDImageLoaderDecodeProgressiveImageData(NS
  @return Whether to block this url or not. Return YES to mark this URL as failed.
  */
 - (BOOL)shouldBlockFailedURLWithURL:(nonnull NSURL *)url
-                              error:(nonnull NSError *)error;
+                              error:(nonnull NSError *)error API_DEPRECATED_WITH_REPLACEMENT("shouldBlockFailedURLWithURL:error:options:context:", macos(10.10, API_TO_BE_DEPRECATED), ios(8.0, API_TO_BE_DEPRECATED), tvos(9.0, API_TO_BE_DEPRECATED), watchos(2.0, API_TO_BE_DEPRECATED));
+
+@optional
+/**
+ Whether the error from image loader should be marked indeed un-recoverable or not, with associated options and context.
+ If this return YES, failed URL which does not using `SDWebImageRetryFailed` will be blocked into black list. Else not.
+
+ @param url The URL represent the image. Note this may not be a HTTP URL
+ @param error The URL's loading error, from previous `requestImageWithURL:options:context:progress:completed:` completedBlock's error.
+ @param options A mask to specify options to use for this request
+ @param context A context contains different options to perform specify changes or processes, see `SDWebImageContextOption`. This hold the extra objects which `options` enum can not hold.
+ @return Whether to block this url or not. Return YES to mark this URL as failed.
+ */
+- (BOOL)shouldBlockFailedURLWithURL:(nonnull NSURL *)url
+                              error:(nonnull NSError *)error
+                            options:(SDWebImageOptions)options
+                            context:(nullable SDWebImageContext *)context;
 
 @end

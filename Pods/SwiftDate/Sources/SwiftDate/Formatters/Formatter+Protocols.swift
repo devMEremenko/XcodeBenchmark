@@ -1,9 +1,13 @@
 //
-//  DateFormatters.swift
 //  SwiftDate
+//  Parse, validate, manipulate, and display dates, time and timezones in Swift
 //
-//  Created by Daniele Margutti on 06/06/2018.
-//  Copyright © 2018 SwiftDate. All rights reserved.
+//  Created by Daniele Margutti
+//   - Web: https://www.danielemargutti.com
+//   - Twitter: https://twitter.com/danielemargutti
+//   - Mail: hello@danielemargutti.com
+//
+//  Copyright © 2019 Daniele Margutti. Licensed under MIT License.
 //
 
 import Foundation
@@ -13,7 +17,7 @@ public protocol DateToStringTrasformable {
 }
 
 public protocol StringToDateTransformable {
-	static func parse(_ string: String, region: Region, options: Any?) -> DateInRegion?
+	static func parse(_ string: String, region: Region?, options: Any?) -> DateInRegion?
 }
 
 // MARK: - Formatters
@@ -25,7 +29,7 @@ public protocol StringToDateTransformable {
 /// - rss: The RSS formatted date "EEE, d MMM yyyy HH:mm:ss ZZZ" i.e. "Fri, 09 Sep 2011 15:26:08 +0200"
 /// - altRSS: The Alternative RSS formatted date "d MMM yyyy HH:mm:ss ZZZ" i.e. "09 Sep 2011 15:26:08 +0200"
 /// - dotNet: The dotNet formatted date "/Date(%d%d)/" i.e. "/Date(1268123281843)/"
-/// - httpHeader: The http header formatted date "EEE, dd MM yyyy HH:mm:ss ZZZ" i.e. "Tue, 15 Nov 1994 12:45:26 GMT"
+/// - httpHeader: The http header formatted date "EEE, dd MMM yyyy HH:mm:ss zzz" i.e. "Tue, 15 Nov 1994 12:45:26 GMT"
 /// - custom: custom string format
 /// - standard: A generic standard format date i.e. "EEE MMM dd HH:mm:ss Z yyyy"
 /// - date: Date only format (short = "2/27/17", medium = "Feb 27, 2017", long = "February 27, 2017", full = "Monday, February 27, 2017"
@@ -42,9 +46,10 @@ public enum DateToStringStyles {
 	case date(_: DateFormatter.Style)
 	case time(_: DateFormatter.Style)
 	case dateTime(_: DateFormatter.Style)
+    case dateTimeMixed(dateStyle: DateFormatter.Style, timeStyle: DateFormatter.Style)
 	case custom(_: String)
 	case standard
-	case relative(style: RelativeFormatter.Style?)
+    case relative(style: RelativeDateTimeFormatter.DateTimeStyle = .named, unitsStyle: RelativeDateTimeFormatter.UnitsStyle = .short)
 
 	public func toString(_ date: DateRepresentable) -> String {
 		switch self {
@@ -72,8 +77,13 @@ public enum DateToStringStyles {
 				$0.dateStyle = style
 				$0.timeStyle = style
 			}).string(from: date.date)
-		case .relative(let style):
-			return RelativeFormatter.format(date, options: style)
+        case .dateTimeMixed(let dateStyle, let timeStyle):
+            return date.formatterForRegion(format: nil, configuration: {
+                $0.dateStyle = dateStyle
+                $0.timeStyle = timeStyle
+            }).string(from: date.date)
+		case .relative(let style, let unitStyle):
+            return date.toRelative(since: DateInRegion(),  dateTimeStyle: style, unitsStyle: unitStyle)
 		}
 	}
 
@@ -88,7 +98,7 @@ public enum DateToStringStyles {
 /// - rss: The RSS formatted date "EEE, d MMM yyyy HH:mm:ss ZZZ" i.e. "Fri, 09 Sep 2011 15:26:08 +0200"
 /// - altRSS: The Alternative RSS formatted date "d MMM yyyy HH:mm:ss ZZZ" i.e. "09 Sep 2011 15:26:08 +0200"
 /// - dotNet: The dotNet formatted date "/Date(%d%d)/" i.e. "/Date(1268123281843)/"
-/// - httpHeader: The http header formatted date "EEE, dd MM yyyy HH:mm:ss ZZZ" i.e. "Tue, 15 Nov 1994 12:45:26 GMT"
+/// - httpHeader: The http header formatted date "EEE, dd MMM yyyy HH:mm:ss zzz" i.e. "Tue, 15 Nov 1994 12:45:26 GMT"
 /// - strict: custom string format with lenient options active
 /// - custom: custom string format
 /// - standard: A generic standard format date i.e. "EEE MMM dd HH:mm:ss Z yyyy"
