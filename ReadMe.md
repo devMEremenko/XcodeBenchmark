@@ -14,7 +14,7 @@ If a device you are looking for is not on the list below, check out open [issues
 ## Xcode 15
 |        Device        |           CPU           | RAM | SSD | Xcode |  macOS | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:-----:|:------:|:---------:|
-| MacBook Pro 16" 2021 |     M1 Pro 10-core      |  32 | 512 |  15.0 | 13.5.2 |    143    |
+| MacBook Pro 16" 2021 |     M1 Pro 10-core      |  32 | 512 |  15.0 | 13.5.2 |    137    |
 
 
 ## Xcode 13-14
