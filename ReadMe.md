@@ -62,13 +62,15 @@ If a device you are looking for is not on the list below, check out open [issues
 | MacBook Pro 15" 2018 |    i9 2.9 GHz 6-core    |  32 | 1TB |     |  13.0 | 11.6    |    263    |
 |     iMac 27" 2015    |    i7 4.0 GHz 4-core    |  32 | 1TB |     |  13.2 | 11.6.7  |    267    |
 | MacBook Pro 15" 2019 |    i7 2.6 GHz 6-core    |  32 | 256 |     |  13.2 | 12.0.1  |    277    |
+| MacBook Pro 15" 2015 |    i7 2.8 GHz 4-core    |  16 | 1TB |     |  14.2 | 12.6.2  |    335    |
 | MacBook Pro 13" 2018 |    i7 2.7 GHz 4-core    |   8 | 256 |     |  13.0 | 11.6    |    336    |
 | MacBook Pro 15" 2016 |    i7 2.6 GHz 4-core    |  16 | 256 |     |  13.1 | 12.0.1  |    362    |
 |     iMac 27" 2015    |    i5 3.3 GHz 4-core    |  32 | 1TB |     |  13.1 | 11.6    |    400    |
 | MacBook Pro 13" 2017 |    i5 2.3 GHz 2-core    |   8 | 256 |     |  13.1 | 11.5.1  |    511    |
 | MacBook Pro 13" 2016 |    i5 2.0 GHz 2-core    |   8 | 256 |     |  13.1 | 12.5.1  |    672    |
-| MacBook Pro 15" 2015 |    i7 2.8 GHz 4-core    |  16 | 1TB |     |  14.2 | 12.6.2  |    335    |
+| MacBook Pro 13" 2013 |    i5 2.4 GHz 2-core    |   8 | 256 |     |  13.2 | 11.7.2  |    747    |
 | MacBook Pro 13" 2015 |    i5 2.7 GHz 2-core    |   8 | 256 |     |  13.2 | 12.0.1  |    860    |
+
 
 ## Xcode 12.5
 
