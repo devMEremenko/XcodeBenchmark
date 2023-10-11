@@ -15,6 +15,7 @@ If a device you are looking for is not on the list below, check out open [issues
 |        Device        |           CPU           | RAM | SSD | Xcode |  macOS | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:-----:|:------:|:---------:|
 | MacBook Pro 16" 2021 |     M1 Pro 10-core      |  32 | 512 |  15.0 | 13.5.2 |    137    |
+| MacBook Air 13" 2020 |      M1 8c (8c GPU)     |  16 | 512 |  15.0 |  14.0  |    208    |
 
 
 ## Xcode 13-14
