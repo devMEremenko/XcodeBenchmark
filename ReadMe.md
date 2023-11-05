@@ -15,6 +15,7 @@ If a device you are looking for is not on the list below, check out open [issues
 |        Device        |           CPU           | RAM | SSD | Xcode |  macOS | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:-----:|:------:|:---------:|
 | MacBook Pro 16" 2021 |     M1 Pro 10-core      |  32 | 512 |  15.0 | 13.5.2 |    137    |
+| MacBook Pro 15" 2018 |     i7 2.6 GHz 6-ore    |  16 | 512 |  15.0 | 14.0.0 |    348    |
 
 
 ## Xcode 13-14
