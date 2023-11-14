@@ -54,17 +54,17 @@
  * copied and put under another distribution licence
  * [including the GNU Public Licence.] */
 
-#include <openssl/bn.h>
+#include <openssl_grpc/bn.h>
 
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
 #include <stdio.h>
 
-#include <openssl/bio.h>
-#include <openssl/bytestring.h>
-#include <openssl/err.h>
-#include <openssl/mem.h>
+#include <openssl_grpc/bio.h>
+#include <openssl_grpc/bytestring.h>
+#include <openssl_grpc/err.h>
+#include <openssl_grpc/mem.h>
 
 #include "../fipsmodule/bn/internal.h"
 

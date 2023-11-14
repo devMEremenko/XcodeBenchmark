@@ -61,7 +61,8 @@
 #include <openssl_grpc/x509.h>
 #include <openssl_grpc/x509v3.h>
 
-#include "pcy_int.h"
+#include "../x509/internal.h"
+#include "internal.h"
 
 /*
  * Set policy mapping entries in cache. Note: this modifies the passed

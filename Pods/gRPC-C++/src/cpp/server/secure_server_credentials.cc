@@ -16,15 +16,24 @@
  *
  */
 
-#include <functional>
+#include "src/cpp/server/secure_server_credentials.h"
+
+#include <algorithm>
 #include <map>
 #include <memory>
+#include <utility>
+#include <vector>
 
-#include <grpcpp/impl/codegen/slice.h>
+#include <grpc/grpc_security_constants.h>
+#include <grpc/slice.h>
+#include <grpc/status.h>
 #include <grpcpp/security/auth_metadata_processor.h>
+#include <grpcpp/security/tls_credentials_options.h>
+#include <grpcpp/support/slice.h>
+#include <grpcpp/support/status.h>
+#include <grpcpp/support/string_ref.h>
 
 #include "src/cpp/common/secure_auth_context.h"
-#include "src/cpp/server/secure_server_credentials.h"
 
 namespace grpc {
 
@@ -54,18 +63,18 @@ void AuthMetadataProcessorAyncWrapper::Process(
 }
 
 void AuthMetadataProcessorAyncWrapper::InvokeProcessor(
-    grpc_auth_context* ctx, const grpc_metadata* md, size_t num_md,
+    grpc_auth_context* context, const grpc_metadata* md, size_t num_md,
     grpc_process_auth_metadata_done_cb cb, void* user_data) {
   AuthMetadataProcessor::InputMetadata metadata;
   for (size_t i = 0; i < num_md; i++) {
     metadata.insert(std::make_pair(StringRefFromSlice(&md[i].key),
                                    StringRefFromSlice(&md[i].value)));
   }
-  SecureAuthContext context(ctx);
+  SecureAuthContext ctx(context);
   AuthMetadataProcessor::OutputMetadata consumed_metadata;
   AuthMetadataProcessor::OutputMetadata response_metadata;
 
-  Status status = processor_->Process(metadata, &context, &consumed_metadata,
+  Status status = processor_->Process(metadata, &ctx, &consumed_metadata,
                                       &response_metadata);
 
   std::vector<grpc_metadata> consumed_md;
@@ -73,7 +82,6 @@ void AuthMetadataProcessorAyncWrapper::InvokeProcessor(
     grpc_metadata md_entry;
     md_entry.key = SliceReferencingString(consumed.first);
     md_entry.value = SliceReferencingString(consumed.second);
-    md_entry.flags = 0;
     consumed_md.push_back(md_entry);
   }
   std::vector<grpc_metadata> response_md;
@@ -81,7 +89,6 @@ void AuthMetadataProcessorAyncWrapper::InvokeProcessor(
     grpc_metadata md_entry;
     md_entry.key = SliceReferencingString(response.first);
     md_entry.value = SliceReferencingString(response.second);
-    md_entry.flags = 0;
     response_md.push_back(md_entry);
   }
   auto consumed_md_data = consumed_md.empty() ? nullptr : &consumed_md[0];
@@ -91,13 +98,9 @@ void AuthMetadataProcessorAyncWrapper::InvokeProcessor(
      status.error_message().c_str());
 }
 
-}  // namespace grpc
-
-namespace grpc_impl {
-
-int SecureServerCredentials::AddPortToServer(const grpc::string& addr,
+int SecureServerCredentials::AddPortToServer(const std::string& addr,
                                              grpc_server* server) {
-  return grpc_server_add_secure_http2_port(server, addr.c_str(), creds_);
+  return grpc_server_add_http2_port(server, addr.c_str(), creds_);
 }
 
 void SecureServerCredentials::SetAuthMetadataProcessor(
@@ -148,10 +151,10 @@ std::shared_ptr<ServerCredentials> LocalServerCredentials(
 }
 
 std::shared_ptr<ServerCredentials> TlsServerCredentials(
-    const TlsCredentialsOptions& options) {
+    const grpc::experimental::TlsServerCredentialsOptions& options) {
   return std::shared_ptr<ServerCredentials>(new SecureServerCredentials(
       grpc_tls_server_credentials_create(options.c_credentials_options())));
 }
 
 }  // namespace experimental
-}  // namespace grpc_impl
+}  // namespace grpc

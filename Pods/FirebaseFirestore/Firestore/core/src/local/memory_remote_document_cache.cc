@@ -19,8 +19,10 @@
 #include "Firestore/core/src/core/query.h"
 #include "Firestore/core/src/local/memory_lru_reference_delegate.h"
 #include "Firestore/core/src/local/memory_persistence.h"
+#include "Firestore/core/src/local/query_context.h"
 #include "Firestore/core/src/local/sizer.h"
-#include "Firestore/core/src/model/document_map.h"
+#include "Firestore/core/src/model/document.h"
+#include "Firestore/core/src/model/overlay.h"
 #include "Firestore/core/src/util/hard_assert.h"
 
 namespace firebase {
@@ -31,11 +33,9 @@ using core::Query;
 using model::Document;
 using model::DocumentKey;
 using model::DocumentKeySet;
-using model::DocumentMap;
 using model::ListenSequenceNumber;
-using model::MaybeDocument;
-using model::MaybeDocumentMap;
-using model::OptionalMaybeDocumentMap;
+using model::MutableDocument;
+using model::MutableDocumentMap;
 using model::SnapshotVersion;
 
 MemoryRemoteDocumentCache::MemoryRemoteDocumentCache(
@@ -43,27 +43,30 @@ MemoryRemoteDocumentCache::MemoryRemoteDocumentCache(
   persistence_ = persistence;
 }
 
-void MemoryRemoteDocumentCache::Add(const MaybeDocument& document,
+void MemoryRemoteDocumentCache::Add(const MutableDocument& document,
                                     const model::SnapshotVersion& read_time) {
-  docs_ = docs_.insert(document.key(), std::make_pair(document, read_time));
+  // Note: We create an explicit copy to prevent further modifications.
+  docs_ =
+      docs_.insert(document.key(), document.Clone().WithReadTime(read_time));
 
-  persistence_->index_manager()->AddToCollectionParentIndex(
-      document.key().path().PopLast());
+  NOT_NULL(index_manager_);
+  index_manager_->AddToCollectionParentIndex(document.key().path().PopLast());
 }
 
 void MemoryRemoteDocumentCache::Remove(const DocumentKey& key) {
   docs_ = docs_.erase(key);
 }
 
-absl::optional<MaybeDocument> MemoryRemoteDocumentCache::Get(
-    const DocumentKey& key) {
+MutableDocument MemoryRemoteDocumentCache::Get(const DocumentKey& key) const {
   const auto& entry = docs_.get(key);
-  return entry ? entry->first : absl::optional<MaybeDocument>();
+  // Note: We create an explicit copy to prevent modifications of the backing
+  // data.
+  return entry ? entry->Clone() : MutableDocument::InvalidDocument(key);
 }
 
-OptionalMaybeDocumentMap MemoryRemoteDocumentCache::GetAll(
-    const DocumentKeySet& keys) {
-  OptionalMaybeDocumentMap results;
+MutableDocumentMap MemoryRemoteDocumentCache::GetAll(
+    const DocumentKeySet& keys) const {
+  MutableDocumentMap results;
   for (const DocumentKey& key : keys) {
     // Make sure each key has a corresponding entry, which is nullopt in case
     // the document is not found.
@@ -73,36 +76,62 @@ OptionalMaybeDocumentMap MemoryRemoteDocumentCache::GetAll(
   return results;
 }
 
-DocumentMap MemoryRemoteDocumentCache::GetMatching(
-    const Query& query, const SnapshotVersion& since_read_time) {
-  HARD_ASSERT(
-      !query.IsCollectionGroupQuery(),
-      "CollectionGroup queries should be handled in LocalDocumentsView");
+// This method should only be called from the IndexBackfiller if LevelDB is
+// enabled.
+MutableDocumentMap MemoryRemoteDocumentCache::GetAll(const std::string&,
+                                                     const model::IndexOffset&,
+                                                     size_t) const {
+  util::ThrowInvalidArgument(
+      "getAll(String, IndexOffset, int) is not supported.");
+}
 
-  DocumentMap results;
+MutableDocumentMap MemoryRemoteDocumentCache::GetDocumentsMatchingQuery(
+    const core::Query& query,
+    const model::IndexOffset& offset,
+    absl::optional<size_t> limit,
+    const model::OverlayByDocumentKeyMap& mutated_docs) const {
+  absl::optional<QueryContext> context;
+  return GetDocumentsMatchingQuery(query, offset, context, limit, mutated_docs);
+}
+
+MutableDocumentMap MemoryRemoteDocumentCache::GetDocumentsMatchingQuery(
+    const core::Query& query,
+    const model::IndexOffset& offset,
+    absl::optional<QueryContext>&,
+    absl::optional<size_t>,
+    const model::OverlayByDocumentKeyMap& mutated_docs) const {
+  MutableDocumentMap results;
 
   // Documents are ordered by key, so we can use a prefix scan to narrow down
   // the documents we need to match the query against.
-  DocumentKey prefix{query.path().Append("")};
+  auto path = query.path();
+  DocumentKey prefix{path.Append("")};
+  size_t immediate_children_path_length = path.size() + 1;
   for (auto it = docs_.lower_bound(prefix); it != docs_.end(); ++it) {
     const DocumentKey& key = it->first;
-    if (!query.path().IsPrefixOf(key.path())) {
+    if (!path.IsPrefixOf(key.path())) {
       break;
     }
-    const MaybeDocument& maybe_doc = it->second.first;
-    if (!maybe_doc.is_document()) {
+    const MutableDocument& document = it->second;
+    if (key.path().size() > immediate_children_path_length) {
+      // Exclude entries from subcollections.
       continue;
     }
 
-    const SnapshotVersion& read_time = it->second.second;
-    if (read_time <= since_read_time) {
+    if (model::IndexOffset::FromDocument(document).CompareTo(offset) !=
+        util::ComparisonResult::Descending) {
+      // The document sorts before the offset.
       continue;
     }
 
-    Document doc(maybe_doc);
-    if (query.Matches(doc)) {
-      results = results.insert(key, std::move(doc));
+    if (mutated_docs.find(document.key()) == mutated_docs.end() &&
+        !query.Matches(document)) {
+      continue;
     }
+
+    // Note: We create an explicit copy to prevent modifications on the backing
+    // data.
+    results = results.insert(key, document.Clone());
   }
   return results;
 }
@@ -126,10 +155,14 @@ std::vector<DocumentKey> MemoryRemoteDocumentCache::RemoveOrphanedDocuments(
 int64_t MemoryRemoteDocumentCache::CalculateByteSize(const Sizer& sizer) {
   int64_t count = 0;
   for (const auto& kv : docs_) {
-    const MaybeDocument& maybe_doc = kv.second.first;
-    count += sizer.CalculateByteSize(maybe_doc);
+    const MutableDocument& document = kv.second;
+    count += sizer.CalculateByteSize(document);
   }
   return count;
+}
+
+void MemoryRemoteDocumentCache::SetIndexManager(IndexManager* manager) {
+  index_manager_ = NOT_NULL(manager);
 }
 
 }  // namespace local

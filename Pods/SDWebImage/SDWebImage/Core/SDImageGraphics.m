@@ -8,6 +8,7 @@
 
 #import "SDImageGraphics.h"
 #import "NSImage+Compatibility.h"
+#import "SDImageCoderHelper.h"
 #import "objc/runtime.h"
 
 #if SD_MAC
@@ -16,17 +17,31 @@ static void *kNSGraphicsContextScaleFactorKey;
 static CGContextRef SDCGContextCreateBitmapContext(CGSize size, BOOL opaque, CGFloat scale) {
     if (scale == 0) {
         // Match `UIGraphicsBeginImageContextWithOptions`, reset to the scale factor of the device’s main screen if scale is 0.
-        scale = [NSScreen mainScreen].backingScaleFactor;
+        NSScreen *mainScreen = nil;
+        if (@available(macOS 10.12, *)) {
+            mainScreen = [NSScreen mainScreen];
+        } else {
+            mainScreen = [NSScreen screens].firstObject;
+        }
+        scale = mainScreen.backingScaleFactor ?: 1.0f;
     }
     size_t width = ceil(size.width * scale);
     size_t height = ceil(size.height * scale);
     if (width < 1 || height < 1) return NULL;
     
-    //pre-multiplied BGRA for non-opaque, BGRX for opaque, 8-bits per component, as Apple's doc
-    CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
-    CGImageAlphaInfo alphaInfo = kCGBitmapByteOrder32Host | (opaque ? kCGImageAlphaNoneSkipFirst : kCGImageAlphaPremultipliedFirst);
-    CGContextRef context = CGBitmapContextCreate(NULL, width, height, 8, 0, space, kCGBitmapByteOrderDefault | alphaInfo);
-    CGColorSpaceRelease(space);
+    CGColorSpaceRef space = [SDImageCoderHelper colorSpaceGetDeviceRGB];
+    // kCGImageAlphaNone is not supported in CGBitmapContextCreate.
+    // Check #3330 for more detail about why this bitmap is choosen.
+    // From v5.17.0, use runtime detection of bitmap info instead of hardcode.
+    // However, macOS's runtime detection will also call this function, cause recursive, so still hardcode here
+    CGBitmapInfo bitmapInfo;
+    if (!opaque) {
+        // [NSImage imageWithSize:flipped:drawingHandler:] returns float(16-bits) RGBA8888 on alpha image, which we don't need
+        bitmapInfo = kCGBitmapByteOrderDefault | kCGImageAlphaPremultipliedLast;
+    } else {
+        bitmapInfo = kCGBitmapByteOrderDefault | kCGImageAlphaNoneSkipLast;
+    }
+    CGContextRef context = CGBitmapContextCreate(NULL, width, height, 8, 0, space, bitmapInfo);
     if (!context) {
         return NULL;
     }
@@ -96,7 +111,13 @@ UIImage * SDGraphicsGetImageFromCurrentImageContext(void) {
     }
     if (!scale) {
         // reset to the scale factor of the device’s main screen if scale is 0.
-        scale = [NSScreen mainScreen].backingScaleFactor;
+        NSScreen *mainScreen = nil;
+        if (@available(macOS 10.12, *)) {
+            mainScreen = [NSScreen mainScreen];
+        } else {
+            mainScreen = [NSScreen screens].firstObject;
+        }
+        scale = mainScreen.backingScaleFactor ?: 1.0f;
     }
     NSImage *image = [[NSImage alloc] initWithCGImage:imageRef scale:scale orientation:kCGImagePropertyOrientationUp];
     CGImageRelease(imageRef);

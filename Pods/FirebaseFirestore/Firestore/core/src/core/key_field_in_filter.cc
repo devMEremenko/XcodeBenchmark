@@ -21,6 +21,8 @@
 
 #include "Firestore/core/src/model/document.h"
 #include "Firestore/core/src/model/document_key.h"
+#include "Firestore/core/src/model/value_util.h"
+#include "Firestore/core/src/nanopb/nanopb_util.h"
 #include "absl/algorithm/container.h"
 
 namespace firebase {
@@ -29,21 +31,20 @@ namespace core {
 
 using model::Document;
 using model::DocumentKey;
+using model::DocumentKeyHash;
 using model::FieldPath;
-using model::FieldValue;
+using model::GetTypeOrder;
+using model::IsArray;
+using model::TypeOrder;
+using nanopb::SharedMessage;
 
-using Operator = Filter::Operator;
+using Operator = FieldFilter::Operator;
 
 class KeyFieldInFilter::Rep : public FieldFilter::Rep {
  public:
-  Rep(FieldPath field, FieldValue value)
+  Rep(FieldPath field, SharedMessage<google_firestore_v1_Value> value)
       : FieldFilter::Rep(std::move(field), Operator::In, std::move(value)) {
-    const FieldValue::Array& array_value = this->value().array_value();
-    for (const auto& ref_value : array_value) {
-      HARD_ASSERT(ref_value.type() == FieldValue::Type::Reference,
-                  "Comparing on key with IN, but an array value was not"
-                  " a Reference");
-    }
+    keys_ = ExtractDocumentKeysFromValue(this->value());
   }
 
   Type type() const override {
@@ -51,21 +52,35 @@ class KeyFieldInFilter::Rep : public FieldFilter::Rep {
   }
 
   bool Matches(const model::Document& doc) const override;
+
+ private:
+  std::unordered_set<DocumentKey, DocumentKeyHash> keys_;
 };
 
-KeyFieldInFilter::KeyFieldInFilter(FieldPath field, FieldValue value)
-    : FieldFilter(
-          std::make_shared<const Rep>(std::move(field), std::move(value))) {
+KeyFieldInFilter::KeyFieldInFilter(
+    const FieldPath& field, SharedMessage<google_firestore_v1_Value> value)
+    : FieldFilter(std::make_shared<const Rep>(field, std::move(value))) {
 }
 
 bool KeyFieldInFilter::Rep::Matches(const Document& doc) const {
-  const FieldValue::Array& array_value = value().array_value();
-  for (const auto& rhs : array_value) {
-    if (doc.key() == rhs.reference_value().key()) {
-      return true;
-    }
+  return keys_.find(doc->key()) != keys_.end();
+}
+
+std::unordered_set<DocumentKey, DocumentKeyHash>
+KeyFieldInFilter::ExtractDocumentKeysFromValue(
+    const google_firestore_v1_Value& value) {
+  HARD_ASSERT(IsArray(value),
+              "Comparing on key with In/NotIn, but the value was not an Array");
+  std::unordered_set<DocumentKey, DocumentKeyHash> keys;
+  const google_firestore_v1_ArrayValue& array_value = value.array_value;
+  for (pb_size_t i = 0; i < array_value.values_count; ++i) {
+    HARD_ASSERT(GetTypeOrder(array_value.values[i]) == TypeOrder::kReference,
+                "Comparing on key with In/NotIn, but an array value was not"
+                " a Reference");
+    keys.insert(DocumentKey::FromName(
+        nanopb::MakeString(array_value.values[i].reference_value)));
   }
-  return false;
+  return keys;
 }
 
 }  // namespace core

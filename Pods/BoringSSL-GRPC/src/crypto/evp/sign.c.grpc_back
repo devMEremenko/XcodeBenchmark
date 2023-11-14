@@ -54,10 +54,10 @@
  * copied and put under another distribution licence
  * [including the GNU Public Licence.] */
 
-#include <openssl/evp.h>
+#include <openssl_grpc/evp.h>
 
-#include <openssl/digest.h>
-#include <openssl/err.h>
+#include <openssl_grpc/digest.h>
+#include <openssl_grpc/err.h>
 
 #include "internal.h"
 

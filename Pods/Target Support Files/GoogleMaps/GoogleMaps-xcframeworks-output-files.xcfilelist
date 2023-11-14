@@ -1,0 +1,3 @@
+${PODS_XCFRAMEWORKS_BUILD_DIR}/GoogleMaps/Base/GoogleMapsBase.framework
+${PODS_XCFRAMEWORKS_BUILD_DIR}/GoogleMaps/Maps/GoogleMaps.framework
+${PODS_XCFRAMEWORKS_BUILD_DIR}/GoogleMaps/Maps/GoogleMapsCore.framework

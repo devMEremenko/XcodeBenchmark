@@ -368,84 +368,6 @@ void ERR_clear_system_error(void) {
   errno = 0;
 }
 
-char *ERR_error_string(uint32_t packed_error, char *ret) {
-  static char buf[ERR_ERROR_STRING_BUF_LEN];
-
-  if (ret == NULL) {
-    // TODO(fork): remove this.
-    ret = buf;
-  }
-
-#if !defined(NDEBUG)
-  // This is aimed to help catch callers who don't provide
-  // |ERR_ERROR_STRING_BUF_LEN| bytes of space.
-  OPENSSL_memset(ret, 0, ERR_ERROR_STRING_BUF_LEN);
-#endif
-
-  return ERR_error_string_n(packed_error, ret, ERR_ERROR_STRING_BUF_LEN);
-}
-
-char *ERR_error_string_n(uint32_t packed_error, char *buf, size_t len) {
-  char lib_buf[64], reason_buf[64];
-  const char *lib_str, *reason_str;
-  unsigned lib, reason;
-
-  if (len == 0) {
-    return NULL;
-  }
-
-  lib = ERR_GET_LIB(packed_error);
-  reason = ERR_GET_REASON(packed_error);
-
-  lib_str = ERR_lib_error_string(packed_error);
-  reason_str = ERR_reason_error_string(packed_error);
-
-  if (lib_str == NULL) {
-    BIO_snprintf(lib_buf, sizeof(lib_buf), "lib(%u)", lib);
-    lib_str = lib_buf;
-  }
-
- if (reason_str == NULL) {
-    BIO_snprintf(reason_buf, sizeof(reason_buf), "reason(%u)", reason);
-    reason_str = reason_buf;
-  }
-
-  BIO_snprintf(buf, len, "error:%08" PRIx32 ":%s:OPENSSL_internal:%s",
-               packed_error, lib_str, reason_str);
-
-  if (strlen(buf) == len - 1) {
-    // output may be truncated; make sure we always have 5 colon-separated
-    // fields, i.e. 4 colons.
-    static const unsigned num_colons = 4;
-    unsigned i;
-    char *s = buf;
-
-    if (len <= num_colons) {
-      // In this situation it's not possible to ensure that the correct number
-      // of colons are included in the output.
-      return buf;
-    }
-
-    for (i = 0; i < num_colons; i++) {
-      char *colon = strchr(s, ':');
-      char *last_pos = &buf[len - 1] - num_colons + i;
-
-      if (colon == NULL || colon > last_pos) {
-        // set colon |i| at last possible position (buf[len-1] is the
-        // terminating 0). If we're setting this colon, then all whole of the
-        // rest of the string must be colons in order to have the correct
-        // number.
-        OPENSSL_memset(last_pos, ':', num_colons - i);
-        break;
-      }
-
-      s = colon + 1;
-    }
-  }
-
-  return buf;
-}
-
 // err_string_cmp is a compare function for searching error values with
 // |bsearch| in |err_string_lookup|.
 static int err_string_cmp(const void *a, const void *b) {
@@ -495,41 +417,42 @@ static const char *err_string_lookup(uint32_t lib, uint32_t key,
 
 static const char *const kLibraryNames[ERR_NUM_LIBS] = {
     "invalid library (0)",
-    "unknown library",                            // ERR_LIB_NONE
-    "system library",                             // ERR_LIB_SYS
-    "bignum routines",                            // ERR_LIB_BN
-    "RSA routines",                               // ERR_LIB_RSA
-    "Diffie-Hellman routines",                    // ERR_LIB_DH
-    "public key routines",                        // ERR_LIB_EVP
-    "memory buffer routines",                     // ERR_LIB_BUF
-    "object identifier routines",                 // ERR_LIB_OBJ
-    "PEM routines",                               // ERR_LIB_PEM
-    "DSA routines",                               // ERR_LIB_DSA
-    "X.509 certificate routines",                 // ERR_LIB_X509
-    "ASN.1 encoding routines",                    // ERR_LIB_ASN1
-    "configuration file routines",                // ERR_LIB_CONF
-    "common libcrypto routines",                  // ERR_LIB_CRYPTO
-    "elliptic curve routines",                    // ERR_LIB_EC
-    "SSL routines",                               // ERR_LIB_SSL
-    "BIO routines",                               // ERR_LIB_BIO
-    "PKCS7 routines",                             // ERR_LIB_PKCS7
-    "PKCS8 routines",                             // ERR_LIB_PKCS8
-    "X509 V3 routines",                           // ERR_LIB_X509V3
-    "random number generator",                    // ERR_LIB_RAND
-    "ENGINE routines",                            // ERR_LIB_ENGINE
-    "OCSP routines",                              // ERR_LIB_OCSP
-    "UI routines",                                // ERR_LIB_UI
-    "COMP routines",                              // ERR_LIB_COMP
-    "ECDSA routines",                             // ERR_LIB_ECDSA
-    "ECDH routines",                              // ERR_LIB_ECDH
-    "HMAC routines",                              // ERR_LIB_HMAC
-    "Digest functions",                           // ERR_LIB_DIGEST
-    "Cipher functions",                           // ERR_LIB_CIPHER
-    "HKDF functions",                             // ERR_LIB_HKDF
-    "User defined functions",                     // ERR_LIB_USER
+    "unknown library",              // ERR_LIB_NONE
+    "system library",               // ERR_LIB_SYS
+    "bignum routines",              // ERR_LIB_BN
+    "RSA routines",                 // ERR_LIB_RSA
+    "Diffie-Hellman routines",      // ERR_LIB_DH
+    "public key routines",          // ERR_LIB_EVP
+    "memory buffer routines",       // ERR_LIB_BUF
+    "object identifier routines",   // ERR_LIB_OBJ
+    "PEM routines",                 // ERR_LIB_PEM
+    "DSA routines",                 // ERR_LIB_DSA
+    "X.509 certificate routines",   // ERR_LIB_X509
+    "ASN.1 encoding routines",      // ERR_LIB_ASN1
+    "configuration file routines",  // ERR_LIB_CONF
+    "common libcrypto routines",    // ERR_LIB_CRYPTO
+    "elliptic curve routines",      // ERR_LIB_EC
+    "SSL routines",                 // ERR_LIB_SSL
+    "BIO routines",                 // ERR_LIB_BIO
+    "PKCS7 routines",               // ERR_LIB_PKCS7
+    "PKCS8 routines",               // ERR_LIB_PKCS8
+    "X509 V3 routines",             // ERR_LIB_X509V3
+    "random number generator",      // ERR_LIB_RAND
+    "ENGINE routines",              // ERR_LIB_ENGINE
+    "OCSP routines",                // ERR_LIB_OCSP
+    "UI routines",                  // ERR_LIB_UI
+    "COMP routines",                // ERR_LIB_COMP
+    "ECDSA routines",               // ERR_LIB_ECDSA
+    "ECDH routines",                // ERR_LIB_ECDH
+    "HMAC routines",                // ERR_LIB_HMAC
+    "Digest functions",             // ERR_LIB_DIGEST
+    "Cipher functions",             // ERR_LIB_CIPHER
+    "HKDF functions",               // ERR_LIB_HKDF
+    "Trust Token functions",        // ERR_LIB_TRUST_TOKEN
+    "User defined functions",       // ERR_LIB_USER
 };
 
-const char *ERR_lib_error_string(uint32_t packed_error) {
+static const char *err_lib_error_string(uint32_t packed_error) {
   const uint32_t lib = ERR_GET_LIB(packed_error);
 
   if (lib >= ERR_NUM_LIBS) {
@@ -538,11 +461,16 @@ const char *ERR_lib_error_string(uint32_t packed_error) {
   return kLibraryNames[lib];
 }
 
+const char *ERR_lib_error_string(uint32_t packed_error) {
+  const char *ret = err_lib_error_string(packed_error);
+  return ret == NULL ? "unknown library" : ret;
+}
+
 const char *ERR_func_error_string(uint32_t packed_error) {
   return "OPENSSL_internal";
 }
 
-const char *ERR_reason_error_string(uint32_t packed_error) {
+static const char *err_reason_error_string(uint32_t packed_error) {
   const uint32_t lib = ERR_GET_LIB(packed_error);
   const uint32_t reason = ERR_GET_REASON(packed_error);
 
@@ -576,6 +504,86 @@ const char *ERR_reason_error_string(uint32_t packed_error) {
 
   return err_string_lookup(lib, reason, kOpenSSLReasonValues,
                            kOpenSSLReasonValuesLen, kOpenSSLReasonStringData);
+}
+
+const char *ERR_reason_error_string(uint32_t packed_error) {
+  const char *ret = err_reason_error_string(packed_error);
+  return ret == NULL ? "unknown error" : ret;
+}
+
+char *ERR_error_string(uint32_t packed_error, char *ret) {
+  static char buf[ERR_ERROR_STRING_BUF_LEN];
+
+  if (ret == NULL) {
+    // TODO(fork): remove this.
+    ret = buf;
+  }
+
+#if !defined(NDEBUG)
+  // This is aimed to help catch callers who don't provide
+  // |ERR_ERROR_STRING_BUF_LEN| bytes of space.
+  OPENSSL_memset(ret, 0, ERR_ERROR_STRING_BUF_LEN);
+#endif
+
+  return ERR_error_string_n(packed_error, ret, ERR_ERROR_STRING_BUF_LEN);
+}
+
+char *ERR_error_string_n(uint32_t packed_error, char *buf, size_t len) {
+  if (len == 0) {
+    return NULL;
+  }
+
+  unsigned lib = ERR_GET_LIB(packed_error);
+  unsigned reason = ERR_GET_REASON(packed_error);
+
+  const char *lib_str = err_lib_error_string(packed_error);
+  const char *reason_str = err_reason_error_string(packed_error);
+
+  char lib_buf[64], reason_buf[64];
+  if (lib_str == NULL) {
+    BIO_snprintf(lib_buf, sizeof(lib_buf), "lib(%u)", lib);
+    lib_str = lib_buf;
+  }
+
+ if (reason_str == NULL) {
+    BIO_snprintf(reason_buf, sizeof(reason_buf), "reason(%u)", reason);
+    reason_str = reason_buf;
+  }
+
+  BIO_snprintf(buf, len, "error:%08" PRIx32 ":%s:OPENSSL_internal:%s",
+               packed_error, lib_str, reason_str);
+
+  if (strlen(buf) == len - 1) {
+    // output may be truncated; make sure we always have 5 colon-separated
+    // fields, i.e. 4 colons.
+    static const unsigned num_colons = 4;
+    unsigned i;
+    char *s = buf;
+
+    if (len <= num_colons) {
+      // In this situation it's not possible to ensure that the correct number
+      // of colons are included in the output.
+      return buf;
+    }
+
+    for (i = 0; i < num_colons; i++) {
+      char *colon = strchr(s, ':');
+      char *last_pos = &buf[len - 1] - num_colons + i;
+
+      if (colon == NULL || colon > last_pos) {
+        // set colon |i| at last possible position (buf[len-1] is the
+        // terminating 0). If we're setting this colon, then all whole of the
+        // rest of the string must be colons in order to have the correct
+        // number.
+        OPENSSL_memset(last_pos, ':', num_colons - i);
+        break;
+      }
+
+      s = colon + 1;
+    }
+  }
+
+  return buf;
 }
 
 void ERR_print_errors_cb(ERR_print_errors_callback_t callback, void *ctx) {

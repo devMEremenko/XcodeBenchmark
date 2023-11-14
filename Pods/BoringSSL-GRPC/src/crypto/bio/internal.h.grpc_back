@@ -57,7 +57,7 @@
 #ifndef OPENSSL_HEADER_BIO_INTERNAL_H
 #define OPENSSL_HEADER_BIO_INTERNAL_H
 
-#include <openssl/base.h>
+#include <openssl_grpc/base.h>
 
 #if !defined(OPENSSL_WINDOWS)
 #if defined(OPENSSL_PNACL)

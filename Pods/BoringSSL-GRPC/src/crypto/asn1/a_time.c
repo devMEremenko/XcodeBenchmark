@@ -63,7 +63,7 @@
 #include <openssl_grpc/err.h>
 #include <openssl_grpc/mem.h>
 
-#include "asn1_locl.h"
+#include "internal.h"
 
 /*
  * This is an implementation of the ASN1 Time structure which is: Time ::=
@@ -73,7 +73,7 @@
 
 IMPLEMENT_ASN1_MSTRING(ASN1_TIME, B_ASN1_TIME)
 
-IMPLEMENT_ASN1_FUNCTIONS(ASN1_TIME)
+IMPLEMENT_ASN1_FUNCTIONS_const(ASN1_TIME)
 
 ASN1_TIME *ASN1_TIME_set(ASN1_TIME *s, time_t t)
 {
@@ -100,7 +100,7 @@ ASN1_TIME *ASN1_TIME_adj(ASN1_TIME *s, time_t t,
     return ASN1_GENERALIZEDTIME_adj(s, t, offset_day, offset_sec);
 }
 
-int ASN1_TIME_check(ASN1_TIME *t)
+int ASN1_TIME_check(const ASN1_TIME *t)
 {
     if (t->type == V_ASN1_GENERALIZEDTIME)
         return ASN1_GENERALIZEDTIME_check(t);
@@ -110,7 +110,7 @@ int ASN1_TIME_check(ASN1_TIME *t)
 }
 
 /* Convert an ASN1_TIME structure to GeneralizedTime */
-ASN1_GENERALIZEDTIME *ASN1_TIME_to_generalizedtime(ASN1_TIME *t,
+ASN1_GENERALIZEDTIME *ASN1_TIME_to_generalizedtime(const ASN1_TIME *t,
                                                    ASN1_GENERALIZEDTIME **out)
 {
     ASN1_GENERALIZEDTIME *ret = NULL;
@@ -200,7 +200,7 @@ static int asn1_time_to_tm(struct tm *tm, const ASN1_TIME *t)
     return 0;
 }
 
-int ASN1_TIME_diff(int *pday, int *psec,
+int ASN1_TIME_diff(int *out_days, int *out_seconds,
                    const ASN1_TIME *from, const ASN1_TIME *to)
 {
     struct tm tm_from, tm_to;
@@ -208,5 +208,5 @@ int ASN1_TIME_diff(int *pday, int *psec,
         return 0;
     if (!asn1_time_to_tm(&tm_to, to))
         return 0;
-    return OPENSSL_gmtime_diff(pday, psec, &tm_from, &tm_to);
+    return OPENSSL_gmtime_diff(out_days, out_seconds, &tm_from, &tm_to);
 }

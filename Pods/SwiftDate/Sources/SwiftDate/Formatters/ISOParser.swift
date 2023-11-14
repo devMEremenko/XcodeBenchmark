@@ -1,9 +1,13 @@
 //
-//  ISOParser.swift
 //  SwiftDate
+//  Parse, validate, manipulate, and display dates, time and timezones in Swift
 //
-//  Created by Daniele Margutti on 06/06/2018.
-//  Copyright © 2018 SwiftDate. All rights reserved.
+//  Created by Daniele Margutti
+//   - Web: https://www.danielemargutti.com
+//   - Twitter: https://twitter.com/danielemargutti
+//   - Mail: hello@danielemargutti.com
+//
+//  Copyright © 2019 Daniele Margutti. Licensed under MIT License.
 //
 
 // swiftlint:disable file_length
@@ -76,13 +80,8 @@ public class ISOParser: StringToDateTransformable {
 		/// Strict parsing. By default is `false`.
 		var strict: Bool = false
 
-		/// Calendar used to generate the date.
-		/// By default is the gregorian calendar.
-		internal var calendar = Calendars.gregorian.toCalendar()
-
-		public init(strict: Bool = false, calendar: Calendar? = nil) {
+		public init(strict: Bool = false) {
 			self.strict = strict
-			self.calendar = calendar ?? Calendar.current
 		}
 	}
 
@@ -145,6 +144,9 @@ public class ISOParser: StringToDateTransformable {
 		var timezone: TimeZone?
 	}
 
+	/// Source generation calendar.
+	private var srcCalendar = Calendars.gregorian.toCalendar()
+
 	/// Source raw parsed values
 	private var date = ParsedDate()
 
@@ -183,8 +185,8 @@ public class ISOParser: StringToDateTransformable {
 	/// Date adjusted at parsed timezone
 	private var dateInTimezone: Date? {
 		get {
-			options.calendar.timeZone = date.timezone ?? TimeZone(identifier: "UTC")!
-			return options.calendar.date(from: date_components!)
+			srcCalendar.timeZone = date.timezone ?? TimeZone(identifier: "UTC")!
+			return srcCalendar.date(from: date_components!)
 		}
 	}
 
@@ -207,7 +209,7 @@ public class ISOParser: StringToDateTransformable {
 		cIdx = string.startIndex
 		eIdx = string.endIndex
 		self.options = (options ?? ISOParser.Options())
-		self.now_cmps = self.options.calendar.dateComponents([.year, .month, .day], from: Date())
+		self.now_cmps = srcCalendar.dateComponents([.year, .month, .day], from: Date())
 
 		var idx = cIdx
 		while idx < eIdx {
@@ -406,8 +408,8 @@ public class ISOParser: StringToDateTransformable {
 
 		let tz = date.timezone ?? TimeZone(identifier: "UTC")!
 		parsedTimeZone = tz
-		options.calendar.timeZone = tz
-		parsedDate = options.calendar.date(from: date_components!)
+		srcCalendar.timeZone = tz
+		parsedDate = srcCalendar.date(from: date_components!)
 
 		return (parsedDate, parsedTimeZone)
 	}
@@ -763,7 +765,7 @@ public class ISOParser: StringToDateTransformable {
 		return char.isDigit
 	}
 
-	/// MARK: - Scanner internal functions
+	// MARK: - Scanner internal functions
 
 	/// Get the value at specified offset from current scanner position without
 	/// moving the current scanner's index.
@@ -915,15 +917,15 @@ public class ISOParser: StringToDateTransformable {
 		return (parser.parsedDate, parser.parsedTimeZone)
 	}
 
-	public static func parse(_ string: String, region: Region, options: Any?) -> DateInRegion? {
+	public static func parse(_ string: String, region: Region?, options: Any?) -> DateInRegion? {
 		let formatOptions = options as? ISOParser.Options
 		guard let parser = ISOParser(string, options: formatOptions),
 			let date = parser.parsedDate else {
 			return nil
 		}
-		let parsedRegion = Region(calendar: region.calendar,
-								  zone: (parser.parsedTimeZone ?? region.timeZone),
-								  locale: region.locale)
+		let parsedRegion = Region(calendar: region?.calendar ?? Region.ISO.calendar,
+								  zone: (region?.timeZone ?? parser.parsedTimeZone ?? Region.ISO.timeZone),
+								  locale: region?.locale ?? Region.ISO.locale)
 		return DateInRegion(date, region: parsedRegion)
 	}
 

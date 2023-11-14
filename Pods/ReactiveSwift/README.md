@@ -7,9 +7,50 @@
 
 [![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](#carthage) [![CocoaPods compatible](https://img.shields.io/cocoapods/v/ReactiveSwift.svg)](#cocoapods) [![SwiftPM compatible](https://img.shields.io/badge/SwiftPM-compatible-orange.svg)](#swift-package-manager) [![GitHub release](https://img.shields.io/github/release/ReactiveCocoa/ReactiveSwift.svg)](https://github.com/ReactiveCocoa/ReactiveSwift/releases) ![Swift 5.1](https://img.shields.io/badge/Swift-5.1-orange.svg) ![platforms](https://img.shields.io/badge/platform-iOS%20%7C%20macOS%20%7C%20tvOS%20%7C%20watchOS%20%7C%20Linux-lightgrey.svg)
 
-🎉 [Getting Started](#getting-started) 🚄 [Release Roadmap](#release-roadmap)
+🚄 [Release Roadmap](#release-roadmap)
 
-## What is ReactiveSwift?
+## Getting Started
+
+Learn about the **[Core Reactive Primitives][]** in ReactiveSwift, and **[Basic Operators][]** available offered by these primitives.
+
+### Extended modules
+
+<table>
+<tr>
+	<th>Module</th>
+	<th>Repository</th>
+	<th>Description</th>
+</tr>
+<tr>
+	<td>ReactiveCocoa</td>
+	<td>
+		<a href="https://github.com/ReactiveCocoa/ReactiveCocoa">ReactiveCocoa/ReactiveCocoa</a>
+		<br />
+		<a href="https://github.com/ReactiveCocoa/ReactiveCocoa/releases"><img src="https://img.shields.io/github/release/ReactiveCocoa/ReactiveCocoa.svg" /><a>
+	</td>
+	<td><p>Extend Cocoa frameworks and Objective-C runtime APIs with ReactiveSwift bindings and extensions.</p></td>
+</tr>
+<tr>
+	<td>Loop</td>
+	<td>
+		<a href="https://github.com/ReactiveCocoa/Loop">ReactiveCocoa/Loop</a>
+		<br />
+		<a href="https://github.com/ReactiveCocoa/Loop/releases"><img src="https://img.shields.io/github/release/ReactiveCocoa/Loop.svg" /><a>
+	</td>
+	<td><p>Composable unidirectional data flow with ReactiveSwift.</p></td>
+</tr>
+<tr>
+	<td>ReactiveSwift Composable Architecture</td>
+	<td>
+		<a href="https://github.com/trading-point/reactiveswift-composable-architecture">trading-point/reactiveswift-composable-architecture</a>
+		<br />
+		<a href="https://github.com/trading-point/reactiveswift-composable-architecture/releases"><img src="https://img.shields.io/github/release/trading-point/reactiveswift-composable-architecture.svg" /><a>
+	</td>
+	<td><p>The <a href="https://github.com/pointfreeco/swift-composable-architecture">Pointfree Composable Architecture</a> using ReactiveSwift instead of Combine.</p></td>
+</tr>
+</table>
+
+## What is ReactiveSwift in a nutshell?
 __ReactiveSwift__ offers composable, declarative and flexible primitives that are built around the grand concept of ___streams of values over time___.
 
 These primitives can be used to uniformly represent common Cocoa and generic programming patterns that are fundamentally an act of observation, e.g. delegate pattern, callback closures, notifications, control actions, responder chain events, [futures/promises](https://en.wikipedia.org/wiki/Futures_and_promises) and [key-value observing](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/KeyValueObserving/KeyValueObserving.html) (KVO).
@@ -18,41 +59,7 @@ Because all of these different mechanisms can be represented in the _same_ way,
 it’s easy to declaratively compose them together, with less spaghetti
 code and state to bridge the gap.
 
-## Getting Started
-
-1. **[Core Reactive Primitives][]**
-
-   An overview of the semantics and example use cases of the ReactiveSwift primitives, including [`Signal`][], [`SignalProducer`][], [`Property`][] and [`Action`][].
-
-1. **[Basic Operators][]**
-
-   An overview of the operators provided to compose and transform streams of values.
-   
-1. **[ReactiveCocoa][ReactiveCocoa]**
-
-   Building on top of ReactiveSwift, **ReactiveCocoa** extends Cocoa platform frameworks with reactive bindings and extensions.
-   
-   [![GitHub release](https://img.shields.io/github/release/ReactiveCocoa/ReactiveCocoa.svg)](https://github.com/ReactiveCocoa/ReactiveCocoa/releases)[![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/ReactiveCocoa/ReactiveCocoa/#carthage) [![CocoaPods compatible](https://img.shields.io/cocoapods/v/ReactiveCocoa.svg)](https://github.com/ReactiveCocoa/ReactiveCocoa/#cocoapods)
-
-1. **[How does ReactiveSwift relate to RxSwift?][]**
-
-   An overview of how ReactiveSwift differs from RxSwift for Swift idiomaticity.
-   
-## Examples
-
-1. **Interactive Form UI**
-
-     ReactiveSwift includes a [_UI Examples_ playground][], which demonstrates:
-     * how to build an interactive form UI with bindings, properties and `Action`s, with a live view in action.
-     * how to use reactive primitives to implement the Model-View-ViewModel architectural pattern, with the View Model being the source of truth for the View.
-
-1. **[Online Searching][]**
-
-## Advanced Topics
-
-1. **[ReactiveCocoa][]**
-   
-   Bindings and reactive extensions for Cocoa and Cocoa Touch frameworks are offered separately as ReactiveCocoa.
+## References
 
 1. **[API Reference][]**
 
@@ -62,9 +69,11 @@ code and state to bridge the gap.
 
 1. **[Debugging Techniques][]**
 
+1. **[RxSwift Migration Cheatsheet][]**
+
 ## Installation
 
-ReactiveSwift supports macOS 10.9+, iOS 8.0+, watchOS 2.0+, tvOS 9.0+ and Linux.
+ReactiveSwift supports macOS 10.13+, iOS 11.0+, watchOS 4.0+, tvOS 11.0+ and Linux.
 
 #### Carthage
 
@@ -109,11 +118,11 @@ of your package in `Package.swift`:
 
 ## Playground
 
-We also provide a great Playground, so you can get used to ReactiveCocoa's operators. In order to start using it:
+We also provide a Playground, so you can get used to ReactiveCocoa's operators. In order to start using it:
 
  1. Clone the ReactiveSwift repository.
  1. Retrieve the project dependencies using one of the following terminal commands from the ReactiveSwift project root directory:
-     - `git submodule update --init --recursive` **OR**, if you have [Carthage][] installed    
+     - `git submodule update --init --recursive` **OR**, if you have [Carthage][] installed
      - `carthage checkout`
  1. Open `ReactiveSwift.xcworkspace`
  1. Build `ReactiveSwift-macOS` scheme
@@ -128,7 +137,7 @@ If you need any help, please visit our [GitHub issues][] or [Stack Overflow][]. 
 
 ### Plan of Record
 #### ABI stability release
-ReactiveSwift is expected to declare library ABI stability when Swift rolls out resilence support. Until then, ReactiveSwift would incrementally adopt new language features that help move towards to goal.
+ReactiveSwift has no plan to declare ABI and module stability at the moment. It will continue to be offered as a source only dependency for the foreseeable future.
 
 [Core Reactive Primitives]: Documentation/ReactivePrimitives.md
 [Basic Operators]: Documentation/BasicOperators.md
@@ -136,6 +145,7 @@ ReactiveSwift is expected to declare library ABI stability when Swift rolls out 
 [API Contracts]: Documentation/APIContracts.md
 [API Reference]: http://reactivecocoa.io/reactiveswift/docs/latest/
 [Debugging Techniques]: Documentation/DebuggingTechniques.md
+[RxSwift Migration Cheatsheet]: Documentation/RxCheatsheet.md
 [Online Searching]: Documentation/Example.OnlineSearch.md
 [_UI Examples_ playground]: https://github.com/ReactiveCocoa/ReactiveSwift/blob/master/ReactiveSwift-UIExamples.playground/Pages/ValidatingProperty.xcplaygroundpage/Contents.swift
 

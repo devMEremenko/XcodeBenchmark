@@ -24,8 +24,6 @@
 #import "VKApiObjectArray.h"
 #import "VKPhotoSize.h"
 
-@class VKLikes;
-
 /**
 Photo type of VK API. See descriptions here https://vk.com/dev/photo
 */
@@ -33,17 +31,13 @@ Photo type of VK API. See descriptions here https://vk.com/dev/photo
 @property(nonatomic, strong) NSNumber *id;
 @property(nonatomic, strong) NSNumber *album_id;
 @property(nonatomic, strong) NSNumber *owner_id;
-@property(nonatomic, strong) NSString *photo_75;
-@property(nonatomic, strong) NSString *photo_130;
-@property(nonatomic, strong) NSString *photo_604;
-@property(nonatomic, strong) NSString *photo_807;
-@property(nonatomic, strong) NSString *photo_1280;
-@property(nonatomic, strong) NSString *photo_2560;
-@property(nonatomic, strong) NSNumber *width;
-@property(nonatomic, strong) NSNumber *height;
+@property(nonatomic, strong) NSNumber *user_id;
 @property(nonatomic, strong) NSString *text;
 @property(nonatomic, strong) NSNumber *date;
 @property(nonatomic, strong) VKPhotoSizes *sizes;
+@property(nonatomic, strong) NSNumber *width;
+@property(nonatomic, strong) NSNumber *height;
+
 @property(nonatomic, readonly) NSString *attachmentString;
 @end
 

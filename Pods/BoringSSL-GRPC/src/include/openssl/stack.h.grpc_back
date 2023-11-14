@@ -57,9 +57,9 @@
 #ifndef OPENSSL_HEADER_STACK_H
 #define OPENSSL_HEADER_STACK_H
 
-#include <openssl/base.h>
+#include <openssl_grpc/base.h>
 
-#include <openssl/type_check.h>
+#include <openssl_grpc/type_check.h>
 
 #if defined(__cplusplus)
 extern "C" {

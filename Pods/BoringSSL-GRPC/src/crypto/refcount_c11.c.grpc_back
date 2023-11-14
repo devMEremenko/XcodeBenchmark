@@ -22,7 +22,7 @@
 #include <stdatomic.h>
 #include <stdlib.h>
 
-#include <openssl/type_check.h>
+#include <openssl_grpc/type_check.h>
 
 
 // See comment above the typedef of CRYPTO_refcount_t about these tests.

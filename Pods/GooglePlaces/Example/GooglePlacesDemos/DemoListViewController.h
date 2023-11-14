@@ -17,9 +17,7 @@
 
 #import "GooglePlacesDemos/DemoData.h"
 
-/**
- * The class which displays the list of demos.
- */
+/** The class which displays the list of demos. */
 @interface DemoListViewController : UITableViewController
 
 /**

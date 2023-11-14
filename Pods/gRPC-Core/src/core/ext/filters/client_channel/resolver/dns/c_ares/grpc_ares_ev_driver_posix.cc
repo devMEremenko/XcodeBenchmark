@@ -17,88 +17,97 @@
  */
 #include <grpc/support/port_platform.h>
 
+#include <memory>
+#include <string>
+
+#include "absl/base/thread_annotations.h"
+#include "absl/memory/memory.h"
+
+#include "src/core/lib/gprpp/sync.h"
+#include "src/core/lib/iomgr/closure.h"
+#include "src/core/lib/iomgr/error.h"
+#include "src/core/lib/iomgr/iomgr_fwd.h"
 #include "src/core/lib/iomgr/port.h"
 #if GRPC_ARES == 1 && defined(GRPC_POSIX_SOCKET_ARES_EV_DRIVER)
 
-#include <ares.h>
 #include <string.h>
 #include <sys/ioctl.h>
 
-#include "src/core/ext/filters/client_channel/resolver/dns/c_ares/grpc_ares_ev_driver.h"
+#include <ares.h>
 
-#include <grpc/support/alloc.h>
-#include <grpc/support/log.h>
-#include <grpc/support/string_util.h>
-#include <grpc/support/time.h>
+#include "absl/strings/str_cat.h"
+
+#include "src/core/ext/filters/client_channel/resolver/dns/c_ares/grpc_ares_ev_driver.h"
 #include "src/core/ext/filters/client_channel/resolver/dns/c_ares/grpc_ares_wrapper.h"
-#include "src/core/lib/gpr/string.h"
 #include "src/core/lib/iomgr/ev_posix.h"
-#include "src/core/lib/iomgr/iomgr_internal.h"
-#include "src/core/lib/iomgr/sockaddr_utils.h"
 
 namespace grpc_core {
 
 class GrpcPolledFdPosix : public GrpcPolledFd {
  public:
   GrpcPolledFdPosix(ares_socket_t as, grpc_pollset_set* driver_pollset_set)
-      : as_(as) {
-    gpr_asprintf(&name_, "c-ares fd: %d", (int)as);
-    fd_ = grpc_fd_create((int)as, name_, false);
+      : name_(absl::StrCat("c-ares fd: ", static_cast<int>(as))), as_(as) {
+    fd_ = grpc_fd_create(static_cast<int>(as), name_.c_str(), false);
     driver_pollset_set_ = driver_pollset_set;
     grpc_pollset_set_add_fd(driver_pollset_set_, fd_);
   }
 
-  ~GrpcPolledFdPosix() {
-    gpr_free(name_);
+  ~GrpcPolledFdPosix() override {
     grpc_pollset_set_del_fd(driver_pollset_set_, fd_);
     /* c-ares library will close the fd inside grpc_fd. This fd may be picked up
        immediately by another thread, and should not be closed by the following
        grpc_fd_orphan. */
-    int dummy_release_fd;
-    grpc_fd_orphan(fd_, nullptr, &dummy_release_fd, "c-ares query finished");
+    int phony_release_fd;
+    grpc_fd_orphan(fd_, nullptr, &phony_release_fd, "c-ares query finished");
   }
 
-  void RegisterForOnReadableLocked(grpc_closure* read_closure) override {
+  void RegisterForOnReadableLocked(grpc_closure* read_closure)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(&grpc_ares_request::mu) override {
     grpc_fd_notify_on_read(fd_, read_closure);
   }
 
-  void RegisterForOnWriteableLocked(grpc_closure* write_closure) override {
+  void RegisterForOnWriteableLocked(grpc_closure* write_closure)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(&grpc_ares_request::mu) override {
     grpc_fd_notify_on_write(fd_, write_closure);
   }
 
-  bool IsFdStillReadableLocked() override {
+  bool IsFdStillReadableLocked()
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(&grpc_ares_request::mu) override {
     size_t bytes_available = 0;
     return ioctl(grpc_fd_wrapped_fd(fd_), FIONREAD, &bytes_available) == 0 &&
            bytes_available > 0;
   }
 
-  void ShutdownLocked(grpc_error* error) override {
+  void ShutdownLocked(grpc_error_handle error)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(&grpc_ares_request::mu) override {
     grpc_fd_shutdown(fd_, error);
   }
 
-  ares_socket_t GetWrappedAresSocketLocked() override { return as_; }
+  ares_socket_t GetWrappedAresSocketLocked()
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(&grpc_ares_request::mu) override {
+    return as_;
+  }
 
-  const char* GetName() override { return name_; }
+  const char* GetName() const override { return name_.c_str(); }
 
-  char* name_;
-  ares_socket_t as_;
-  grpc_fd* fd_;
-  grpc_pollset_set* driver_pollset_set_;
+ private:
+  const std::string name_;
+  const ares_socket_t as_;
+  grpc_fd* fd_ ABSL_GUARDED_BY(&grpc_ares_request::mu);
+  grpc_pollset_set* driver_pollset_set_ ABSL_GUARDED_BY(&grpc_ares_request::mu);
 };
 
 class GrpcPolledFdFactoryPosix : public GrpcPolledFdFactory {
  public:
-  GrpcPolledFd* NewGrpcPolledFdLocked(ares_socket_t as,
-                                      grpc_pollset_set* driver_pollset_set,
-                                      Combiner* /*combiner*/) override {
+  GrpcPolledFd* NewGrpcPolledFdLocked(
+      ares_socket_t as, grpc_pollset_set* driver_pollset_set) override {
     return new GrpcPolledFdPosix(as, driver_pollset_set);
   }
 
   void ConfigureAresChannelLocked(ares_channel /*channel*/) override {}
 };
 
-std::unique_ptr<GrpcPolledFdFactory> NewGrpcPolledFdFactory(
-    Combiner* /*combiner*/) {
+std::unique_ptr<GrpcPolledFdFactory> NewGrpcPolledFdFactory(Mutex* /* mu */) {
   return absl::make_unique<GrpcPolledFdFactoryPosix>();
 }
 

@@ -7,6 +7,7 @@
 //  License: MIT License
 //
 
+#if !os(watchOS)
 import Foundation
 import UIKit
 
@@ -62,3 +63,4 @@ public extension UICollectionView {
     register(UINib(resource: nibResource), forSupplementaryViewOfKind: kind, withReuseIdentifier: nibResource.identifier)
   }
 }
+#endif
