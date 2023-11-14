@@ -23,12 +23,9 @@
 
 #include <grpc/support/port_platform.h>
 
-#include <grpc/support/log.h>
-#include <grpc/support/sync.h>
-#include <grpc/support/thd_id.h>
-#include <grpc/support/time.h>
+#include <stddef.h>
 
-#include "src/core/lib/gprpp/memory.h"
+#include <grpc/support/log.h>
 
 namespace grpc_core {
 namespace internal {
@@ -91,7 +88,7 @@ class Thread {
 
   /// Move constructor for thread. After this is called, the other thread
   /// no longer represents a living thread object
-  Thread(Thread&& other)
+  Thread(Thread&& other) noexcept
       : state_(other.state_), impl_(other.impl_), options_(other.options_) {
     other.state_ = MOVED;
     other.impl_ = nullptr;
@@ -101,7 +98,7 @@ class Thread {
   /// Move assignment operator for thread. After this is called, the other
   /// thread no longer represents a living thread object. Not allowed if this
   /// thread actually exists
-  Thread& operator=(Thread&& other) {
+  Thread& operator=(Thread&& other) noexcept {
     if (this != &other) {
       // TODO(vjpai): if we can be sure that all Thread's are actually
       // constructed, then we should assert GPR_ASSERT(impl_ == nullptr) here.
@@ -157,7 +154,7 @@ class Thread {
   Thread& operator=(const Thread&) = delete;
 
   /// The thread states are as follows:
-  /// FAKE -- just a dummy placeholder Thread created by the default constructor
+  /// FAKE -- just a phony placeholder Thread created by the default constructor
   /// ALIVE -- an actual thread of control exists associated with this thread
   /// STARTED -- the thread of control has been started
   /// DONE -- the thread of control has completed and been joined

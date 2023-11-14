@@ -8,49 +8,58 @@ target 'XcodeBenchmark' do
   inhibit_all_warnings!
   
   # Firebase
-  pod 'Firebase/Database'
-  pod 'Firebase/RemoteConfig'
-  pod 'Firebase/Crashlytics'
-  pod 'Firebase/Analytics'
-  pod 'Firebase/Messaging'
-  pod 'FirebaseFirestoreSwift'
-  pod 'Firebase/Storage'
-  pod 'Firebase/Performance'
-  
+  pod 'FirebaseCore', :git => 'https://github.com/firebase/firebase-ios-sdk.git', :branch => 'master'
+  pod 'FirebaseFirestore', :git => 'https://github.com/firebase/firebase-ios-sdk.git', :branch => 'master'
+  pod 'FirebaseAuth'
+  pod 'FirebaseAnalytics'
+  pod 'FirebaseRemoteConfig'
+  pod 'FirebaseStorage'
+  pod 'FirebaseMessaging'
+
+#  pod 'Firebase'
+#  pod 'Firebase/Database'
+#  pod 'Firebase/RemoteConfig'
+#  pod 'Firebase/Analytics'
+#  pod 'Firebase/Messaging'
+#  pod 'FirebaseFirestoreSwift'
+#  pod 'Firebase/Storage'
+
+  pod 'lottie-ios'
+
   # Networking
-  pod 'AFNetworking', '~> 4.0'
-  pod 'SDWebImage', '~> 5.0'
-  pod 'Moya', '~> 14.0'
-  pod 'Starscream', '~> 4.0.0'
+  pod 'AFNetworking'
+  pod 'SDWebImage'
+  pod 'Moya'
+  pod 'Starscream'
   
   # Core
-  pod 'SwiftyJSON', '~> 4.0'
-  pod 'Realm', '~> 5.3.4'
+  pod 'SwiftyJSON'
+  pod 'Realm'
   pod 'MagicalRecord', :git => 'https://github.com/magicalpanda/MagicalRecord'
-  pod 'RxBluetoothKit', :git => 'https://github.com/i-mobility/RxBluetoothKit.git', :tag => '7.0.2'
-  pod 'ReactiveCocoa', '~> 10.1'
-  pod 'CryptoSwift', '~> 1.4.0'
+  pod 'RxBluetoothKit', :git => 'https://github.com/i-mobility/RxBluetoothKit.git', :tag => '7.0.4'
+  pod 'ReactiveCocoa'
+  pod 'CryptoSwift'
   pod 'R.swift.Library'
   pod 'ObjectMapper'
   
-  pod 'TRON', '~> 5.0.0'
-  pod 'DTCollectionViewManager', '~> 8.0.0'
-  pod 'DTTableViewManager', '~> 8.0.0'
+  pod 'TRON'
+  pod 'DTCollectionViewManager'
+  pod 'DTTableViewManager'
   pod 'Ariadne'
   pod 'LoadableViews'
   
-  pod 'SwiftDate', '~> 5.0'
+  pod 'SwiftDate'
   pod 'SwiftyBeaver'
   
   # UI
   pod 'Hero'
   pod 'SVProgressHUD'
-  pod 'Eureka', '~> 5.3.2'
+  pod 'Eureka'
   pod 'IQKeyboardManagerSwift'
-  pod 'Macaw', '0.9.7'
+  pod 'Macaw'
   
   # Layout
-  pod 'SnapKit', '~> 5.0.0'
+  pod 'SnapKit'
   pod 'Masonry'
 
   # Google
@@ -71,6 +80,11 @@ post_install do |pi|
         t.build_configurations.each do |config|
             config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = minimum_target
             config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+
+            xcconfig_path = config.base_configuration_reference.real_path
+            xcconfig = File.read(xcconfig_path)
+            xcconfig_mod = xcconfig.gsub(/DT_TOOLCHAIN_DIR/, "TOOLCHAIN_DIR")
+            File.open(xcconfig_path, "w") { |file| file << xcconfig_mod }
         end
     end
 end

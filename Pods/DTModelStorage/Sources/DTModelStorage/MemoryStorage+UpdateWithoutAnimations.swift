@@ -29,7 +29,7 @@ extension MemoryStorage
     ///
     /// You can think of this method as a way of "manual" management for memory storage. Typical usage would be multiple insertions/deletions etc., if you don't need any animations. You can batch any changes in block, and call reloadData on your UI component after this method was call.
     /// - Note: You must call reloadData after calling this method, or you will get NSInternalInconsistencyException runtime, thrown by either UITableView or UICollectionView.
-    open func updateWithoutAnimations(_ block: () -> Void)
+    public func updateWithoutAnimations(_ block: () -> Void)
     {
         let delegate = self.delegate
         let recordingDelegate = RecordingDelegate()

@@ -20,6 +20,8 @@
 
 #include "src/core/tsi/alts/handshaker/transport_security_common_api.h"
 
+#include "upb/upb.hpp"
+
 bool grpc_gcp_rpc_protocol_versions_set_max(
     grpc_gcp_rpc_protocol_versions* versions, uint32_t max_major,
     uint32_t max_minor) {
@@ -66,7 +68,7 @@ bool grpc_gcp_rpc_protocol_versions_encode(
 }
 
 bool grpc_gcp_rpc_protocol_versions_encode(
-    const grpc_gcp_RpcProtocolVersions* versions, upb_arena* arena,
+    const grpc_gcp_RpcProtocolVersions* versions, upb_Arena* arena,
     grpc_slice* slice) {
   if (versions == nullptr || arena == nullptr || slice == nullptr) {
     gpr_log(GPR_ERROR,
@@ -133,7 +135,7 @@ void grpc_gcp_rpc_protocol_versions_assign_from_upb(
 }
 
 void grpc_gcp_RpcProtocolVersions_assign_from_struct(
-    grpc_gcp_RpcProtocolVersions* versions, upb_arena* arena,
+    grpc_gcp_RpcProtocolVersions* versions, upb_Arena* arena,
     const grpc_gcp_rpc_protocol_versions* value) {
   grpc_gcp_RpcProtocolVersions_Version* max_version_msg =
       grpc_gcp_RpcProtocolVersions_mutable_max_rpc_version(versions, arena);
@@ -212,9 +214,7 @@ bool grpc_gcp_rpc_protocol_versions_check(
           ? &local_versions->min_rpc_version
           : &peer_versions->min_rpc_version;
   bool result = grpc_core::internal::grpc_gcp_rpc_protocol_version_compare(
-                    max_common_version, min_common_version) >= 0
-                    ? true
-                    : false;
+                    max_common_version, min_common_version) >= 0;
   if (result && highest_common_version != nullptr) {
     memcpy(highest_common_version, max_common_version,
            sizeof(grpc_gcp_rpc_protocol_versions_version));

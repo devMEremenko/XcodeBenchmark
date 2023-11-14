@@ -18,6 +18,8 @@ final class AnimatedCurrentLocationViewController: UIViewController {
 
   private var locationMarker: GMSMarker?
 
+  private let locationManager = CLLocationManager()
+
   private lazy var mapView: GMSMapView = {
     let camera = GMSCameraPosition(latitude: 38.8879, longitude: -77.0200, zoom: 17)
     return GMSMapView(frame: .zero, camera: camera)
@@ -43,12 +45,11 @@ final class AnimatedCurrentLocationViewController: UIViewController {
       return
     }
 
-    let manager = CLLocationManager()
-    manager.requestWhenInUseAuthorization()
-    manager.delegate = self
-    manager.desiredAccuracy = kCLLocationAccuracyBest
-    manager.distanceFilter = 5.0
-    manager.startUpdatingLocation()
+    locationManager.requestWhenInUseAuthorization()
+    locationManager.delegate = self
+    locationManager.desiredAccuracy = kCLLocationAccuracyBest
+    locationManager.distanceFilter = 5.0
+    locationManager.startUpdatingLocation()
   }
 }
 

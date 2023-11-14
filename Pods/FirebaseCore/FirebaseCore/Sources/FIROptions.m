@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#import "FirebaseCore/Extension/FIRAppInternal.h"
+#import "FirebaseCore/Extension/FIRLogger.h"
+#import "FirebaseCore/Extension/FIROptionsInternal.h"
 #import "FirebaseCore/Sources/FIRBundleUtil.h"
-#import "FirebaseCore/Sources/FIRVersion.h"
-#import "FirebaseCore/Sources/Private/FIRAppInternal.h"
-#import "FirebaseCore/Sources/Private/FIRLogger.h"
-#import "FirebaseCore/Sources/Private/FIROptionsInternal.h"
+#import "FirebaseCore/Sources/Public/FirebaseCore/FIRVersion.h"
 
 // Keys for the strings in the plist file.
 NSString *const kFIRAPIKey = @"API_KEY";
@@ -35,9 +35,6 @@ NSString *const kFIRProjectID = @"PROJECT_ID";
 NSString *const kFIRIsMeasurementEnabled = @"IS_MEASUREMENT_ENABLED";
 NSString *const kFIRIsAnalyticsCollectionEnabled = @"FIREBASE_ANALYTICS_COLLECTION_ENABLED";
 NSString *const kFIRIsAnalyticsCollectionDeactivated = @"FIREBASE_ANALYTICS_COLLECTION_DEACTIVATED";
-
-NSString *const kFIRIsAnalyticsEnabled = @"IS_ANALYTICS_ENABLED";
-NSString *const kFIRIsSignInEnabled = @"IS_SIGNIN_ENABLED";
 
 // Library version ID formatted like:
 // @"5"     // Major version (one or more digits)
@@ -160,9 +157,9 @@ static dispatch_once_t sDefaultOptionsDictionaryOnceToken;
 }
 
 - (id)copyWithZone:(NSZone *)zone {
-  FIROptions *newOptions = [[[self class] allocWithZone:zone] init];
+  FIROptions *newOptions = [(FIROptions *)[[self class] allocWithZone:zone]
+      initInternalWithOptionsDictionary:self.optionsDictionary];
   if (newOptions) {
-    newOptions.optionsDictionary = self.optionsDictionary;
     newOptions.deepLinkURLScheme = self.deepLinkURLScheme;
     newOptions.appGroupID = self.appGroupID;
     newOptions.editingLocked = self.isEditingLocked;
@@ -172,6 +169,12 @@ static dispatch_once_t sDefaultOptionsDictionaryOnceToken;
 }
 
 #pragma mark - Public instance methods
+
+- (instancetype)init {
+  // Unavailable.
+  [self doesNotRecognizeSelector:_cmd];
+  return nil;
+}
 
 - (instancetype)initWithContentsOfFile:(NSString *)plistPath {
   self = [super init];
@@ -279,7 +282,7 @@ static dispatch_once_t sDefaultOptionsDictionaryOnceToken;
   static dispatch_once_t onceToken;
   dispatch_once(&onceToken, ^{
     // The unit tests are set up to catch anything that does not properly convert.
-    NSString *version = [NSString stringWithUTF8String:FIRCoreVersionString];
+    NSString *version = FIRFirebaseVersion();
     NSArray *components = [version componentsSeparatedByString:@"."];
     NSString *major = [components objectAtIndex:0];
     NSString *minor = [NSString stringWithFormat:@"%02d", [[components objectAtIndex:1] intValue]];
@@ -479,14 +482,6 @@ static dispatch_once_t sDefaultOptionsDictionaryOnceToken;
     return NO;  // Analytics Collection is not deactivated when the key is not in the dictionary.
   }
   return [value boolValue];
-}
-
-- (BOOL)isAnalyticsEnabled {
-  return [self.optionsDictionary[kFIRIsAnalyticsEnabled] boolValue];
-}
-
-- (BOOL)isSignInEnabled {
-  return [self.optionsDictionary[kFIRIsSignInEnabled] boolValue];
 }
 
 @end

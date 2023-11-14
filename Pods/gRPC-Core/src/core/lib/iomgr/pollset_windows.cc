@@ -106,9 +106,9 @@ static void pollset_shutdown(grpc_pollset* pollset, grpc_closure* closure) {
 
 static void pollset_destroy(grpc_pollset* pollset) {}
 
-static grpc_error* pollset_work(grpc_pollset* pollset,
-                                grpc_pollset_worker** worker_hdl,
-                                grpc_millis deadline) {
+static grpc_error_handle pollset_work(grpc_pollset* pollset,
+                                      grpc_pollset_worker** worker_hdl,
+                                      grpc_core::Timestamp deadline) {
   grpc_pollset_worker worker;
   if (worker_hdl) *worker_hdl = &worker;
 
@@ -159,7 +159,7 @@ static grpc_error* pollset_work(grpc_pollset* pollset,
     added_worker = 1;
     while (!worker.kicked) {
       if (gpr_cv_wait(&worker.cv, &grpc_polling_mu,
-                      grpc_millis_to_timespec(deadline, GPR_CLOCK_REALTIME))) {
+                      deadline.as_timespec(GPR_CLOCK_REALTIME))) {
         grpc_core::ExecCtx::Get()->InvalidateNow();
         break;
       }
@@ -183,8 +183,8 @@ done:
   return GRPC_ERROR_NONE;
 }
 
-static grpc_error* pollset_kick(grpc_pollset* p,
-                                grpc_pollset_worker* specific_worker) {
+static grpc_error_handle pollset_kick(grpc_pollset* p,
+                                      grpc_pollset_worker* specific_worker) {
   bool should_kick_global = false;
   if (specific_worker != NULL) {
     if (specific_worker == GRPC_POLLSET_KICK_BROADCAST) {

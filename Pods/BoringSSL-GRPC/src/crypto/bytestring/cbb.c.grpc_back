@@ -12,13 +12,13 @@
  * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. */
 
-#include <openssl/bytestring.h>
+#include <openssl_grpc/bytestring.h>
 
 #include <assert.h>
 #include <limits.h>
 #include <string.h>
 
-#include <openssl/mem.h>
+#include <openssl_grpc/mem.h>
 
 #include "../internal.h"
 
@@ -401,6 +401,15 @@ int CBB_add_bytes(CBB *cbb, const uint8_t *data, size_t len) {
     return 0;
   }
   OPENSSL_memcpy(dest, data, len);
+  return 1;
+}
+
+int CBB_add_zeros(CBB *cbb, size_t len) {
+  uint8_t *out;
+  if (!CBB_add_space(cbb, &out, len)) {
+    return 0;
+  }
+  OPENSSL_memset(out, 0, len);
   return 1;
 }
 

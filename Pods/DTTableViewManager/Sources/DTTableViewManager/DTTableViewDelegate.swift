@@ -432,7 +432,7 @@ open class DTTableViewDelegate : DTTableViewDelegateWrapper, UITableViewDelegate
         return (delegate as? UITableViewDelegate)?.indexPathForPreferredFocusedView?(in: tableView)
     }
     
-#if compiler(>=5.1) && os(iOS)
+#if os(iOS)
     @available(iOS 13.0, *)
     /// Implementation for `UITableViewDelegate` protocol
     open func tableView(_ tableView: UITableView, shouldBeginMultipleSelectionInteractionAt indexPath: IndexPath) -> Bool {
@@ -487,14 +487,37 @@ open class DTTableViewDelegate : DTTableViewDelegateWrapper, UITableViewDelegate
         }
         return (delegate as? UITableViewDelegate)?.tableView?(tableView, previewForDismissingContextMenuWithConfiguration: configuration)
     }
-    #if compiler(<5.1.2)
-    @available(iOS 13.0, *)
+#endif
+    
+    #if os(iOS)
+    @available(iOS 15, *)
     /// Implementation for `UITableViewDelegate` protocol
-    open func tableView(_ tableView: UITableView, willCommitMenuWithAnimator animator: UIContextMenuInteractionCommitAnimating) {
-        _ = performNonCellReaction(.willCommitMenuWithAnimator, argument: animator)
-        (delegate as? UITableViewDelegate)?.tableView?(tableView,
-                                                       willCommitMenuWithAnimator: animator)
+    public func tableView(_ tableView: UITableView, selectionFollowsFocusForRowAt indexPath: IndexPath) -> Bool {
+        if let follows = performCellReaction(.selectionFollowsFocusForRowAtIndexPath, location: indexPath, provideCell: true) as? Bool {
+            return follows
+        }
+        if let followsFocus = (delegate as? UITableViewDelegate)?.tableView?(tableView, selectionFollowsFocusForRowAt: indexPath) {
+            return followsFocus
+        }
+        return tableView.selectionFollowsFocus
     }
     #endif
+    
+#if swift(>=5.7) && !canImport(AppKit) || (canImport(AppKit) && swift(>=5.7.1)) // Xcode 14.0 AND macCatalyst on Xcode 14.1 (which will have swift> 5.7.1)
+    @available(iOS 16, tvOS 16, *)
+    /// Implementation for `UITableViewDelegate` protocol
+    public func tableView(_ tableView: UITableView, canPerformPrimaryActionForRowAt indexPath: IndexPath) -> Bool {
+        if let canPerform = performCellReaction(.canPerformActionForRowAtIndexPath, location: indexPath, provideCell: true) as? Bool {
+            return canPerform
+        }
+        return (delegate as? UITableViewDelegate)?.tableView?(tableView, canPerformPrimaryActionForRowAt: indexPath) ?? false
+    }
+    
+    @available(iOS 16, tvOS 16, *)
+    /// Implementation for `UITableViewDelegate` protocol
+    public func tableView(_ tableView: UITableView, performPrimaryActionForRowAt indexPath: IndexPath) {
+        _ = performCellReaction(.performPrimaryActionForRowAtIndexPath, location: indexPath, provideCell: true)
+        (delegate as? UITableViewDelegate)?.tableView?(tableView, performPrimaryActionForRowAt: indexPath)
+    }
 #endif
 }

@@ -17,10 +17,10 @@
 
 #import <GoogleMaps/GoogleMaps.h>
 
-static NSString const * kNormalType = @"Normal";
-static NSString const * kSatelliteType = @"Satellite";
-static NSString const * kHybridType = @"Hybrid";
-static NSString const * kTerrainType = @"Terrain";
+static NSString *const kNormalType = @"Normal";
+static NSString *const kSatelliteType = @"Satellite";
+static NSString *const kHybridType = @"Hybrid";
+static NSString *const kTerrainType = @"Terrain";
 
 @implementation MapTypesViewController {
   UISegmentedControl *_switcher;
@@ -38,7 +38,7 @@ static NSString const * kTerrainType = @"Terrain";
   self.view = _mapView;
 
   // The possible different types to show.
-  NSArray *types = @[kNormalType, kSatelliteType, kHybridType, kTerrainType];
+  NSArray *types = @[ kNormalType, kSatelliteType, kHybridType, kTerrainType ];
 
   // Create a UISegmentedControl that is the navigationItem's titleView.
   _switcher = [[UISegmentedControl alloc] initWithItems:types];
@@ -49,14 +49,14 @@ static NSString const * kTerrainType = @"Terrain";
   self.navigationItem.titleView = _switcher;
 
   // Listen to touch events on the UISegmentedControl.
-  [_switcher addTarget:self action:@selector(didChangeSwitcher)
+  [_switcher addTarget:self
+                action:@selector(didChangeSwitcher)
       forControlEvents:UIControlEventValueChanged];
 }
 
 - (void)didChangeSwitcher {
   // Switch to the type clicked on.
-  NSString *title =
-      [_switcher titleForSegmentAtIndex:_switcher.selectedSegmentIndex];
+  NSString *title = [_switcher titleForSegmentAtIndex:_switcher.selectedSegmentIndex];
   if ([kNormalType isEqualToString:title]) {
     _mapView.mapType = kGMSTypeNormal;
   } else if ([kSatelliteType isEqualToString:title]) {

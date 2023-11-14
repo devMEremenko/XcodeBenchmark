@@ -53,13 +53,13 @@
  * (eay@cryptsoft.com).  This product includes software written by Tim
  * Hudson (tjh@cryptsoft.com). */
 
-#include <openssl/evp.h>
+#include <openssl_grpc/evp.h>
 
-#include <openssl/digest.h>
-#include <openssl/bn.h>
-#include <openssl/bytestring.h>
-#include <openssl/dsa.h>
-#include <openssl/err.h>
+#include <openssl_grpc/digest.h>
+#include <openssl_grpc/bn.h>
+#include <openssl_grpc/bytestring.h>
+#include <openssl_grpc/dsa.h>
+#include <openssl_grpc/err.h>
 
 #include "internal.h"
 
@@ -141,9 +141,13 @@ static int dsa_priv_decode(EVP_PKEY *out, CBS *params, CBS *key) {
     goto err;
   }
 
-  // Decode the key.
+  // Decode the key. To avoid DoS attacks when importing private keys, we bound
+  // |dsa->priv_key| against |dsa->q|, which itself bound by
+  // |DSA_parse_parameters|. (We cannot call |BN_num_bits| on |dsa->priv_key|.
+  // That would leak a secret bit width.)
   if (!BN_parse_asn1_unsigned(key, dsa->priv_key) ||
-      CBS_len(key) != 0) {
+      CBS_len(key) != 0 ||
+      BN_cmp(dsa->priv_key, dsa->q) >= 0) {
     OPENSSL_PUT_ERROR(EVP, EVP_R_DECODE_ERROR);
     goto err;
   }

@@ -24,4 +24,6 @@ extension CLLocationCoordinate2D {
   // Victoria, Australia
   static let victoria = CLLocationCoordinate2D(latitude: -37.81969, longitude: 144.966085)
   static let newYork = CLLocationCoordinate2D(latitude: 40.761388, longitude: -73.978133)
+  static let mountainSceneLocation = CLLocationCoordinate2D(
+    latitude: -33.732022, longitude: 150.312114)
 }

@@ -20,13 +20,14 @@
 
 #include "src/core/lib/transport/connectivity_state.h"
 
-#include <string.h>
+#include <string>
 
-#include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
-#include <grpc/support/string_util.h>
 
-#include "src/core/lib/iomgr/combiner.h"
+#include "src/core/lib/gprpp/debug_location.h"
+#include "src/core/lib/gprpp/ref_counted_ptr.h"
+#include "src/core/lib/iomgr/closure.h"
+#include "src/core/lib/iomgr/error.h"
 #include "src/core/lib/iomgr/exec_ctx.h"
 
 namespace grpc_core {
@@ -58,12 +59,13 @@ const char* ConnectivityStateName(grpc_connectivity_state state) {
 class AsyncConnectivityStateWatcherInterface::Notifier {
  public:
   Notifier(RefCountedPtr<AsyncConnectivityStateWatcherInterface> watcher,
-           grpc_connectivity_state state, Combiner* combiner)
-      : watcher_(std::move(watcher)), state_(state) {
-    if (combiner != nullptr) {
-      combiner->Run(
-          GRPC_CLOSURE_INIT(&closure_, SendNotification, this, nullptr),
-          GRPC_ERROR_NONE);
+           grpc_connectivity_state state, const absl::Status& status,
+           const std::shared_ptr<WorkSerializer>& work_serializer)
+      : watcher_(std::move(watcher)), state_(state), status_(status) {
+    if (work_serializer != nullptr) {
+      work_serializer->Run(
+          [this]() { SendNotification(this, GRPC_ERROR_NONE); },
+          DEBUG_LOCATION);
     } else {
       GRPC_CLOSURE_INIT(&closure_, SendNotification, this,
                         grpc_schedule_on_exec_ctx);
@@ -72,24 +74,27 @@ class AsyncConnectivityStateWatcherInterface::Notifier {
   }
 
  private:
-  static void SendNotification(void* arg, grpc_error* /*ignored*/) {
+  static void SendNotification(void* arg, grpc_error_handle /*ignored*/) {
     Notifier* self = static_cast<Notifier*>(arg);
     if (GRPC_TRACE_FLAG_ENABLED(grpc_connectivity_state_trace)) {
-      gpr_log(GPR_INFO, "watcher %p: delivering async notification for %s",
-              self->watcher_.get(), ConnectivityStateName(self->state_));
+      gpr_log(GPR_INFO, "watcher %p: delivering async notification for %s (%s)",
+              self->watcher_.get(), ConnectivityStateName(self->state_),
+              self->status_.ToString().c_str());
     }
-    self->watcher_->OnConnectivityStateChange(self->state_);
+    self->watcher_->OnConnectivityStateChange(self->state_, self->status_);
     delete self;
   }
 
   RefCountedPtr<AsyncConnectivityStateWatcherInterface> watcher_;
   const grpc_connectivity_state state_;
+  const absl::Status status_;
   grpc_closure closure_;
 };
 
 void AsyncConnectivityStateWatcherInterface::Notify(
-    grpc_connectivity_state state) {
-  new Notifier(Ref(), state, combiner_);  // Deletes itself when done.
+    grpc_connectivity_state state, const absl::Status& status) {
+  new Notifier(Ref(), state, status,
+               work_serializer_);  // Deletes itself when done.
 }
 
 //
@@ -97,7 +102,8 @@ void AsyncConnectivityStateWatcherInterface::Notify(
 //
 
 ConnectivityStateTracker::~ConnectivityStateTracker() {
-  grpc_connectivity_state current_state = state_.Load(MemoryOrder::RELAXED);
+  grpc_connectivity_state current_state =
+      state_.load(std::memory_order_relaxed);
   if (current_state == GRPC_CHANNEL_SHUTDOWN) return;
   for (const auto& p : watchers_) {
     if (GRPC_TRACE_FLAG_ENABLED(grpc_connectivity_state_trace)) {
@@ -106,7 +112,7 @@ ConnectivityStateTracker::~ConnectivityStateTracker() {
               name_, this, p.first, ConnectivityStateName(current_state),
               ConnectivityStateName(GRPC_CHANNEL_SHUTDOWN));
     }
-    p.second->Notify(GRPC_CHANNEL_SHUTDOWN);
+    p.second->Notify(GRPC_CHANNEL_SHUTDOWN, absl::Status());
   }
 }
 
@@ -117,7 +123,8 @@ void ConnectivityStateTracker::AddWatcher(
     gpr_log(GPR_INFO, "ConnectivityStateTracker %s[%p]: add watcher %p", name_,
             this, watcher.get());
   }
-  grpc_connectivity_state current_state = state_.Load(MemoryOrder::RELAXED);
+  grpc_connectivity_state current_state =
+      state_.load(std::memory_order_relaxed);
   if (initial_state != current_state) {
     if (GRPC_TRACE_FLAG_ENABLED(grpc_connectivity_state_trace)) {
       gpr_log(GPR_INFO,
@@ -125,7 +132,7 @@ void ConnectivityStateTracker::AddWatcher(
               name_, this, watcher.get(), ConnectivityStateName(initial_state),
               ConnectivityStateName(current_state));
     }
-    watcher->Notify(current_state);
+    watcher->Notify(current_state, status_);
   }
   // If we're in state SHUTDOWN, don't add the watcher, so that it will
   // be orphaned immediately.
@@ -144,15 +151,18 @@ void ConnectivityStateTracker::RemoveWatcher(
 }
 
 void ConnectivityStateTracker::SetState(grpc_connectivity_state state,
+                                        const absl::Status& status,
                                         const char* reason) {
-  grpc_connectivity_state current_state = state_.Load(MemoryOrder::RELAXED);
+  grpc_connectivity_state current_state =
+      state_.load(std::memory_order_relaxed);
   if (state == current_state) return;
   if (GRPC_TRACE_FLAG_ENABLED(grpc_connectivity_state_trace)) {
-    gpr_log(GPR_INFO, "ConnectivityStateTracker %s[%p]: %s -> %s (%s)", name_,
-            this, ConnectivityStateName(current_state),
-            ConnectivityStateName(state), reason);
+    gpr_log(GPR_INFO, "ConnectivityStateTracker %s[%p]: %s -> %s (%s, %s)",
+            name_, this, ConnectivityStateName(current_state),
+            ConnectivityStateName(state), reason, status.ToString().c_str());
   }
-  state_.Store(state, MemoryOrder::RELAXED);
+  state_.store(state, std::memory_order_relaxed);
+  status_ = status;
   for (const auto& p : watchers_) {
     if (GRPC_TRACE_FLAG_ENABLED(grpc_connectivity_state_trace)) {
       gpr_log(GPR_INFO,
@@ -160,7 +170,7 @@ void ConnectivityStateTracker::SetState(grpc_connectivity_state state,
               name_, this, p.first, ConnectivityStateName(current_state),
               ConnectivityStateName(state));
     }
-    p.second->Notify(state);
+    p.second->Notify(state, status);
   }
   // If the new state is SHUTDOWN, orphan all of the watchers.  This
   // avoids the need for the callers to explicitly cancel them.
@@ -168,7 +178,7 @@ void ConnectivityStateTracker::SetState(grpc_connectivity_state state,
 }
 
 grpc_connectivity_state ConnectivityStateTracker::state() const {
-  grpc_connectivity_state state = state_.Load(MemoryOrder::RELAXED);
+  grpc_connectivity_state state = state_.load(std::memory_order_relaxed);
   if (GRPC_TRACE_FLAG_ENABLED(grpc_connectivity_state_trace)) {
     gpr_log(GPR_INFO, "ConnectivityStateTracker %s[%p]: get current state: %s",
             name_, this, ConnectivityStateName(state));

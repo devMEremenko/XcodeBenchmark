@@ -15,36 +15,30 @@
  * limitations under the License.
  *
  */
-
 #include <grpc/support/port_platform.h>
 
-#include <grpc/support/alloc.h>
 #include "src/core/lib/iomgr/resolve_address.h"
 
-grpc_address_resolver_vtable* grpc_resolve_address_impl;
+#include "absl/strings/str_cat.h"
 
-void grpc_set_resolver_impl(grpc_address_resolver_vtable* vtable) {
-  grpc_resolve_address_impl = vtable;
+#include <grpc/event_engine/event_engine.h>
+#include <grpc/support/alloc.h>
+
+namespace grpc_core {
+const char* kDefaultSecurePort = "https";
+
+namespace {
+DNSResolver* g_dns_resolver;
 }
 
-void grpc_resolve_address(const char* addr, const char* default_port,
-                          grpc_pollset_set* interested_parties,
-                          grpc_closure* on_done,
-                          grpc_resolved_addresses** addresses) {
-  grpc_resolve_address_impl->resolve_address(
-      addr, default_port, interested_parties, on_done, addresses);
+constexpr DNSResolver::TaskHandle DNSResolver::kNullHandle;
+
+void SetDNSResolver(DNSResolver* resolver) { g_dns_resolver = resolver; }
+
+DNSResolver* GetDNSResolver() { return g_dns_resolver; }
+
+std::string DNSResolver::HandleToString(TaskHandle handle) {
+  return absl::StrCat("{", handle.keys[0], ",", handle.keys[1], "}");
 }
 
-void grpc_resolved_addresses_destroy(grpc_resolved_addresses* addrs) {
-  if (addrs != nullptr) {
-    gpr_free(addrs->addrs);
-  }
-  gpr_free(addrs);
-}
-
-grpc_error* grpc_blocking_resolve_address(const char* name,
-                                          const char* default_port,
-                                          grpc_resolved_addresses** addresses) {
-  return grpc_resolve_address_impl->blocking_resolve_address(name, default_port,
-                                                             addresses);
-}
+}  // namespace grpc_core

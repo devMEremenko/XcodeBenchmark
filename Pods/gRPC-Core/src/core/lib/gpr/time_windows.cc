@@ -22,23 +22,27 @@
 
 #ifdef GPR_WINDOWS_TIME
 
-#include <grpc/support/log.h>
-#include <grpc/support/time.h>
 #include <limits.h>
 #include <process.h>
 #include <sys/timeb.h>
 
+#include <grpc/support/log.h>
+#include <grpc/support/time.h>
+
 #include "src/core/lib/gpr/time_precise.h"
 
-static LARGE_INTEGER g_start_time;
-static double g_time_scale;
-
-void gpr_time_init(void) {
+static LARGE_INTEGER g_start_time = []() {
+  LARGE_INTEGER x;
+  QueryPerformanceCounter(&x);
+  return x;
+}();
+static double g_time_scale = []() {
   LARGE_INTEGER frequency;
   QueryPerformanceFrequency(&frequency);
-  QueryPerformanceCounter(&g_start_time);
-  g_time_scale = 1.0 / (double)frequency.QuadPart;
-}
+  return 1.0 / (double)frequency.QuadPart;
+}();
+
+void gpr_time_init(void) {}
 
 static gpr_timespec now_impl(gpr_clock_type clock) {
   gpr_timespec now_tv;

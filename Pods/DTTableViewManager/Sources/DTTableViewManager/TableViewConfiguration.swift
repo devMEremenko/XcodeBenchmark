@@ -35,7 +35,7 @@ public enum SupplementarySectionStyle
     case view
 }
 
-//swiftlint:disable line_length
+// swiftlint:disable line_length
 
 /// Defines most commonly used configuration properties for UITableView
 public struct TableViewConfiguration

@@ -57,12 +57,12 @@
  *
  */
 
-#include <openssl/mem.h>
-#include <openssl/obj.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
+#include <openssl_grpc/mem.h>
+#include <openssl_grpc/obj.h>
+#include <openssl_grpc/x509.h>
+#include <openssl_grpc/x509v3.h>
 
-#include "pcy_int.h"
+#include "internal.h"
 
 /* Policy Node routines */
 
@@ -79,7 +79,7 @@ void policy_data_free(X509_POLICY_DATA *data)
 /*
  * Create a data based on an existing policy. If 'id' is NULL use the oid in
  * the policy, otherwise use 'id'. This behaviour covers the two types of
- * data in RFC3280: data with from a CertificatePolcies extension and
+ * data in RFC 3280: data with from a CertificatePolcies extension and
  * additional data with just the qualifiers of anyPolicy and ID from another
  * source.
  */
@@ -98,13 +98,15 @@ X509_POLICY_DATA *policy_data_new(POLICYINFO *policy,
     } else
         id = NULL;
     ret = OPENSSL_malloc(sizeof(X509_POLICY_DATA));
-    if (!ret)
+    if (!ret) {
+        OPENSSL_PUT_ERROR(X509V3, ERR_R_MALLOC_FAILURE);
+        ASN1_OBJECT_free(id);
         return NULL;
+    }
     ret->expected_policy_set = sk_ASN1_OBJECT_new_null();
     if (!ret->expected_policy_set) {
         OPENSSL_free(ret);
-        if (id)
-            ASN1_OBJECT_free(id);
+        ASN1_OBJECT_free(id);
         return NULL;
     }
 

@@ -21,40 +21,17 @@
 
 #include <grpc/support/port_platform.h>
 
+#include <memory>
+
 #include <ares.h>
+
+#include "absl/base/thread_annotations.h"
+
 #include "src/core/ext/filters/client_channel/resolver/dns/c_ares/grpc_ares_wrapper.h"
-#include "src/core/lib/iomgr/pollset_set.h"
-
-typedef struct grpc_ares_ev_driver grpc_ares_ev_driver;
-
-/* Start \a ev_driver. It will keep working until all IO on its ares_channel is
-   done, or grpc_ares_ev_driver_destroy() is called. It may notify the callbacks
-   bound to its ares_channel when necessary. */
-void grpc_ares_ev_driver_start_locked(grpc_ares_ev_driver* ev_driver);
-
-/* Returns the ares_channel owned by \a ev_driver. To bind a c-ares query to
-   \a ev_driver, use the ares_channel owned by \a ev_driver as the arg of the
-   query. */
-ares_channel* grpc_ares_ev_driver_get_channel_locked(
-    grpc_ares_ev_driver* ev_driver);
-
-/* Creates a new grpc_ares_ev_driver. Returns GRPC_ERROR_NONE if \a ev_driver is
-   created successfully. */
-grpc_error* grpc_ares_ev_driver_create_locked(grpc_ares_ev_driver** ev_driver,
-                                              grpc_pollset_set* pollset_set,
-                                              int query_timeout_ms,
-                                              grpc_core::Combiner* combiner,
-                                              grpc_ares_request* request);
-
-/* Called back when all DNS lookups have completed. */
-void grpc_ares_ev_driver_on_queries_complete_locked(
-    grpc_ares_ev_driver* ev_driver);
-
-/* Shutdown all the grpc_fds used by \a ev_driver */
-void grpc_ares_ev_driver_shutdown_locked(grpc_ares_ev_driver* ev_driver);
-
-/* Exposed in this header for C-core tests only */
-extern void (*grpc_ares_test_only_inject_config)(ares_channel channel);
+#include "src/core/lib/gprpp/sync.h"
+#include "src/core/lib/iomgr/closure.h"
+#include "src/core/lib/iomgr/error.h"
+#include "src/core/lib/iomgr/iomgr_fwd.h"
 
 namespace grpc_core {
 
@@ -66,18 +43,23 @@ class GrpcPolledFd {
  public:
   virtual ~GrpcPolledFd() {}
   /* Called when c-ares library is interested and there's no pending callback */
-  virtual void RegisterForOnReadableLocked(grpc_closure* read_closure) = 0;
+  virtual void RegisterForOnReadableLocked(grpc_closure* read_closure)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(&grpc_ares_request::mu) = 0;
   /* Called when c-ares library is interested and there's no pending callback */
-  virtual void RegisterForOnWriteableLocked(grpc_closure* write_closure) = 0;
+  virtual void RegisterForOnWriteableLocked(grpc_closure* write_closure)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(&grpc_ares_request::mu) = 0;
   /* Indicates if there is data left even after just being read from */
-  virtual bool IsFdStillReadableLocked() = 0;
+  virtual bool IsFdStillReadableLocked()
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(&grpc_ares_request::mu) = 0;
   /* Called once and only once. Must cause cancellation of any pending
    * read/write callbacks. */
-  virtual void ShutdownLocked(grpc_error* error) = 0;
+  virtual void ShutdownLocked(grpc_error_handle error)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(&grpc_ares_request::mu) = 0;
   /* Get the underlying ares_socket_t that this was created from */
-  virtual ares_socket_t GetWrappedAresSocketLocked() = 0;
+  virtual ares_socket_t GetWrappedAresSocketLocked()
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(&grpc_ares_request::mu) = 0;
   /* A unique name, for logging */
-  virtual const char* GetName() = 0;
+  virtual const char* GetName() const = 0;
 };
 
 /* A GrpcPolledFdFactory is 1-to-1 with and owned by the
@@ -89,13 +71,19 @@ class GrpcPolledFdFactory {
   virtual ~GrpcPolledFdFactory() {}
   /* Creates a new wrapped fd for the current platform */
   virtual GrpcPolledFd* NewGrpcPolledFdLocked(
-      ares_socket_t as, grpc_pollset_set* driver_pollset_set,
-      Combiner* combiner) = 0;
+      ares_socket_t as, grpc_pollset_set* driver_pollset_set)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(&grpc_ares_request::mu) = 0;
   /* Optionally configures the ares channel after creation */
-  virtual void ConfigureAresChannelLocked(ares_channel channel) = 0;
+  virtual void ConfigureAresChannelLocked(ares_channel channel)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(&grpc_ares_request::mu) = 0;
 };
 
-std::unique_ptr<GrpcPolledFdFactory> NewGrpcPolledFdFactory(Combiner* combiner);
+/* Creates a new polled fd factory.
+ * Note that even though ownership of mu is not transferred, the mu
+ * parameter is guaranteed to be alive for the the whole lifetime of
+ * the resulting GrpcPolledFdFactory as well as any GrpcPolledFd
+ * returned by the factory. */
+std::unique_ptr<GrpcPolledFdFactory> NewGrpcPolledFdFactory(Mutex* mu);
 
 }  // namespace grpc_core
 
