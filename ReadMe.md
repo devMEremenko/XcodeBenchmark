@@ -14,8 +14,15 @@ If a device you are looking for is not on the list below, check out open [issues
 ## Xcode 15
 |        Device        |           CPU           | RAM | SSD | Xcode |  macOS | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:-----:|:------:|:---------:|
+| Mac Studio 2023      |     M2 Ultra 24-core    | 192 | 2TB | 15.0.1| 14.0   |     63    |
+| MacBook Pro 16" 2023 |     M3 Max 16-core      |  64 | 1TB | 15.0.1| 14.1.1 |     71    |
+| MacBook Pro 16" 2023 |     M3 Max 14-core      |  36 | 1TB | 15.0.1| 14.1.1 |     79    |
+| MacBook Pro 14" 2023 |     M3 Max 14-core      |  36 | 1TB | 15.0.1| 14.1.1 |     79    |
 | MacBook Pro 14" 2023 |     M2 Pro 10-core      |  16 | 512 |  15.0 | 13.6.0 |    119    |
+| MacBook Pro 16" 2021 |     M1 Pro 10-core      |  16 | 512 | 15.0.1| 14.0   |    136    |
 | MacBook Pro 16" 2021 |     M1 Pro 10-core      |  32 | 512 |  15.0 | 13.5.2 |    137    |
+| MacBook Air 13" 2020 |      M1 8c (8c GPU)     |  16 | 512 |  15.0 |  14.0  |    208    |
+| MacBook Pro 15" 2018 |     i7 2.6 GHz 6-ore    |  16 | 512 |  15.0 | 14.0.0 |    348    |
 
 
 ## Xcode 13-14
