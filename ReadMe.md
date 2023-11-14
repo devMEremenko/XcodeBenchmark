@@ -61,7 +61,7 @@ If a device you are looking for is not on the list below, check out open [issues
 | MacBook Air 15" 2023 |      M2 8-core          |  16 | 512 |     | 14.3.1| 13.4    |    122    |
 | MacBook Pro 13" 2020 |      M1 8-core          |  16 | 1TB |     |  13.1 | 12.0.1  |    130    |
 |    iMac 24" 2021     |      M1 8-core          |  16 | 512 |     |  13.1 | 12.0.1  |    130    |
-| MacBook Air 13" 2020 |      M1 8-core          |  8  | 512 |     | 14.1  | 13.0.1  |    141    |
+| MacBook Air 13" 2020 |      M1 8-core          |   8 | 256 |     | 14.0.1| 13.0    |    135    |
 |     Mac mini 2020    |      M1 8-core          |   8 | 256 |     |  13.3 | 12.0.1  |    155    |
 |     iMac 27" 2019    |    i9 3.6 GHz 8-core    |  64 | 2TB |     |  13.2 | 12.2.1  |    167    |
 | MacBook Pro 16" 2019 |    i9 2.3 GHz 8-core    |  16 | 1TB |     |  13.2 | 11.6.1  |    184    |
