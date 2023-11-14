@@ -21,17 +21,15 @@
 
 #include <grpc/support/port_platform.h>
 
-#include "src/core/tsi/grpc_shadow_boringssl.h"
+#include <memory>
 
-#include <grpc/slice.h>
-
-extern "C" {
 #if COCOAPODS==1
   #include <openssl_grpc/ssl.h>
 #else
   #include <openssl/ssl.h>
 #endif
-}
+
+#include <grpc/slice.h>
 
 #include "src/core/lib/gprpp/ref_counted.h"
 

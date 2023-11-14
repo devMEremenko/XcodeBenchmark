@@ -1,41 +1,40 @@
 //
-//  TimeInterval+Formatter.swift
 //  SwiftDate
+//  Parse, validate, manipulate, and display dates, time and timezones in Swift
 //
-//  Created by Daniele Margutti on 14/06/2018.
-//  Copyright © 2018 SwiftDate. All rights reserved.
+//  Created by Daniele Margutti
+//   - Web: https://www.danielemargutti.com
+//   - Twitter: https://twitter.com/danielemargutti
+//   - Mail: hello@danielemargutti.com
+//
+//  Copyright © 2019 Daniele Margutti. Licensed under MIT License.
 //
 
 import Foundation
 
 public extension TimeInterval {
 
-	public struct ComponentsFormatterOptions {
+	struct ComponentsFormatterOptions {
 
 		/// Fractional units may be used when a value cannot be exactly represented using the available units.
 		/// For example, if minutes are not allowed, the value “1h 30m” could be formatted as “1.5h”.
-		/// The default value of this property is false.
-		public var allowsFractionalUnits: Bool = false
+		public var allowsFractionalUnits: Bool?
 
 		/// Specify the units that can be used in the output.
-		/// By default `[.year, .month, .weekOfMonth, .day, .hour, .minute, .second]` are used.
-		public var allowedUnits: NSCalendar.Unit = [.year, .month, .weekOfMonth, .day, .hour, .minute, .second]
+		public var allowedUnits: NSCalendar.Unit?
 
 		/// A Boolean value indicating whether to collapse the largest unit into smaller units when a certain threshold is met.
-		/// By default is `false`.
-		public var collapsesLargestUnit: Bool = false
+		public var collapsesLargestUnit: Bool?
 
 		/// The maximum number of time units to include in the output string.
-		/// The default value of this property is 0, which does not cause the elimination of any units.
-		public var maximumUnitCount: Int = 0
+		/// If 0 does not cause the elimination of any units.
+		public var maximumUnitCount: Int?
 
 		/// The formatting style for units whose value is 0.
-		/// By default is `.default`
-		public var zeroFormattingBehavior: DateComponentsFormatter.ZeroFormattingBehavior = .default
+		public var zeroFormattingBehavior: DateComponentsFormatter.ZeroFormattingBehavior?
 
 		/// The preferred style for units.
-		/// By default is `.abbreviated`.
-		public var unitsStyle: DateComponentsFormatter.UnitsStyle = .abbreviated
+		public var unitsStyle: DateComponentsFormatter.UnitsStyle?
 
 		/// Locale of the formatter
 		public var locale: LocaleConvertible? {
@@ -44,15 +43,29 @@ public extension TimeInterval {
 		}
 
 		/// Calendar
-		public var calendar = Calendar.autoupdatingCurrent
+        public var calendar = Calendar.autoupdatingCurrent
 
 		public func apply(toFormatter formatter: DateComponentsFormatter) {
-			formatter.allowsFractionalUnits = allowsFractionalUnits
-			formatter.allowedUnits = allowedUnits
-			formatter.collapsesLargestUnit = collapsesLargestUnit
-			formatter.maximumUnitCount = maximumUnitCount
-			formatter.unitsStyle = unitsStyle
-			formatter.calendar = calendar
+            formatter.calendar = calendar
+
+            if let allowsFractionalUnits = self.allowsFractionalUnits {
+                formatter.allowsFractionalUnits = allowsFractionalUnits
+            }
+            if let allowedUnits = self.allowedUnits {
+                formatter.allowedUnits = allowedUnits
+            }
+            if let collapsesLargestUnit = self.collapsesLargestUnit {
+                formatter.collapsesLargestUnit = collapsesLargestUnit
+            }
+            if let maximumUnitCount = self.maximumUnitCount {
+                formatter.maximumUnitCount = maximumUnitCount
+            }
+            if let zeroFormattingBehavior = self.zeroFormattingBehavior {
+                formatter.zeroFormattingBehavior = zeroFormattingBehavior
+            }
+            if let unitsStyle = self.unitsStyle {
+                formatter.unitsStyle = unitsStyle
+            }
 		}
 
 		public init() {}
@@ -69,8 +82,8 @@ public extension TimeInterval {
 		})
 	}
 
-	@available(*, deprecated: 5.0.13, obsoleted: 5.1, message: "Use toIntervalString function instead")
-	public func toString(options callback: ((inout ComponentsFormatterOptions) -> Void)? = nil) -> String {
+	//@available(*, deprecated: 5.0.13, obsoleted: 5.1, message: "Use toIntervalString function instead")
+	func toString(options callback: ((inout ComponentsFormatterOptions) -> Void)? = nil) -> String {
 		return self.toIntervalString(options: callback)
 	}
 
@@ -80,19 +93,28 @@ public extension TimeInterval {
 	///   - units: units to include in string.
 	///   - style: style of the units, by default is `.abbreviated`
 	/// - Returns: string representation
-	public func toIntervalString(options callback: ((inout ComponentsFormatterOptions) -> Void)? = nil) -> String {
-		let formatter = TimeInterval.sharedFormatter()
+	func toIntervalString(options callback: ((inout ComponentsFormatterOptions) -> Void)? = nil) -> String {
+		let formatter = DateComponentsFormatter()
 		var options = ComponentsFormatterOptions()
 		callback?(&options)
 		options.apply(toFormatter: formatter)
-		return (formatter.string(from: self) ?? "")
+
+        let formattedValue = (formatter.string(from: self) ?? "")
+        if options.zeroFormattingBehavior?.contains(.pad) ?? false {
+            // for some strange reason padding is not added at the very beginning positional item.
+            // we'll add it manually if necessaru
+            if let index = formattedValue.firstIndex(of: ":"), index.utf16Offset(in: formattedValue) < 2 {
+                return "0\(formattedValue)"
+            }
+        }
+        return formattedValue
 	}
 
 	/// Format a time interval in a string with desidered components with passed style.
 	///
 	/// - Parameter options: options for formatting.
 	/// - Returns: string representation
-	public func toString(options: ComponentsFormatterOptions) -> String {
+	func toString(options: ComponentsFormatterOptions) -> String {
 		let formatter = TimeInterval.sharedFormatter()
 		options.apply(toFormatter: formatter)
 		return (formatter.string(from: self) ?? "")
@@ -102,9 +124,12 @@ public extension TimeInterval {
 	///
 	/// - Parameter zero: behaviour with zero.
 	/// - Returns: string representation
-	public func toClock(zero: DateComponentsFormatter.ZeroFormattingBehavior = .pad) -> String {
+	func toClock(zero: DateComponentsFormatter.ZeroFormattingBehavior =  [.pad, .dropLeading]) -> String {
 		return toIntervalString(options: {
+            $0.collapsesLargestUnit = true
+            $0.maximumUnitCount = 0
 			$0.unitsStyle = .positional
+            $0.locale = Locales.englishUnitedStatesComputer
 			$0.zeroFormattingBehavior = zero
 		})
 	}
@@ -122,7 +147,7 @@ public extension TimeInterval {
 	///   - units: units to extract
 	///   - from: starting reference date, `nil` means `now()` in the context of the default region set.
 	/// - Returns: dictionary with extracted components
-	public func toUnits(_ units: Set<Calendar.Component>, to refDate: DateInRegion? = nil) -> [Calendar.Component: Int] {
+	func toUnits(_ units: Set<Calendar.Component>, to refDate: DateInRegion? = nil) -> [Calendar.Component: Int] {
 		let dateTo = (refDate ?? DateInRegion())
 		let dateFrom = dateTo.addingTimeInterval(-self)
 		let components = dateFrom.calendar.dateComponents(units, from: dateFrom.date, to: dateTo.date)
@@ -136,8 +161,8 @@ public extension TimeInterval {
 	/// - parameter from: starting reference date, `nil` means `now()` in the context of the default region set.
 	///
 	/// - returns: the value of interval expressed in selected `Calendar.Component`
-	public func toUnit(_ component: Calendar.Component, to refDate: DateInRegion? = nil) -> Int? {
-		return toUnits([component], to: refDate)[component]
+	func toUnit(_ component: Calendar.Component, to refDate: DateInRegion? = nil) -> Int? {
+        toUnits([component], to: refDate)[component]
 	}
 
 }

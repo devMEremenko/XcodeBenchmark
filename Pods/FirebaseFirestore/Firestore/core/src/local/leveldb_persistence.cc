@@ -19,8 +19,8 @@
 #include <limits>
 #include <utility>
 
-#include "Firestore/core/src/auth/user.h"
 #include "Firestore/core/src/core/database_info.h"
+#include "Firestore/core/src/credentials/user.h"
 #include "Firestore/core/src/local/leveldb_key.h"
 #include "Firestore/core/src/local/leveldb_lru_reference_delegate.h"
 #include "Firestore/core/src/local/leveldb_migrations.h"
@@ -42,7 +42,7 @@ namespace firestore {
 namespace local {
 namespace {
 
-using auth::User;
+using credentials::User;
 using leveldb::DB;
 using model::ListenSequenceNumber;
 using util::Filesystem;
@@ -77,7 +77,10 @@ std::set<std::string> CollectUserSet(LevelDbTransaction* transaction) {
 }  // namespace
 
 StatusOr<std::unique_ptr<LevelDbPersistence>> LevelDbPersistence::Create(
-    util::Path dir, LocalSerializer serializer, const LruParams& lru_params) {
+    util::Path dir,
+    LevelDbMigrations::SchemaVersion version,
+    LocalSerializer serializer,
+    const LruParams& lru_params) {
   auto* fs = Filesystem::Default();
   Status status = EnsureDirectory(dir);
   if (!status.ok()) return status;
@@ -89,7 +92,7 @@ StatusOr<std::unique_ptr<LevelDbPersistence>> LevelDbPersistence::Create(
   if (!created.ok()) return created.status();
 
   std::unique_ptr<DB> db = std::move(created).ValueOrDie();
-  LevelDbMigrations::RunMigrations(db.get());
+  LevelDbMigrations::RunMigrations(db.get(), version, serializer);
 
   LevelDbTransaction transaction(db.get(), "Start LevelDB");
   std::set<std::string> users = CollectUserSet(&transaction);
@@ -100,6 +103,12 @@ StatusOr<std::unique_ptr<LevelDbPersistence>> LevelDbPersistence::Create(
       new LevelDbPersistence(std::move(db), std::move(dir), std::move(users),
                              std::move(serializer), lru_params));
   return {std::move(result)};
+}
+
+StatusOr<std::unique_ptr<LevelDbPersistence>> LevelDbPersistence::Create(
+    util::Path dir, LocalSerializer serializer, const LruParams& lru_params) {
+  return Create(std::move(dir), kSchemaVersion, std::move(serializer),
+                lru_params);
 }
 
 LevelDbPersistence::LevelDbPersistence(std::unique_ptr<leveldb::DB> db,
@@ -114,9 +123,9 @@ LevelDbPersistence::LevelDbPersistence(std::unique_ptr<leveldb::DB> db,
   target_cache_ = absl::make_unique<LevelDbTargetCache>(this, &serializer_);
   document_cache_ =
       absl::make_unique<LevelDbRemoteDocumentCache>(this, &serializer_);
-  index_manager_ = absl::make_unique<LevelDbIndexManager>(this);
   reference_delegate_ =
       absl::make_unique<LevelDbLruReferenceDelegate>(this, lru_params);
+  bundle_cache_ = absl::make_unique<LevelDbBundleCache>(this, &serializer_);
 
   // TODO(gsoltis): set up a leveldb transaction for these operations.
   target_cache_->Start();
@@ -196,7 +205,9 @@ StatusOr<int64_t> LevelDbPersistence::CalculateByteSize() {
     int64_t file_size = maybe_size.ValueOrDie();
     count += file_size;
 
-    if (count < old_count || count > std::numeric_limits<int64_t>::max()) {
+    auto max_signed_value =
+        static_cast<uint64_t>(std::numeric_limits<int64_t>::max());
+    if (count < old_count || count > max_signed_value) {
       return Status(Error::kErrorOutOfRange,
                     "Failed to size LevelDB: count overflowed");
     }
@@ -222,12 +233,17 @@ void LevelDbPersistence::Shutdown() {
   db_.reset();
 }
 
-LevelDbMutationQueue* LevelDbPersistence::GetMutationQueueForUser(
-    const auth::User& user) {
+LevelDbMutationQueue* LevelDbPersistence::GetMutationQueue(
+    const credentials::User& user, IndexManager* manager) {
   users_.insert(user.uid());
-  current_mutation_queue_ =
-      absl::make_unique<LevelDbMutationQueue>(user, this, &serializer_);
-  return current_mutation_queue_.get();
+  if (mutation_queues_.find(user.uid()) == mutation_queues_.end()) {
+    mutation_queues_.insert(
+        {user.uid(),
+         absl::make_unique<LevelDbMutationQueue>(
+             user, this, dynamic_cast<LevelDbIndexManager*>(manager),
+             &serializer_)});
+  }
+  return mutation_queues_[user.uid()].get();
 }
 
 LevelDbTargetCache* LevelDbPersistence::target_cache() {
@@ -238,12 +254,68 @@ LevelDbRemoteDocumentCache* LevelDbPersistence::remote_document_cache() {
   return document_cache_.get();
 }
 
-LevelDbIndexManager* LevelDbPersistence::index_manager() {
-  return index_manager_.get();
+LevelDbIndexManager* LevelDbPersistence::GetIndexManager(
+    const credentials::User& user) {
+  users_.insert(user.uid());
+  if (index_managers_.find(user.uid()) == index_managers_.end()) {
+    index_managers_.insert({user.uid(), absl::make_unique<LevelDbIndexManager>(
+                                            user, this, &serializer_)});
+  }
+  return index_managers_[user.uid()].get();
 }
 
 LevelDbLruReferenceDelegate* LevelDbPersistence::reference_delegate() {
   return reference_delegate_.get();
+}
+
+LevelDbBundleCache* LevelDbPersistence::bundle_cache() {
+  return bundle_cache_.get();
+}
+
+LevelDbDocumentOverlayCache* LevelDbPersistence::GetDocumentOverlayCache(
+    const User& user) {
+  users_.insert(user.uid());
+  if (document_overlay_caches_.find(user.uid()) ==
+      document_overlay_caches_.end()) {
+    document_overlay_caches_.insert(
+        {user.uid(), absl::make_unique<LevelDbDocumentOverlayCache>(
+                         user, this, &serializer_)});
+  }
+  return document_overlay_caches_[user.uid()].get();
+}
+
+LevelDbOverlayMigrationManager* LevelDbPersistence::GetOverlayMigrationManager(
+    const User& user) {
+  if (overlay_migration_managers_.find(user.uid()) ==
+      overlay_migration_managers_.end()) {
+    overlay_migration_managers_.insert(
+        {user.uid(),
+         absl::make_unique<LevelDbOverlayMigrationManager>(this, user.uid())});
+  }
+  return overlay_migration_managers_[user.uid()].get();
+}
+
+void LevelDbPersistence::ReleaseOtherUserSpecificComponents(
+    const std::string& target_uid) {
+  for (const auto& uid : users_) {
+    if (target_uid != uid) {
+      document_overlay_caches_.erase(uid);
+      mutation_queues_.erase(uid);
+      index_managers_.erase(uid);
+      overlay_migration_managers_.erase(uid);
+    }
+  }
+}
+
+void LevelDbPersistence::DeleteAllFieldIndexes() {
+  DeleteEverythingWithPrefix("Delete All Index Configuration",
+                             LevelDbIndexConfigurationKey::KeyPrefix());
+
+  DeleteEverythingWithPrefix("Delete All Index States",
+                             LevelDbIndexStateKey::KeyPrefix());
+
+  DeleteEverythingWithPrefix("Delete All Index Entries",
+                             LevelDbIndexEntryKey::KeyPrefix());
 }
 
 void LevelDbPersistence::RunInternal(absl::string_view label,
@@ -266,6 +338,29 @@ leveldb::ReadOptions StandardReadOptions() {
   leveldb::ReadOptions options;
   options.verify_checksums = true;
   return options;
+}
+
+void LevelDbPersistence::DeleteEverythingWithPrefix(absl::string_view label,
+                                                    const std::string& prefix) {
+  bool more_deletes = true;
+
+  auto fun = [&]() {
+    more_deletes = false;
+
+    auto it = transaction_->NewIterator();
+    for (it->Seek(prefix); it->Valid() && absl::StartsWith(it->key(), prefix);
+         it->Next()) {
+      if (transaction_->changed_keys() >= kMaxOperationPerTransaction) {
+        more_deletes = true;
+        break;
+      }
+      transaction_->Delete(it->key());
+    }
+  };
+
+  while (more_deletes) {
+    RunInternal(label, fun);
+  }
 }
 
 }  // namespace local

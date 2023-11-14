@@ -26,7 +26,7 @@
 import Foundation
 import DTModelStorage
 
-/// `DTCollectionViewManagerAnomaly` represents various errors and unwanted behaviors that can happen when using `DTTableViewManager` class.
+/// `DTCollectionViewManagerAnomaly` represents various errors and unwanted behaviors that can happen when using `DTCollectionViewManager` class.
 /// - SeeAlso: `MemoryStorageAnomaly`, `DTTableViewManagerAnomaly`.
 public enum DTCollectionViewManagerAnomaly: Equatable, CustomStringConvertible, CustomDebugStringConvertible {
     
@@ -34,7 +34,10 @@ public enum DTCollectionViewManagerAnomaly: Equatable, CustomStringConvertible, 
     case nilSupplementaryModel(kind: String, indexPath: IndexPath)
     case noCellMappingFound(modelDescription: String, indexPath: IndexPath)
     case noSupplementaryMappingFound(modelDescription: String, kind: String, indexPath: IndexPath)
+    
+    @available(*, deprecated, message: "If you are using xibs or code cells, you should not set reuseIdentifier, because UICollectionView.CellRegistration gives you a random one. If you use storyboard, set reuseIdentifier equal to name of the cell subclass.")
     case differentCellReuseIdentifier(mappingReuseIdentifier: String, cellReuseIdentifier: String)
+    
     case differentSupplementaryReuseIdentifier(mappingReuseIdentifier: String, supplementaryReuseIdentifier: String)
     case differentCellClass(xibName: String, cellClass: String, expectedCellClass: String)
     case differentSupplementaryClass(xibName: String, viewClass: String, expectedViewClass: String)
@@ -119,7 +122,7 @@ public enum DTCollectionViewManagerAnomaly: Equatable, CustomStringConvertible, 
     }
 }
 
-/// `DTCollectionViewManagerAnomalyHandler` handles anomalies from `DTTableViewManager`.
+/// `DTCollectionViewManagerAnomalyHandler` handles anomalies from `DTCollectionViewManager`.
 open class DTCollectionViewManagerAnomalyHandler : AnomalyHandler {
     
     /// Default action to perform when anomaly is detected. Prints debugDescription of anomaly by default.

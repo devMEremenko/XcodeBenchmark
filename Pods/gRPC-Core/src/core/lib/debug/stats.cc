@@ -23,33 +23,35 @@
 #include <inttypes.h>
 #include <string.h>
 
+#include <algorithm>
+#include <vector>
+
+#include "absl/strings/str_format.h"
+#include "absl/strings/str_join.h"
+
 #include <grpc/support/alloc.h>
-#include <grpc/support/string_util.h>
+#include <grpc/support/cpu.h>
 
-#include "src/core/lib/gpr/string.h"
-#include "src/core/lib/gpr/useful.h"
-
-grpc_stats_data* grpc_stats_per_cpu_storage = nullptr;
-static size_t g_num_cores;
-
-void grpc_stats_init(void) {
-  g_num_cores = GPR_MAX(1, gpr_cpu_num_cores());
-  grpc_stats_per_cpu_storage = static_cast<grpc_stats_data*>(
-      gpr_zalloc(sizeof(grpc_stats_data) * g_num_cores));
-}
-
-void grpc_stats_shutdown(void) { gpr_free(grpc_stats_per_cpu_storage); }
+namespace grpc_core {
+Stats* const g_stats_data = [] {
+  size_t num_cores = gpr_cpu_num_cores();
+  Stats* stats = static_cast<Stats*>(
+      gpr_zalloc(sizeof(Stats) + num_cores * sizeof(grpc_stats_data)));
+  stats->num_cores = num_cores;
+  return stats;
+}();
+}  // namespace grpc_core
 
 void grpc_stats_collect(grpc_stats_data* output) {
   memset(output, 0, sizeof(*output));
-  for (size_t core = 0; core < g_num_cores; core++) {
+  for (size_t core = 0; core < grpc_core::g_stats_data->num_cores; core++) {
     for (size_t i = 0; i < GRPC_STATS_COUNTER_COUNT; i++) {
       output->counters[i] += gpr_atm_no_barrier_load(
-          &grpc_stats_per_cpu_storage[core].counters[i]);
+          &grpc_core::g_stats_data->per_cpu[core].counters[i]);
     }
     for (size_t i = 0; i < GRPC_STATS_HISTOGRAM_BUCKETS; i++) {
       output->histograms[i] += gpr_atm_no_barrier_load(
-          &grpc_stats_per_cpu_storage[core].histograms[i]);
+          &grpc_core::g_stats_data->per_cpu[core].histograms[i]);
     }
   }
 }
@@ -140,39 +142,28 @@ double grpc_stats_histo_percentile(const grpc_stats_data* stats,
       static_cast<double>(count) * percentile / 100.0);
 }
 
-char* grpc_stats_data_as_json(const grpc_stats_data* data) {
-  gpr_strvec v;
-  char* tmp;
-  bool is_first = true;
-  gpr_strvec_init(&v);
-  gpr_strvec_add(&v, gpr_strdup("{"));
+std::string grpc_stats_data_as_json(const grpc_stats_data* data) {
+  std::vector<std::string> parts;
+  parts.push_back("{");
   for (size_t i = 0; i < GRPC_STATS_COUNTER_COUNT; i++) {
-    gpr_asprintf(&tmp, "%s\"%s\": %" PRIdPTR, is_first ? "" : ", ",
-                 grpc_stats_counter_name[i], data->counters[i]);
-    gpr_strvec_add(&v, tmp);
-    is_first = false;
+    parts.push_back(absl::StrFormat(
+        "\"%s\": %" PRIdPTR, grpc_stats_counter_name[i], data->counters[i]));
   }
   for (size_t i = 0; i < GRPC_STATS_HISTOGRAM_COUNT; i++) {
-    gpr_asprintf(&tmp, "%s\"%s\": [", is_first ? "" : ", ",
-                 grpc_stats_histogram_name[i]);
-    gpr_strvec_add(&v, tmp);
+    parts.push_back(absl::StrFormat("\"%s\": [", grpc_stats_histogram_name[i]));
     for (int j = 0; j < grpc_stats_histo_buckets[i]; j++) {
-      gpr_asprintf(&tmp, "%s%" PRIdPTR, j == 0 ? "" : ",",
-                   data->histograms[grpc_stats_histo_start[i] + j]);
-      gpr_strvec_add(&v, tmp);
+      parts.push_back(
+          absl::StrFormat("%s%" PRIdPTR, j == 0 ? "" : ",",
+                          data->histograms[grpc_stats_histo_start[i] + j]));
     }
-    gpr_asprintf(&tmp, "], \"%s_bkt\": [", grpc_stats_histogram_name[i]);
-    gpr_strvec_add(&v, tmp);
+    parts.push_back(
+        absl::StrFormat("], \"%s_bkt\": [", grpc_stats_histogram_name[i]));
     for (int j = 0; j < grpc_stats_histo_buckets[i]; j++) {
-      gpr_asprintf(&tmp, "%s%d", j == 0 ? "" : ",",
-                   grpc_stats_histo_bucket_boundaries[i][j]);
-      gpr_strvec_add(&v, tmp);
+      parts.push_back(absl::StrFormat(
+          "%s%d", j == 0 ? "" : ",", grpc_stats_histo_bucket_boundaries[i][j]));
     }
-    gpr_strvec_add(&v, gpr_strdup("]"));
-    is_first = false;
+    parts.push_back("]");
   }
-  gpr_strvec_add(&v, gpr_strdup("}"));
-  tmp = gpr_strvec_flatten(&v, nullptr);
-  gpr_strvec_destroy(&v);
-  return tmp;
+  parts.push_back("}");
+  return absl::StrJoin(parts, "");
 }

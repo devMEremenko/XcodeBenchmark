@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Google
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,22 +35,13 @@
 #include <stdexcept>
 #include <string>
 
+#include "Firestore/core/include/firebase/firestore/firestore_errors.h"
 #include "Firestore/core/src/util/string_format.h"
 #include "absl/base/attributes.h"
 
 namespace firebase {
 namespace firestore {
 namespace util {
-
-#if ABSL_HAVE_EXCEPTIONS
-/**
- * An exception thrown if Firestore encounters an internal error.
- */
-class FirestoreInternalError : public std::logic_error {
- public:
-  using std::logic_error::logic_error;
-};
-#endif  // ABSL_HAVE_EXCEPTIONS
 
 /**
  * An enumeration of logical exception types mapping to common user visible
@@ -77,12 +68,12 @@ using ThrowHandler = void (*)(ExceptionType type,
  * the C++ core as their implementation and would otherwise be expected to throw
  * a platform specific exception.
  *
- * @param callback A function that will handle the exception. This function is
+ * @param handler A function that will handle the exception. This function is
  *     expected not to return. (If it does, std::terminate() will be called
  *     immediately after it does so.)
  * @return A pointer to the previous failure handler.
  */
-ThrowHandler SetThrowHandler(ThrowHandler callback);
+ThrowHandler SetThrowHandler(ThrowHandler handler);
 
 ABSL_ATTRIBUTE_NORETURN void Throw(ExceptionType type,
                                    const char* file,

@@ -67,12 +67,21 @@
 #include "internal.h"
 
 
-ASN1_SEQUENCE(RSA_PSS_PARAMS) = {
+static int rsa_pss_cb(int operation, ASN1_VALUE **pval, const ASN1_ITEM *it,
+                      void *exarg) {
+  if (operation == ASN1_OP_FREE_PRE) {
+    RSA_PSS_PARAMS *pss = (RSA_PSS_PARAMS *)*pval;
+    X509_ALGOR_free(pss->maskHash);
+  }
+  return 1;
+}
+
+ASN1_SEQUENCE_cb(RSA_PSS_PARAMS, rsa_pss_cb) = {
   ASN1_EXP_OPT(RSA_PSS_PARAMS, hashAlgorithm, X509_ALGOR,0),
   ASN1_EXP_OPT(RSA_PSS_PARAMS, maskGenAlgorithm, X509_ALGOR,1),
   ASN1_EXP_OPT(RSA_PSS_PARAMS, saltLength, ASN1_INTEGER,2),
   ASN1_EXP_OPT(RSA_PSS_PARAMS, trailerField, ASN1_INTEGER,3),
-} ASN1_SEQUENCE_END(RSA_PSS_PARAMS)
+} ASN1_SEQUENCE_END_cb(RSA_PSS_PARAMS, RSA_PSS_PARAMS)
 
 IMPLEMENT_ASN1_FUNCTIONS(RSA_PSS_PARAMS)
 
@@ -167,7 +176,8 @@ static const EVP_MD *rsa_algor_to_md(X509_ALGOR *alg) {
 }
 
 /* convert MGF1 algorithm ID to EVP_MD, default SHA1 */
-static const EVP_MD *rsa_mgf1_to_md(X509_ALGOR *alg, X509_ALGOR *maskHash) {
+static const EVP_MD *rsa_mgf1_to_md(const X509_ALGOR *alg,
+                                    X509_ALGOR *maskHash) {
   const EVP_MD *md;
   if (!alg) {
     return EVP_sha1();
@@ -199,11 +209,15 @@ int x509_rsa_ctx_to_pss(EVP_MD_CTX *ctx, X509_ALGOR *algor) {
   if (saltlen == -1) {
     saltlen = EVP_MD_size(sigmd);
   } else if (saltlen == -2) {
+    // TODO(davidben): Forbid this mode. The world has largely standardized on
+    // salt length matching hash length.
     saltlen = EVP_PKEY_size(pk) - EVP_MD_size(sigmd) - 2;
     if (((EVP_PKEY_bits(pk) - 1) & 0x7) == 0) {
       saltlen--;
     }
-  } else {
+  } else if (saltlen != (int)EVP_MD_size(sigmd)) {
+    // We only allow salt length matching hash length and, for now, the -2 case.
+    OPENSSL_PUT_ERROR(X509, X509_R_INVALID_PSS_PARAMETERS);
     return 0;
   }
 
@@ -242,7 +256,8 @@ err:
   return ret;
 }
 
-int x509_rsa_pss_to_ctx(EVP_MD_CTX *ctx, X509_ALGOR *sigalg, EVP_PKEY *pkey) {
+int x509_rsa_pss_to_ctx(EVP_MD_CTX *ctx, const X509_ALGOR *sigalg,
+                        EVP_PKEY *pkey) {
   assert(OBJ_obj2nid(sigalg->algorithm) == NID_rsassaPss);
 
   /* Decode PSS parameters */

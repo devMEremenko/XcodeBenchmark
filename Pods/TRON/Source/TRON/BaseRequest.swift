@@ -27,7 +27,7 @@ import Foundation
 import Alamofire
 
 /// Protocol used to allow `APIRequest` to communicate with `TRON` instance.
-public protocol TronDelegate: class {
+public protocol TronDelegate: AnyObject {
 
     /// Alamofire.Session used to send requests
     var session: Alamofire.Session { get }
@@ -72,6 +72,9 @@ open class BaseRequest<Model, ErrorModel> {
 
     /// Request interceptor that allows to adapt and retry requests.
     open var interceptor: RequestInterceptor?
+
+    /// Closure which provides a `URLRequest` for mutation.
+    open var requestModifier: Session.RequestModifier?
 
     /// Queue, used to deliver result completion blocks. Defaults to TRON.resultDeliveryQueue queue.
     open var resultDeliveryQueue: DispatchQueue
@@ -276,6 +279,14 @@ open class BaseRequest<Model, ErrorModel> {
     /// - Returns: configured request
     open func intercept(using interceptor: RequestInterceptor) -> Self {
         self.interceptor = interceptor
+        return self
+    }
+
+    /// Sets per-request modifier to configure URLRequest, that will be created.
+    /// - Parameter closure: request modifier closure
+    /// - Returns: configured request
+    open func modifyRequest(_ closure: @escaping Session.RequestModifier) -> Self {
+        self.requestModifier = closure
         return self
     }
 

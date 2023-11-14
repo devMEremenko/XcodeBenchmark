@@ -46,14 +46,14 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ==================================================================== */
 
-#include <openssl/aead.h>
+#include <openssl_grpc/aead.h>
 
 #include <assert.h>
 
-#include <openssl/cpu.h>
-#include <openssl/cipher.h>
-#include <openssl/err.h>
-#include <openssl/mem.h>
+#include <openssl_grpc/cpu.h>
+#include <openssl_grpc/cipher.h>
+#include <openssl_grpc/err.h>
+#include <openssl_grpc/mem.h>
 
 #include "../fipsmodule/cipher/internal.h"
 

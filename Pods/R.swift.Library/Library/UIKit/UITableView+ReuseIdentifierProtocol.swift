@@ -7,6 +7,7 @@
 //  License: MIT License
 //
 
+#if !os(watchOS)
 import Foundation
 import UIKit
 
@@ -65,3 +66,4 @@ public extension UITableView {
     register(UINib(resource: nibResource), forHeaderFooterViewReuseIdentifier: nibResource.identifier)
   }
 }
+#endif

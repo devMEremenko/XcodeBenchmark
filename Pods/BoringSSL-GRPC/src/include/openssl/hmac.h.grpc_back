@@ -57,9 +57,9 @@
 #ifndef OPENSSL_HEADER_HMAC_H
 #define OPENSSL_HEADER_HMAC_H
 
-#include <openssl/base.h>
+#include <openssl_grpc/base.h>
 
-#include <openssl/digest.h>
+#include <openssl_grpc/digest.h>
 
 #if defined(__cplusplus)
 extern "C" {

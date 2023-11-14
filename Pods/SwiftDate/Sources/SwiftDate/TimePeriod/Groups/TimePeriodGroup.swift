@@ -1,9 +1,13 @@
 //
-//  TimePeriodGroupSequence.swift
 //  SwiftDate
+//  Parse, validate, manipulate, and display dates, time and timezones in Swift
 //
-//  Created by Daniele Margutti on 14/06/2018.
-//  Copyright © 2018 SwiftDate. All rights reserved.
+//  Created by Daniele Margutti
+//   - Web: https://www.danielemargutti.com
+//   - Twitter: https://twitter.com/danielemargutti
+//   - Mail: hello@danielemargutti.com
+//
+//  Copyright © 2019 Daniele Margutti. Licensed under MIT License.
 //
 
 import Foundation
@@ -70,7 +74,7 @@ open class TimePeriodGroup: Sequence, Equatable {
 		return try periods.split(maxSplits: maxSplits, omittingEmptySubsequences: omittingEmptySubsequences, whereSeparator: isSeparator).map(AnySequence.init)
 	}
 
-	subscript(index: Int) -> TimePeriodProtocol {
+	public subscript(index: Int) -> TimePeriodProtocol {
 		get {
 			return periods[index]
 		}
@@ -87,7 +91,7 @@ open class TimePeriodGroup: Sequence, Equatable {
 			return false // No need to sorting if they already have different counts
 		}
 
-		var compArray1: [TimePeriodProtocol] = array1.sorted { (period1: TimePeriodProtocol, period2: TimePeriodProtocol) -> Bool in
+		let compArray1: [TimePeriodProtocol] = array1.sorted { (period1: TimePeriodProtocol, period2: TimePeriodProtocol) -> Bool in
 			if period1.start == nil && period2.start == nil {
 				return false
 			} else if period1.start == nil {
@@ -98,7 +102,7 @@ open class TimePeriodGroup: Sequence, Equatable {
 				return period2.start! < period1.start!
 			}
 		}
-		var compArray2: [TimePeriodProtocol] = array2.sorted { (period1: TimePeriodProtocol, period2: TimePeriodProtocol) -> Bool in
+		let compArray2: [TimePeriodProtocol] = array2.sorted { (period1: TimePeriodProtocol, period2: TimePeriodProtocol) -> Bool in
 			if period1.start == nil && period2.start == nil {
 				return false
 			} else if period1.start == nil {

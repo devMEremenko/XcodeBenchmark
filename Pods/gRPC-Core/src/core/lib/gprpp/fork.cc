@@ -20,15 +20,12 @@
 
 #include "src/core/lib/gprpp/fork.h"
 
-#include <string.h>
-
-#include <grpc/support/alloc.h>
+#include <grpc/impl/codegen/gpr_types.h>
+#include <grpc/support/atm.h>
 #include <grpc/support/sync.h>
 #include <grpc/support/time.h>
 
-#include "src/core/lib/gpr/useful.h"
-#include "src/core/lib/gprpp/global_config.h"
-#include "src/core/lib/gprpp/memory.h"
+#include "src/core/lib/gprpp/global_config_env.h"
 
 /*
  * NOTE: FORKING IS NOT GENERALLY SUPPORTED, THIS IS ONLY INTENDED TO WORK
@@ -43,7 +40,7 @@
 
 GPR_GLOBAL_CONFIG_DEFINE_BOOL(grpc_enable_fork_support,
                               GRPC_ENABLE_FORK_SUPPORT_DEFAULT,
-                              "Enable folk support");
+                              "Enable fork support");
 
 namespace grpc_core {
 namespace internal {
@@ -54,7 +51,7 @@ namespace internal {
 // When blocked, the exec_ctx_count is 0-indexed.  Note that ExecCtx
 // creation can only be blocked if there is exactly 1 outstanding ExecCtx,
 // meaning that BLOCKED and UNBLOCKED counts partition the integers
-#define UNBLOCKED(n) (n + 2)
+#define UNBLOCKED(n) ((n) + 2)
 #define BLOCKED(n) (n)
 
 class ExecCtxState {
@@ -164,32 +161,34 @@ class ThreadState {
   int count_;
 };
 
-}  // namespace
+}  // namespace internal
 
 void Fork::GlobalInit() {
   if (!override_enabled_) {
-    support_enabled_.Store(GPR_GLOBAL_CONFIG_GET(grpc_enable_fork_support),
-                           MemoryOrder::RELAXED);
+    support_enabled_.store(GPR_GLOBAL_CONFIG_GET(grpc_enable_fork_support),
+                           std::memory_order_relaxed);
   }
-  if (support_enabled_.Load(MemoryOrder::RELAXED)) {
+  if (support_enabled_.load(std::memory_order_relaxed)) {
     exec_ctx_state_ = new internal::ExecCtxState();
     thread_state_ = new internal::ThreadState();
   }
 }
 
 void Fork::GlobalShutdown() {
-  if (support_enabled_.Load(MemoryOrder::RELAXED)) {
+  if (support_enabled_.load(std::memory_order_relaxed)) {
     delete exec_ctx_state_;
     delete thread_state_;
   }
 }
 
-bool Fork::Enabled() { return support_enabled_.Load(MemoryOrder::RELAXED); }
+bool Fork::Enabled() {
+  return support_enabled_.load(std::memory_order_relaxed);
+}
 
 // Testing Only
 void Fork::Enable(bool enable) {
   override_enabled_ = true;
-  support_enabled_.Store(enable, MemoryOrder::RELAXED);
+  support_enabled_.store(enable, std::memory_order_relaxed);
 }
 
 void Fork::DoIncExecCtxCount() { exec_ctx_state_->IncExecCtxCount(); }
@@ -205,38 +204,38 @@ Fork::child_postfork_func Fork::GetResetChildPollingEngineFunc() {
 }
 
 bool Fork::BlockExecCtx() {
-  if (support_enabled_.Load(MemoryOrder::RELAXED)) {
+  if (support_enabled_.load(std::memory_order_relaxed)) {
     return exec_ctx_state_->BlockExecCtx();
   }
   return false;
 }
 
 void Fork::AllowExecCtx() {
-  if (support_enabled_.Load(MemoryOrder::RELAXED)) {
+  if (support_enabled_.load(std::memory_order_relaxed)) {
     exec_ctx_state_->AllowExecCtx();
   }
 }
 
 void Fork::IncThreadCount() {
-  if (support_enabled_.Load(MemoryOrder::RELAXED)) {
+  if (support_enabled_.load(std::memory_order_relaxed)) {
     thread_state_->IncThreadCount();
   }
 }
 
 void Fork::DecThreadCount() {
-  if (support_enabled_.Load(MemoryOrder::RELAXED)) {
+  if (support_enabled_.load(std::memory_order_relaxed)) {
     thread_state_->DecThreadCount();
   }
 }
 void Fork::AwaitThreads() {
-  if (support_enabled_.Load(MemoryOrder::RELAXED)) {
+  if (support_enabled_.load(std::memory_order_relaxed)) {
     thread_state_->AwaitThreads();
   }
 }
 
 internal::ExecCtxState* Fork::exec_ctx_state_ = nullptr;
 internal::ThreadState* Fork::thread_state_ = nullptr;
-Atomic<bool> Fork::support_enabled_(false);
+std::atomic<bool> Fork::support_enabled_(false);
 bool Fork::override_enabled_ = false;
 Fork::child_postfork_func Fork::reset_child_polling_engine_ = nullptr;
 }  // namespace grpc_core

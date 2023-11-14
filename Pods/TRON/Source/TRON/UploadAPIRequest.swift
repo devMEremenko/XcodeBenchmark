@@ -87,15 +87,15 @@ open class UploadAPIRequest<Model, ErrorModel: ErrorSerializable>: BaseRequest<M
         switch type {
         case .uploadFromFile(let url):
             return session.upload(url, to: urlBuilder.url(forPath: path), method: method,
-                                  headers: headers, interceptor: interceptor)
+                                  headers: headers, interceptor: interceptor, requestModifier: requestModifier)
 
         case .uploadData(let data):
             return session.upload(data, to: urlBuilder.url(forPath: path), method: method,
-                                  headers: headers, interceptor: interceptor)
+                                  headers: headers, interceptor: interceptor, requestModifier: requestModifier)
 
         case .uploadStream(let stream):
             return session.upload(stream, to: urlBuilder.url(forPath: path), method: method,
-                                  headers: headers, interceptor: interceptor)
+                                  headers: headers, interceptor: interceptor, requestModifier: requestModifier)
 
         case .multipartFormData(let constructionBlock, let memoryThreshold, let fileManager):
             return session.upload(multipartFormData: appendParametersToMultipartFormDataBlock(constructionBlock),
@@ -104,7 +104,8 @@ open class UploadAPIRequest<Model, ErrorModel: ErrorSerializable>: BaseRequest<M
                                   method: method,
                                   headers: headers,
                                   interceptor: interceptor,
-                                  fileManager: fileManager)
+                                  fileManager: fileManager,
+                                  requestModifier: requestModifier)
         }
     }
 

@@ -50,15 +50,15 @@
  * (eay@cryptsoft.com).  This product includes software written by Tim
  * Hudson (tjh@cryptsoft.com). */
 
-#include <openssl/evp.h>
+#include <openssl_grpc/evp.h>
 
-#include <openssl/bio.h>
-#include <openssl/bn.h>
-#include <openssl/dsa.h>
-#include <openssl/ec.h>
-#include <openssl/ec_key.h>
-#include <openssl/mem.h>
-#include <openssl/rsa.h>
+#include <openssl_grpc/bio.h>
+#include <openssl_grpc/bn.h>
+#include <openssl_grpc/dsa.h>
+#include <openssl_grpc/ec.h>
+#include <openssl_grpc/ec_key.h>
+#include <openssl_grpc/mem.h>
+#include <openssl_grpc/rsa.h>
 
 #include "../internal.h"
 #include "../fipsmodule/rsa/internal.h"
