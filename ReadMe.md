@@ -83,6 +83,7 @@ If a device you are looking for is not on the list below, check out open [issues
 | MacBook Pro 15" 2015 |    i7 2.8 GHz 4-core    |  16 | 1TB |     |  14.2 | 12.6.2  |    335    |
 | MacBook Air 13" 2018 |    i5 1.6 GHz 2-core    |   8 | 128 |     | 14.3.1| 13.4.1  |    859    |
 | MacBook Pro 13" 2015 |    i5 2.7 GHz 2-core    |   8 | 256 |     |  13.2 | 12.0.1  |    860    |
+|     Mac Mini 2012    |    i5 2.5 GHz 2-core    |  16 | 256 |     |  13.3 | 12.3    |    967    |
 
 ## Xcode 12.5
 
