@@ -55,7 +55,7 @@
  * copied and put under another distribution licence
  * [including the GNU Public Licence.] */
 
-#include <openssl/x509.h>
+#include <openssl_grpc/x509.h>
 
 /* TODO(fork): cleanup */
 

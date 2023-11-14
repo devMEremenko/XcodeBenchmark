@@ -15,13 +15,12 @@
 
 @interface SDImageCodersManager ()
 
-@property (nonatomic, strong, nonnull) dispatch_semaphore_t codersLock;
+@property (nonatomic, strong, nonnull) NSMutableArray<id<SDImageCoder>> *imageCoders;
 
 @end
 
-@implementation SDImageCodersManager
-{
-    NSMutableArray<id<SDImageCoder>> *_imageCoders;
+@implementation SDImageCodersManager {
+    SD_LOCK_DECLARE(_codersLock);
 }
 
 + (nonnull instancetype)sharedManager {
@@ -37,27 +36,25 @@
     if (self = [super init]) {
         // initialize with default coders
         _imageCoders = [NSMutableArray arrayWithArray:@[[SDImageIOCoder sharedCoder], [SDImageGIFCoder sharedCoder], [SDImageAPNGCoder sharedCoder]]];
-        _codersLock = dispatch_semaphore_create(1);
+        SD_LOCK_INIT(_codersLock);
     }
     return self;
 }
 
-- (NSArray<id<SDImageCoder>> *)coders
-{
-    SD_LOCK(self.codersLock);
+- (NSArray<id<SDImageCoder>> *)coders {
+    SD_LOCK(_codersLock);
     NSArray<id<SDImageCoder>> *coders = [_imageCoders copy];
-    SD_UNLOCK(self.codersLock);
+    SD_UNLOCK(_codersLock);
     return coders;
 }
 
-- (void)setCoders:(NSArray<id<SDImageCoder>> *)coders
-{
-    SD_LOCK(self.codersLock);
+- (void)setCoders:(NSArray<id<SDImageCoder>> *)coders {
+    SD_LOCK(_codersLock);
     [_imageCoders removeAllObjects];
     if (coders.count) {
         [_imageCoders addObjectsFromArray:coders];
     }
-    SD_UNLOCK(self.codersLock);
+    SD_UNLOCK(_codersLock);
 }
 
 #pragma mark - Coder IO operations
@@ -66,18 +63,18 @@
     if (![coder conformsToProtocol:@protocol(SDImageCoder)]) {
         return;
     }
-    SD_LOCK(self.codersLock);
+    SD_LOCK(_codersLock);
     [_imageCoders addObject:coder];
-    SD_UNLOCK(self.codersLock);
+    SD_UNLOCK(_codersLock);
 }
 
 - (void)removeCoder:(nonnull id<SDImageCoder>)coder {
     if (![coder conformsToProtocol:@protocol(SDImageCoder)]) {
         return;
     }
-    SD_LOCK(self.codersLock);
+    SD_LOCK(_codersLock);
     [_imageCoders removeObject:coder];
-    SD_UNLOCK(self.codersLock);
+    SD_UNLOCK(_codersLock);
 }
 
 #pragma mark - SDImageCoder
@@ -125,6 +122,21 @@
     for (id<SDImageCoder> coder in coders.reverseObjectEnumerator) {
         if ([coder canEncodeToFormat:format]) {
             return [coder encodedDataWithImage:image format:format options:options];
+        }
+    }
+    return nil;
+}
+
+- (NSData *)encodedDataWithFrames:(NSArray<SDImageFrame *> *)frames loopCount:(NSUInteger)loopCount format:(SDImageFormat)format options:(SDImageCoderOptions *)options {
+    if (!frames || frames.count < 1) {
+        return nil;
+    }
+    NSArray<id<SDImageCoder>> *coders = self.coders;
+    for (id<SDImageCoder> coder in coders.reverseObjectEnumerator) {
+        if ([coder canEncodeToFormat:format]) {
+            if ([coder respondsToSelector:@selector(encodedDataWithFrames:loopCount:format:options:)]) {
+                return [coder encodedDataWithFrames:frames loopCount:loopCount format:format options:options];
+            }
         }
     }
     return nil;

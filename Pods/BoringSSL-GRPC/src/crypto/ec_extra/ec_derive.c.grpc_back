@@ -12,15 +12,15 @@
  * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. */
 
-#include <openssl/ec_key.h>
+#include <openssl_grpc/ec_key.h>
 
 #include <string.h>
 
-#include <openssl/ec.h>
-#include <openssl/err.h>
-#include <openssl/digest.h>
-#include <openssl/hkdf.h>
-#include <openssl/mem.h>
+#include <openssl_grpc/ec.h>
+#include <openssl_grpc/err.h>
+#include <openssl_grpc/digest.h>
+#include <openssl_grpc/hkdf.h>
+#include <openssl_grpc/mem.h>
 
 #include "../fipsmodule/ec/internal.h"
 

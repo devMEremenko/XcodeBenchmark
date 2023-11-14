@@ -22,6 +22,7 @@
 @implementation MarkerEventsViewController {
   GMSMapView *_mapView;
   GMSMarker *_melbourneMarker;
+  BOOL _rotating;
 }
 
 - (void)viewDidLoad {
@@ -54,28 +55,44 @@
 }
 
 - (BOOL)mapView:(GMSMapView *)mapView didTapMarker:(GMSMarker *)marker {
+  GMSCameraPosition *camera = [[GMSCameraPosition alloc] initWithTarget:marker.position
+                                                                   zoom:8
+                                                                bearing:50
+                                                           viewingAngle:60];
   // Animate to the marker
   [CATransaction begin];
   [CATransaction setAnimationDuration:3.f];  // 3 second animation
+  [CATransaction setCompletionBlock:^{
+    if (_rotating) {  // Animation was interrupted by orientation change.
+      [CATransaction
+          setDisableActions:true];  // Disable animation to avoid interruption from rotation.
+      [_mapView animateToCameraPosition:camera];
+    }
+  }];
 
-  GMSCameraPosition *camera =
-      [[GMSCameraPosition alloc] initWithTarget:marker.position
-                                           zoom:8
-                                        bearing:50
-                                   viewingAngle:60];
   [mapView animateToCameraPosition:camera];
   [CATransaction commit];
 
-  // Melbourne marker has a InfoWindow so return NO to allow markerInfoWindow to
-  // fire. Also check that the marker isn't already selected so that the
-  // InfoWindow doesn't close.
-  if (marker == _melbourneMarker &&
-      mapView.selectedMarker != _melbourneMarker) {
+  // Melbourne marker has a InfoWindow so return NO to allow markerInfoWindow to fire. Also check
+  // that the marker isn't already selected so that the InfoWindow doesn't close.
+  if (marker == _melbourneMarker && mapView.selectedMarker != _melbourneMarker) {
     return NO;
   }
 
   // The Tap has been handled so return YES
   return YES;
+}
+
+- (void)viewWillTransitionToSize:(CGSize)size
+       withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
+  _rotating = true;
+  [coordinator
+      animateAlongsideTransition:nil
+                      completion:^(
+                          id<UIViewControllerTransitionCoordinatorContext> _Nonnull context) {
+                        _rotating = false;
+                      }];
+  [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
 }
 
 @end

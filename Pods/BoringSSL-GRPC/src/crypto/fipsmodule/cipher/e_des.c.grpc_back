@@ -54,9 +54,9 @@
  * copied and put under another distribution licence
  * [including the GNU Public Licence.] */
 
-#include <openssl/cipher.h>
-#include <openssl/des.h>
-#include <openssl/nid.h>
+#include <openssl_grpc/cipher.h>
+#include <openssl_grpc/des.h>
+#include <openssl_grpc/nid.h>
 
 #include "internal.h"
 #include "../delocate.h"

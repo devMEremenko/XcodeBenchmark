@@ -16,8 +16,7 @@
 #import "GooglePlacesDemos/DemoAppDelegate.h"
 
 #import <GooglePlaces/GooglePlaces.h>
-#import "GooglePlacesDemos/DemoData.h"
-#import "GooglePlacesDemos/DemoListViewController.h"
+#import "GooglePlacesDemos/DemoSceneDelegate.h"
 #import "GooglePlacesDemos/SDKDemoAPIKey.h"
 
 @implementation DemoAppDelegate
@@ -41,25 +40,20 @@
   // Provide the Places SDK with your API key.
   [GMSPlacesClient provideAPIKey:kAPIKey];
 
-  // Log the required open source licenses! Yes, just NSLog-ing them is not enough but is good for
-  // a demo.
+  // Log the required open source licenses! Yes, just NSLog-ing them is not enough but is good for a
+  // demo.
   NSLog(@"Google Places open source licenses:\n%@", [GMSPlacesClient openSourceLicenseInfo]);
-
-  // Manually create a window. If you are using a storyboard in your own app you can ignore the rest
-  // of this method.
-  self.window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
-
-  // Create our view controller with the list of demos.
-  DemoData *demoData = [[DemoData alloc] init];
-  DemoListViewController *masterViewController =
-      [[DemoListViewController alloc] initWithDemoData:demoData];
-  UINavigationController *masterNavigationController =
-      [[UINavigationController alloc] initWithRootViewController:masterViewController];
-  self.window.rootViewController = masterNavigationController;
-
-  [self.window makeKeyAndVisible];
-
   return YES;
+}
+
+- (UISceneConfiguration *)application:(UIApplication *)application
+    configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession
+                                   options:(UISceneConnectionOptions *)options {
+  UISceneConfiguration *configuration =
+      [UISceneConfiguration configurationWithName:@"Default Configuration"
+                                      sessionRole:connectingSceneSession.role];
+  configuration.delegateClass = [DemoSceneDelegate class];
+  return configuration;
 }
 
 @end

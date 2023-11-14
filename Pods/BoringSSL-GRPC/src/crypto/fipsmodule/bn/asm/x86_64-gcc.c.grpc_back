@@ -50,7 +50,7 @@
  *    machine.
  */
 
-#include <openssl/bn.h>
+#include <openssl_grpc/bn.h>
 
 // TODO(davidben): Get this file working on MSVC x64.
 #if !defined(OPENSSL_NO_ASM) && defined(OPENSSL_X86_64) && \

@@ -7,36 +7,34 @@
  * regenerated. */
 
 #include <stddef.h>
-#if COCOAPODS==1
-  #include  "third_party/upb/upb/msg.h"
-#else
-  #include  "upb/msg.h"
-#endif
-#if COCOAPODS==1
-  #include  "src/core/ext/upb-generated/google/api/annotations.upb.h"
-#else
-  #include  "google/api/annotations.upb.h"
-#endif
-#if COCOAPODS==1
-  #include  "src/core/ext/upb-generated/google/api/http.upb.h"
-#else
-  #include  "google/api/http.upb.h"
-#endif
-#if COCOAPODS==1
-  #include  "src/core/ext/upb-generated/google/protobuf/descriptor.upb.h"
-#else
-  #include  "google/protobuf/descriptor.upb.h"
-#endif
+#include "upb/msg_internal.h"
+#include "google/api/annotations.upb.h"
+#include "google/api/http.upb.h"
+#include "google/protobuf/descriptor.upb.h"
 
-#if COCOAPODS==1
-  #include  "third_party/upb/upb/port_def.inc"
-#else
-  #include  "upb/port_def.inc"
-#endif
+#include "upb/port_def.inc"
 
-#if COCOAPODS==1
-  #include  "third_party/upb/upb/port_undef.inc"
-#else
-  #include  "upb/port_undef.inc"
-#endif
+extern const upb_MiniTable google_api_HttpRule_msginit;
+extern const upb_MiniTable google_protobuf_MethodOptions_msginit;
+const upb_MiniTable_Extension google_api_http_ext = {
+  {72295728, UPB_SIZE(0, 0), UPB_SIZE(0, 0), 0, 11, kUpb_FieldMode_Scalar | kUpb_LabelFlags_IsExtension | (kUpb_FieldRep_Pointer << kUpb_FieldRep_Shift)},
+  &google_protobuf_MethodOptions_msginit,
+  {.submsg = &google_api_HttpRule_msginit},
+
+};
+
+static const upb_MiniTable_Extension *extensions_layout[1] = {
+  &google_api_http_ext,
+};
+
+const upb_MiniTable_File google_api_annotations_proto_upb_file_layout = {
+  NULL,
+  NULL,
+  extensions_layout,
+  0,
+  0,
+  1,
+};
+
+#include "upb/port_undef.inc"
 

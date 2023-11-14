@@ -21,9 +21,12 @@
 
 #include <grpc/support/port_platform.h>
 
+#include <stdint.h>
+
 #include <grpc/slice.h>
-#include <grpc/slice_buffer.h>
+
 #include "src/core/ext/transport/chttp2/transport/frame.h"
+#include "src/core/lib/iomgr/error.h"
 
 typedef enum {
   GRPC_CHTTP2_GOAWAY_LSI0,
@@ -37,24 +40,23 @@ typedef enum {
   GRPC_CHTTP2_GOAWAY_DEBUG
 } grpc_chttp2_goaway_parse_state;
 
-typedef struct {
+struct grpc_chttp2_goaway_parser {
   grpc_chttp2_goaway_parse_state state;
   uint32_t last_stream_id;
   uint32_t error_code;
   char* debug_data;
   uint32_t debug_length;
   uint32_t debug_pos;
-} grpc_chttp2_goaway_parser;
-
+};
 void grpc_chttp2_goaway_parser_init(grpc_chttp2_goaway_parser* p);
 void grpc_chttp2_goaway_parser_destroy(grpc_chttp2_goaway_parser* p);
-grpc_error* grpc_chttp2_goaway_parser_begin_frame(
+grpc_error_handle grpc_chttp2_goaway_parser_begin_frame(
     grpc_chttp2_goaway_parser* parser, uint32_t length, uint8_t flags);
-grpc_error* grpc_chttp2_goaway_parser_parse(void* parser,
-                                            grpc_chttp2_transport* t,
-                                            grpc_chttp2_stream* s,
-                                            const grpc_slice& slice,
-                                            int is_last);
+grpc_error_handle grpc_chttp2_goaway_parser_parse(void* parser,
+                                                  grpc_chttp2_transport* t,
+                                                  grpc_chttp2_stream* s,
+                                                  const grpc_slice& slice,
+                                                  int is_last);
 
 void grpc_chttp2_goaway_append(uint32_t last_stream_id, uint32_t error_code,
                                const grpc_slice& debug_data,

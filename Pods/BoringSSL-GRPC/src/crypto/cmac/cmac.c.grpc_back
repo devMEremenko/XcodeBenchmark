@@ -46,14 +46,14 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ==================================================================== */
 
-#include <openssl/cmac.h>
+#include <openssl_grpc/cmac.h>
 
 #include <assert.h>
 #include <string.h>
 
-#include <openssl/aes.h>
-#include <openssl/cipher.h>
-#include <openssl/mem.h>
+#include <openssl_grpc/aes.h>
+#include <openssl_grpc/cipher.h>
+#include <openssl_grpc/mem.h>
 
 #include "../internal.h"
 

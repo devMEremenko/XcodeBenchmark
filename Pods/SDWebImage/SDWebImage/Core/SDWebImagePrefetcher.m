@@ -8,8 +8,15 @@
 
 #import "SDWebImagePrefetcher.h"
 #import "SDAsyncBlockOperation.h"
+#import "SDCallbackQueue.h"
 #import "SDInternalMacros.h"
 #import <stdatomic.h>
+
+@interface SDCallbackQueue ()
+
+@property (nonatomic, strong, nonnull) dispatch_queue_t queue;
+
+@end
 
 @interface SDWebImagePrefetchToken () {
     @public
@@ -22,14 +29,16 @@
     unsigned long _totalCount;
     
     // Used to ensure NSPointerArray thread safe
-    dispatch_semaphore_t _prefetchOperationsLock;
-    dispatch_semaphore_t _loadOperationsLock;
+    SD_LOCK_DECLARE(_prefetchOperationsLock);
+    SD_LOCK_DECLARE(_loadOperationsLock);
 }
 
 @property (nonatomic, copy, readwrite) NSArray<NSURL *> *urls;
 @property (nonatomic, strong) NSPointerArray *loadOperations;
 @property (nonatomic, strong) NSPointerArray *prefetchOperations;
 @property (nonatomic, weak) SDWebImagePrefetcher *prefetcher;
+@property (nonatomic, assign) SDWebImageOptions options;
+@property (nonatomic, copy, nullable) SDWebImageContext *context;
 @property (nonatomic, copy, nullable) SDWebImagePrefetcherCompletionBlock completionBlock;
 @property (nonatomic, copy, nullable) SDWebImagePrefetcherProgressBlock progressBlock;
 
@@ -40,6 +49,7 @@
 @property (strong, nonatomic, nonnull) SDWebImageManager *manager;
 @property (strong, atomic, nonnull) NSMutableSet<SDWebImagePrefetchToken *> *runningTokens;
 @property (strong, nonatomic, nonnull) NSOperationQueue *prefetchQueue;
+@property (strong, nonatomic, nullable) SDCallbackQueue *callbackQueue;
 
 @end
 
@@ -63,7 +73,6 @@
         _manager = manager;
         _runningTokens = [NSMutableSet set];
         _options = SDWebImageLowPriority;
-        _delegateQueue = dispatch_get_main_queue();
         _prefetchQueue = [NSOperationQueue new];
         self.maxConcurrentPrefetchCount = 3;
     }
@@ -78,12 +87,31 @@
     return self.prefetchQueue.maxConcurrentOperationCount;
 }
 
+- (void)setDelegateQueue:(dispatch_queue_t)delegateQueue {
+    // Deprecate and translate to SDCallbackQueue
+    _callbackQueue = [[SDCallbackQueue alloc] initWithDispatchQueue:delegateQueue];
+    _callbackQueue.policy = SDCallbackPolicyDispatch;
+}
+
+- (dispatch_queue_t)delegateQueue {
+    // Deprecate and translate to SDCallbackQueue
+    return (_callbackQueue ?: SDCallbackQueue.mainQueue).queue;
+}
+
 #pragma mark - Prefetch
 - (nullable SDWebImagePrefetchToken *)prefetchURLs:(nullable NSArray<NSURL *> *)urls {
     return [self prefetchURLs:urls progress:nil completed:nil];
 }
 
 - (nullable SDWebImagePrefetchToken *)prefetchURLs:(nullable NSArray<NSURL *> *)urls
+                                          progress:(nullable SDWebImagePrefetcherProgressBlock)progressBlock
+                                         completed:(nullable SDWebImagePrefetcherCompletionBlock)completionBlock {
+    return [self prefetchURLs:urls options:self.options context:self.context progress:progressBlock completed:completionBlock];
+}
+
+- (nullable SDWebImagePrefetchToken *)prefetchURLs:(nullable NSArray<NSURL *> *)urls
+                                           options:(SDWebImageOptions)options
+                                           context:(nullable SDWebImageContext *)context
                                           progress:(nullable SDWebImagePrefetcherProgressBlock)progressBlock
                                          completed:(nullable SDWebImagePrefetcherCompletionBlock)completionBlock {
     if (!urls || urls.count == 0) {
@@ -95,6 +123,8 @@
     SDWebImagePrefetchToken *token = [SDWebImagePrefetchToken new];
     token.prefetcher = self;
     token.urls = urls;
+    token.options = options;
+    token.context = context;
     token->_skippedCount = 0;
     token->_finishedCount = 0;
     token->_totalCount = token.urls.count;
@@ -111,49 +141,47 @@
 
 - (void)startPrefetchWithToken:(SDWebImagePrefetchToken * _Nonnull)token {
     for (NSURL *url in token.urls) {
-        @autoreleasepool {
-            @weakify(self);
-            SDAsyncBlockOperation *prefetchOperation = [SDAsyncBlockOperation blockOperationWithBlock:^(SDAsyncBlockOperation * _Nonnull asyncOperation) {
+        @weakify(self);
+        SDAsyncBlockOperation *prefetchOperation = [SDAsyncBlockOperation blockOperationWithBlock:^(SDAsyncBlockOperation * _Nonnull asyncOperation) {
+            @strongify(self);
+            if (!self || asyncOperation.isCancelled) {
+                return;
+            }
+            id<SDWebImageOperation> operation = [self.manager loadImageWithURL:url options:token.options context:token.context progress:nil completed:^(UIImage * _Nullable image, NSData * _Nullable data, NSError * _Nullable error, SDImageCacheType cacheType, BOOL finished, NSURL * _Nullable imageURL) {
                 @strongify(self);
-                if (!self || asyncOperation.isCancelled) {
+                if (!self) {
                     return;
                 }
-                id<SDWebImageOperation> operation = [self.manager loadImageWithURL:url options:self.options context:self.context progress:nil completed:^(UIImage * _Nullable image, NSData * _Nullable data, NSError * _Nullable error, SDImageCacheType cacheType, BOOL finished, NSURL * _Nullable imageURL) {
-                    @strongify(self);
-                    if (!self) {
-                        return;
+                if (!finished) {
+                    return;
+                }
+                atomic_fetch_add_explicit(&(token->_finishedCount), 1, memory_order_relaxed);
+                if (error) {
+                    // Add last failed
+                    atomic_fetch_add_explicit(&(token->_skippedCount), 1, memory_order_relaxed);
+                }
+                
+                // Current operation finished
+                [self callProgressBlockForToken:token imageURL:imageURL];
+                
+                if (atomic_load_explicit(&(token->_finishedCount), memory_order_relaxed) == token->_totalCount) {
+                    // All finished
+                    if (!atomic_flag_test_and_set_explicit(&(token->_isAllFinished), memory_order_relaxed)) {
+                        [self callCompletionBlockForToken:token];
+                        [self removeRunningToken:token];
                     }
-                    if (!finished) {
-                        return;
-                    }
-                    atomic_fetch_add_explicit(&(token->_finishedCount), 1, memory_order_relaxed);
-                    if (error) {
-                        // Add last failed
-                        atomic_fetch_add_explicit(&(token->_skippedCount), 1, memory_order_relaxed);
-                    }
-                    
-                    // Current operation finished
-                    [self callProgressBlockForToken:token imageURL:imageURL];
-                    
-                    if (atomic_load_explicit(&(token->_finishedCount), memory_order_relaxed) == token->_totalCount) {
-                        // All finished
-                        if (!atomic_flag_test_and_set_explicit(&(token->_isAllFinished), memory_order_relaxed)) {
-                            [self callCompletionBlockForToken:token];
-                            [self removeRunningToken:token];
-                        }
-                    }
-                    [asyncOperation complete];
-                }];
-                NSAssert(operation != nil, @"Operation should not be nil, [SDWebImageManager loadImageWithURL:options:context:progress:completed:] break prefetch logic");
-                SD_LOCK(token->_loadOperationsLock);
-                [token.loadOperations addPointer:(__bridge void *)operation];
-                SD_UNLOCK(token->_loadOperationsLock);
+                }
+                [asyncOperation complete];
             }];
-            SD_LOCK(token->_prefetchOperationsLock);
-            [token.prefetchOperations addPointer:(__bridge void *)prefetchOperation];
-            SD_UNLOCK(token->_prefetchOperationsLock);
-            [self.prefetchQueue addOperation:prefetchOperation];
-        }
+            NSAssert(operation != nil, @"Operation should not be nil, [SDWebImageManager loadImageWithURL:options:context:progress:completed:] break prefetch logic");
+            SD_LOCK(token->_loadOperationsLock);
+            [token.loadOperations addPointer:(__bridge void *)operation];
+            SD_UNLOCK(token->_loadOperationsLock);
+        }];
+        SD_LOCK(token->_prefetchOperationsLock);
+        [token.prefetchOperations addPointer:(__bridge void *)prefetchOperation];
+        SD_UNLOCK(token->_prefetchOperationsLock);
+        [self.prefetchQueue addOperation:prefetchOperation];
     }
 }
 
@@ -175,14 +203,18 @@
     NSUInteger tokenTotalCount = [self tokenTotalCount];
     NSUInteger finishedCount = atomic_load_explicit(&(token->_finishedCount), memory_order_relaxed);
     NSUInteger totalCount = token->_totalCount;
-    dispatch_async(self.delegateQueue, ^{
+    SDCallbackQueue *queue = token.context[SDWebImageContextCallbackQueue];
+    if (!queue) {
+        queue = self.callbackQueue;
+    }
+    [(queue ?: SDCallbackQueue.mainQueue) async:^{
         if (shouldCallDelegate) {
             [self.delegate imagePrefetcher:self didPrefetchURL:url finishedCount:tokenFinishedCount totalCount:tokenTotalCount];
         }
         if (token.progressBlock) {
             token.progressBlock(finishedCount, totalCount);
         }
-    });
+    }];
 }
 
 - (void)callCompletionBlockForToken:(SDWebImagePrefetchToken *)token {
@@ -194,14 +226,18 @@
     NSUInteger tokenSkippedCount = [self tokenSkippedCount];
     NSUInteger finishedCount = atomic_load_explicit(&(token->_finishedCount), memory_order_relaxed);
     NSUInteger skippedCount = atomic_load_explicit(&(token->_skippedCount), memory_order_relaxed);
-    dispatch_async(self.delegateQueue, ^{
+    SDCallbackQueue *queue = token.context[SDWebImageContextCallbackQueue];
+    if (!queue) {
+        queue = self.callbackQueue;
+    }
+    [(queue ?: SDCallbackQueue.mainQueue) async:^{
         if (shoulCallDelegate) {
             [self.delegate imagePrefetcher:self didFinishWithTotalCount:tokenTotalCount skippedCount:tokenSkippedCount];
         }
         if (token.completionBlock) {
             token.completionBlock(finishedCount, skippedCount);
         }
-    });
+    }];
 }
 
 #pragma mark - Helper
@@ -268,8 +304,8 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _prefetchOperationsLock = dispatch_semaphore_create(1);
-        _loadOperationsLock = dispatch_semaphore_create(1);
+        SD_LOCK_INIT(_prefetchOperationsLock);
+        SD_LOCK_INIT(_loadOperationsLock);
     }
     return self;
 }

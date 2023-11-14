@@ -20,6 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#if canImport(UIKit)
+
 import UIKit
 
 /**
@@ -43,7 +45,7 @@ public class Hero: NSObject {
   public static var shared = HeroTransition()
 }
 
-public protocol HeroTransitionDelegate: class {
+public protocol HeroTransitionDelegate: AnyObject {
   func heroTransition(_ hero: HeroTransition, didUpdate state: HeroTransitionState)
   func heroTransition(_ hero: HeroTransition, didUpdate progress: Double)
 }
@@ -94,6 +96,10 @@ open class HeroTransition: NSObject {
   internal var plugins: [HeroPlugin] = []
   internal var animatingFromViews: [UIView] = []
   internal var animatingToViews: [UIView] = []
+  internal var originalSuperview: UIView?
+  internal var originalFrame: CGRect?
+  internal var originalFrameInContainer: CGRect?
+
   internal static var enabledPlugins: [HeroPlugin.Type] = []
 
   /// destination view controller
@@ -213,3 +219,5 @@ extension HeroTransition: HeroProgressRunnerDelegate {
     self.progress = progress
   }
 }
+
+#endif

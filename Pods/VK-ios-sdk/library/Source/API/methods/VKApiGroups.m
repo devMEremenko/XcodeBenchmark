@@ -11,6 +11,8 @@
 
 @implementation VKApiGroups
 - (VKRequest *)getById:(NSDictionary *)params {
-    return [self prepareRequestWithMethodName:@"getById" parameters:params modelClass:[VKGroups class]];
+    return [self prepareRequestWithMethodName:@"getById"
+                                   parameters:params
+                                   modelClass:[VKGroups class]];
 }
 @end

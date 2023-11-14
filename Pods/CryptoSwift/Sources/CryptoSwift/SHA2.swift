@@ -1,7 +1,7 @@
 //
 //  CryptoSwift
 //
-//  Copyright (C) 2014-2017 Marcin Krzyżanowski <marcin@krzyzanowskim.com>
+//  Copyright (C) 2014-2022 Marcin Krzyżanowski <marcin@krzyzanowskim.com>
 //  This software is provided 'as-is', without any express or implied warranty.
 //
 //  In no event will the authors be held liable for any damages arising from the use of this software.
@@ -43,6 +43,7 @@ public final class SHA2: DigestType {
   @usableFromInline
   var accumulatedHash64 = Array<UInt64>()
 
+  @frozen
   public enum Variant: RawRepresentable {
     case sha224, sha256, sha384, sha512
 
@@ -166,6 +167,10 @@ public final class SHA2: DigestType {
     } catch {
       return []
     }
+  }
+
+  public func callAsFunction(_ bytes: Array<UInt8>) -> Array<UInt8> {
+    calculate(for: bytes)
   }
 
   @usableFromInline
@@ -316,8 +321,6 @@ extension SHA2: Updatable {
             self.process32(block: chunk, currentHash: &self.accumulatedHash32)
           case .sha384, .sha512:
             self.process64(block: chunk, currentHash: &self.accumulatedHash64)
-          @unknown default:
-            preconditionFailure()
           }
         processedBytes += chunk.count
       }
@@ -352,8 +355,6 @@ extension SHA2: Updatable {
           result[pos + 7] = UInt8(h & 0xff)
           pos += 8
         }
-      @unknown default:
-          preconditionFailure()
     }
 
     // reset hash value for instance
@@ -363,8 +364,6 @@ extension SHA2: Updatable {
           self.accumulatedHash32 = self.variant.h.lazy.map { UInt32($0) } // FIXME: UInt64 for process64
         case .sha384, .sha512:
           self.accumulatedHash64 = self.variant.h
-        @unknown default:
-          preconditionFailure()
       }
     }
 

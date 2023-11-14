@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#import "GoogleUtilities/Environment/Private/GULKeychainStorage.h"
+#import "GoogleUtilities/Environment/Public/GoogleUtilities/GULKeychainStorage.h"
 #import <Security/Security.h>
 
 #if __has_include(<FBLPromises/FBLPromises.h>)
@@ -23,8 +23,8 @@
 #import "FBLPromises.h"
 #endif
 
-#import "GoogleUtilities/Environment/Private/GULKeychainUtils.h"
-#import "GoogleUtilities/Environment/Private/GULSecureCoding.h"
+#import "GoogleUtilities/Environment/Public/GoogleUtilities/GULKeychainUtils.h"
+#import "GoogleUtilities/Environment/Public/GoogleUtilities/GULSecureCoding.h"
 
 @interface GULKeychainStorage ()
 @property(nonatomic, readonly) dispatch_queue_t keychainQueue;
@@ -179,12 +179,18 @@
     query[(__bridge NSString *)kSecAttrAccessGroup] = accessGroup;
   }
 
+  if (@available(iOS 13.0, macOS 10.15, macCatalyst 13.0, tvOS 13.0, watchOS 6.0, *)) {
+    // Ensures that the keychain query behaves the same across all platforms.
+    // See go/firebase-macos-keychain-popups for details.
+    query[(__bridge id)kSecUseDataProtectionKeychain] = (__bridge id)kCFBooleanTrue;
+  }
+
 #if TARGET_OS_OSX
   if (self.keychainRef) {
     query[(__bridge NSString *)kSecUseKeychain] = (__bridge id)(self.keychainRef);
     query[(__bridge NSString *)kSecMatchSearchList] = @[ (__bridge id)(self.keychainRef) ];
   }
-#endif  // TARGET_OSX
+#endif  // TARGET_OS_OSX
 
   return query;
 }

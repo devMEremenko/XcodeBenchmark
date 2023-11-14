@@ -214,23 +214,29 @@ class AlphaNum {
   // A bool ctor would also convert incoming pointers (bletch).
 
   AlphaNum(int x)  // NOLINT(runtime/explicit)
-      : piece_(digits_,
-               numbers_internal::FastIntToBuffer(x, digits_) - &digits_[0]) {}
+      : piece_(digits_, static_cast<size_t>(
+                            numbers_internal::FastIntToBuffer(x, digits_) -
+                            &digits_[0])) {}
   AlphaNum(unsigned int x)  // NOLINT(runtime/explicit)
-      : piece_(digits_,
-               numbers_internal::FastIntToBuffer(x, digits_) - &digits_[0]) {}
+      : piece_(digits_, static_cast<size_t>(
+                            numbers_internal::FastIntToBuffer(x, digits_) -
+                            &digits_[0])) {}
   AlphaNum(long x)  // NOLINT(*)
-      : piece_(digits_,
-               numbers_internal::FastIntToBuffer(x, digits_) - &digits_[0]) {}
+      : piece_(digits_, static_cast<size_t>(
+                            numbers_internal::FastIntToBuffer(x, digits_) -
+                            &digits_[0])) {}
   AlphaNum(unsigned long x)  // NOLINT(*)
-      : piece_(digits_,
-               numbers_internal::FastIntToBuffer(x, digits_) - &digits_[0]) {}
+      : piece_(digits_, static_cast<size_t>(
+                            numbers_internal::FastIntToBuffer(x, digits_) -
+                            &digits_[0])) {}
   AlphaNum(long long x)  // NOLINT(*)
-      : piece_(digits_,
-               numbers_internal::FastIntToBuffer(x, digits_) - &digits_[0]) {}
+      : piece_(digits_, static_cast<size_t>(
+                            numbers_internal::FastIntToBuffer(x, digits_) -
+                            &digits_[0])) {}
   AlphaNum(unsigned long long x)  // NOLINT(*)
-      : piece_(digits_,
-               numbers_internal::FastIntToBuffer(x, digits_) - &digits_[0]) {}
+      : piece_(digits_, static_cast<size_t>(
+                            numbers_internal::FastIntToBuffer(x, digits_) -
+                            &digits_[0])) {}
 
   AlphaNum(float f)  // NOLINT(runtime/explicit)
       : piece_(digits_, numbers_internal::SixDigitsToBuffer(f, digits_)) {}
@@ -245,7 +251,8 @@ class AlphaNum {
       const strings_internal::AlphaNumBuffer<size>& buf)
       : piece_(&buf.data[0], buf.size) {}
 
-  AlphaNum(const char* c_str) : piece_(c_str) {}  // NOLINT(runtime/explicit)
+  AlphaNum(const char* c_str)                     // NOLINT(runtime/explicit)
+      : piece_(NullSafeStringView(c_str)) {}      // NOLINT(runtime/explicit)
   AlphaNum(absl::string_view pc) : piece_(pc) {}  // NOLINT(runtime/explicit)
 
   template <typename Allocator>
@@ -253,7 +260,7 @@ class AlphaNum {
       const std::basic_string<char, std::char_traits<char>, Allocator>& str)
       : piece_(str) {}
 
-  // Use std::string literals ":" instead of character literals ':'.
+  // Use string literals ":" instead of character literals ':'.
   AlphaNum(char c) = delete;  // NOLINT(runtime/explicit)
 
   AlphaNum(const AlphaNum&) = delete;

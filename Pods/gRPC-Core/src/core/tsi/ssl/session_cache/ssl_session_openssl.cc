@@ -18,11 +18,13 @@
 
 #include <grpc/support/port_platform.h>
 
-#include "src/core/tsi/ssl/session_cache/ssl_session.h"
-
 #include <grpc/support/log.h>
 
+#include "src/core/tsi/ssl/session_cache/ssl_session.h"
+
 #ifndef OPENSSL_IS_BORINGSSL
+
+#include "absl/memory/memory.h"
 
 // OpenSSL invalidates SSL_SESSION on SSL destruction making it pointless
 // to cache sessions. The workaround is to serialize (relatively expensive)

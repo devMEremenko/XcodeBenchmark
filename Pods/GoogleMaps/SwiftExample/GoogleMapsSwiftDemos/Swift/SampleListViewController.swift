@@ -19,6 +19,7 @@ class SampleListViewController: UIViewController {
 
   let sampleSections = Samples.allSamples()
   lazy var tableView: UITableView = UITableView()
+  var shouldCollapseDetailViewController = true
 
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -42,7 +43,6 @@ extension SampleListViewController: UITableViewDataSource {
   func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
     return sampleSections[section].samples.count
   }
-
   func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
     let cell = tableView.dequeueReusableCell(
       withIdentifier: SampleListViewController.sampleCellIdentifier, for: indexPath)
@@ -70,10 +70,38 @@ extension SampleListViewController: UITableViewDataSource {
 
 extension SampleListViewController: UITableViewDelegate {
   func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+    shouldCollapseDetailViewController = false
+    tableView.deselectRow(at: indexPath, animated: true)
     if let sample = sample(at: indexPath) {
       let viewController = sample.viewControllerClass.init()
       viewController.title = sample.title
-      navigationController?.pushViewController(viewController, animated: true)
+      let navController = UINavigationController(rootViewController: viewController)
+      navController.navigationBar.isTranslucent = false
+      showDetailViewController(navController, sender: self)
     }
+  }
+}
+
+extension SampleListViewController: UISplitViewControllerDelegate {
+  func primaryViewController(forExpanding splitViewController: UISplitViewController)
+    -> UIViewController?
+  {
+    tableView.reloadData()
+    return nil
+  }
+
+  func primaryViewController(forCollapsing splitViewController: UISplitViewController)
+    -> UIViewController?
+  {
+    tableView.reloadData()
+    return nil
+  }
+
+  func splitViewController(
+    _ splitViewController: UISplitViewController,
+    collapseSecondary secondaryViewController: UIViewController,
+    onto primaryViewController: UIViewController
+  ) -> Bool {
+    return shouldCollapseDetailViewController
   }
 }

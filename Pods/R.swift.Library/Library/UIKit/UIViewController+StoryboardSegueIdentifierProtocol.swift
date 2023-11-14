@@ -7,6 +7,7 @@
 //  License: MIT License
 //
 
+#if !os(watchOS)
 import Foundation
 import UIKit
 
@@ -37,3 +38,4 @@ public extension StoryboardSegue where Source : UIViewController {
     source.performSegue(withIdentifier: identifier.identifier, sender: sender)
   }
 }
+#endif
