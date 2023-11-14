@@ -44,7 +44,7 @@ If a device you are looking for is not on the list below, check out open [issues
 |     iMac 27" 2015    |    i5 3.3 GHz 4-core    |  32 | 1TB |     |  13.1 | 11.6    |    400    |
 | MacBook Pro 13" 2017 |    i5 2.3 GHz 2-core    |   8 | 256 |     |  13.1 | 11.5.1  |    511    |
 | MacBook Pro 13" 2015 |    i5 2.7 GHz 2-core    |   8 | 256 |     |  13.2 | 12.0.1  |    860    |
-|     Mac Mini 2012    |    i5 2.5 GHz 2-core    |  16 | 256 |     |  13.3 | 12.3    |    967    |                |
+|     Mac Mini 2012    |    i5 2.5 GHz 2-core    |  16 | 256 |     |  13.3 | 12.3    |    967    |
 
 ## Xcode 12.5
 
