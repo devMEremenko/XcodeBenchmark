@@ -40,15 +40,17 @@ enum class TimerId {
   All,
 
   /**
-   * The following 4 timers are used in `Stream` for the listen and write
+   * The following 5 timers are used in `Stream` for the listen and write
    * streams. The "Idle" timer is used to close the stream due to inactivity.
    * The "ConnectionBackoff" timer is used to restart a stream once the
-   * appropriate backoff delay has elapsed.
+   * appropriate backoff delay has elapsed. The health check is used to mark
+   * a stream healthy if it has not received an error during its initial setup.
    */
   ListenStreamIdle,
   ListenStreamConnectionBackoff,
   WriteStreamIdle,
   WriteStreamConnectionBackoff,
+  HealthCheckTimeout,
 
   /**
    * A timer used in `OnlineStateTracker` to transition from
@@ -58,7 +60,7 @@ enum class TimerId {
   OnlineStateTimeout,
 
   /**
-   * A timer used to periodically attempt LRU Garbage collection
+   * A timer used to periodically attempt LRU Garbage collection.
    */
   GarbageCollectionDelay,
 
@@ -66,7 +68,12 @@ enum class TimerId {
    * A timer used to retry transactions. Since there can be multiple concurrent
    * transactions, multiple of these may be in the queue at a given time.
    */
-  RetryTransaction
+  RetryTransaction,
+
+  /**
+   * A timer used to periodically attempt Index Backfill
+   */
+  IndexBackfillDelay
 };
 
 // A serial queue that executes given operations asynchronously, one at a time.

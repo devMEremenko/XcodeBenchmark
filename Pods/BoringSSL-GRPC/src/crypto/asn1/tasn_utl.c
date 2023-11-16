@@ -66,6 +66,7 @@
 #include <openssl_grpc/thread.h>
 
 #include "../internal.h"
+#include "internal.h"
 
 
 /* Utility functions for manipulating fields and offsets */
@@ -91,8 +92,7 @@ int asn1_set_choice_selector(ASN1_VALUE **pval, int value,
 
 static CRYPTO_refcount_t *asn1_get_references(ASN1_VALUE **pval,
                                               const ASN1_ITEM *it) {
-  if (it->itype != ASN1_ITYPE_SEQUENCE &&
-      it->itype != ASN1_ITYPE_NDEF_SEQUENCE) {
+  if (it->itype != ASN1_ITYPE_SEQUENCE) {
     return NULL;
   }
   const ASN1_AUX *aux = it->funcs;
@@ -118,6 +118,7 @@ int asn1_refcount_dec_and_test_zero(ASN1_VALUE **pval, const ASN1_ITEM *it) {
 }
 
 static ASN1_ENCODING *asn1_get_enc_ptr(ASN1_VALUE **pval, const ASN1_ITEM *it) {
+  assert(it->itype == ASN1_ITYPE_SEQUENCE);
   const ASN1_AUX *aux;
   if (!pval || !*pval) {
     return NULL;

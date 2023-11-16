@@ -24,6 +24,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include <string>
+
 #include "src/core/lib/debug/trace.h"
 
 /* --- tsi result ---  */
@@ -44,6 +46,9 @@ typedef enum {
   TSI_OUT_OF_RESOURCES = 12,
   TSI_ASYNC = 13,
   TSI_HANDSHAKE_SHUTDOWN = 14,
+  TSI_CLOSE_NOTIFY = 15,  // Indicates that the connection should be closed.
+  TSI_DRAIN_BUFFER = 16,  // Indicates that the buffer used to store handshake
+                          // data should be drained.
 } tsi_result;
 
 typedef enum {
@@ -62,6 +67,31 @@ typedef enum {
   TSI_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_BUT_DONT_VERIFY,
   TSI_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY,
 } tsi_client_certificate_request_type;
+
+typedef enum {
+  // TSI implementation provides a normal frame protector.  The caller
+  // should invoke tsi_handshaker_result_create_frame_protector() to
+  // generate the frame protector.
+  TSI_FRAME_PROTECTOR_NORMAL,
+  // TSI implementation provides a zero-copy frame protector.  The caller
+  // should invoke tsi_handshaker_result_create_zero_copy_grpc_protector()
+  // to generate the frame protector.
+  TSI_FRAME_PROTECTOR_ZERO_COPY,
+  // TSI implementation provides both normal and zero-copy frame protectors.
+  // The caller should invoke either
+  // tsi_handshaker_result_create_frame_protector() or
+  // tsi_handshaker_result_create_zero_copy_grpc_protector() to generate
+  // the frame protector.
+  TSI_FRAME_PROTECTOR_NORMAL_OR_ZERO_COPY,
+  // TSI implementation does not provide any frame protector.  This means
+  // that it is safe for the caller to send bytes unprotected on the wire.
+  TSI_FRAME_PROTECTOR_NONE,
+} tsi_frame_protector_type;
+
+typedef enum {
+  TSI_TLS1_2,
+  TSI_TLS1_3,
+} tsi_tls_version;
 
 const char* tsi_result_to_string(tsi_result result);
 const char* tsi_security_level_to_string(tsi_security_level security_level);
@@ -207,11 +237,10 @@ typedef struct tsi_peer_property {
   } value;
 } tsi_peer_property;
 
-typedef struct {
+struct tsi_peer {
   tsi_peer_property* properties;
   size_t property_count;
-} tsi_peer;
-
+};
 /* Destructs the tsi_peer object. */
 void tsi_peer_destruct(tsi_peer* self);
 
@@ -229,6 +258,12 @@ typedef struct tsi_handshaker_result tsi_handshaker_result;
 tsi_result tsi_handshaker_result_extract_peer(const tsi_handshaker_result* self,
                                               tsi_peer* peer);
 
+/* This method indicates what type of frame protector is provided by the
+   TSI implementation. */
+tsi_result tsi_handshaker_result_get_frame_protector_type(
+    const tsi_handshaker_result* self,
+    tsi_frame_protector_type* frame_protector_type);
+
 /* This method creates a tsi_frame_protector object. It returns TSI_OK assuming
    there is no fatal error.
    The caller is responsible for destroying the protector.  */
@@ -242,7 +277,7 @@ tsi_result tsi_handshaker_result_create_frame_protector(
    consequence, the caller must not free the bytes.  */
 tsi_result tsi_handshaker_result_get_unused_bytes(
     const tsi_handshaker_result* self, const unsigned char** bytes,
-    size_t* byte_size);
+    size_t* bytes_size);
 
 /* This method releases the tsi_handshaker_handshaker object. After this method
    is called, no other method can be called on the object.  */
@@ -439,6 +474,13 @@ typedef void (*tsi_handshaker_on_next_done_cb)(
    - cb is the callback function defined above. It can be NULL for synchronous
      TSI handshaker implementation.
    - user_data is the argument to callback function passed from the caller.
+   - error, if non-null, will be populated with a human-readable error
+     message whenever the result value is something other than TSI_OK,
+     TSI_ASYNC, or TSI_INCOMPLETE_DATA.  The object pointed to by this
+     argument is owned by the caller and must continue to exist until after the
+     handshake is finished.  Some TSI implementations cache this value,
+     so callers must pass the same value to all calls to tsi_handshaker_next()
+     for a given handshake.
    This method returns TSI_ASYNC if the TSI handshaker implementation is
    asynchronous, and in this case, the callback is guaranteed to run in another
    thread owned by TSI. It returns TSI_OK if the handshake completes or if
@@ -449,11 +491,14 @@ typedef void (*tsi_handshaker_on_next_done_cb)(
    The caller is responsible for destroying the handshaker_result. However,
    the caller should not free bytes_to_send, as the buffer is owned by the
    tsi_handshaker object.  */
-tsi_result tsi_handshaker_next(
-    tsi_handshaker* self, const unsigned char* received_bytes,
-    size_t received_bytes_size, const unsigned char** bytes_to_send,
-    size_t* bytes_to_send_size, tsi_handshaker_result** handshaker_result,
-    tsi_handshaker_on_next_done_cb cb, void* user_data);
+tsi_result tsi_handshaker_next(tsi_handshaker* self,
+                               const unsigned char* received_bytes,
+                               size_t received_bytes_size,
+                               const unsigned char** bytes_to_send,
+                               size_t* bytes_to_send_size,
+                               tsi_handshaker_result** handshaker_result,
+                               tsi_handshaker_on_next_done_cb cb,
+                               void* user_data, std::string* error = nullptr);
 
 /* This method shuts down a TSI handshake that is in progress.
  *

@@ -59,10 +59,10 @@ extension DataRequestResponseSerialization {
                 }
                 return self
             } else if let uploadRequest = self as? UploadRequest {
-                //swiftlint:disable:next force_cast
+                // swiftlint:disable:next force_cast
                 return uploadRequest.response(queue: queue, responseSerializer: responseSerializer, completionHandler: completionHandler) as! Self
             } else if let dataRequest = self as? DataRequest {
-                //swiftlint:disable:next force_cast
+                // swiftlint:disable:next force_cast
                 return dataRequest.response(queue: queue, responseSerializer: responseSerializer, completionHandler: completionHandler) as! Self
             } else {
                 fatalError("\(type(of: self)) is not supported")

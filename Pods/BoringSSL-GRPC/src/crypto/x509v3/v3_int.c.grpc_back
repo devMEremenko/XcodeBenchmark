@@ -57,8 +57,8 @@
 
 #include <stdio.h>
 
-#include <openssl/obj.h>
-#include <openssl/x509v3.h>
+#include <openssl_grpc/obj.h>
+#include <openssl_grpc/x509v3.h>
 
 const X509V3_EXT_METHOD v3_crl_num = {
     NID_crl_number, 0, ASN1_ITEM_ref(ASN1_INTEGER),

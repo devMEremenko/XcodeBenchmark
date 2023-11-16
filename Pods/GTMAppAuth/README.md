@@ -1,17 +1,23 @@
-# GTMAppAuth for iOS and macOS
+[![Version](https://img.shields.io/cocoapods/v/GTMAppAuth.svg?style=flat)](https://cocoapods.org/pods/GTMAppAuth)
+[![Platform](https://img.shields.io/cocoapods/p/GTMAppAuth.svg?style=flat)](https://cocoapods.org/pods/GTMAppAuth)
+[![License](https://img.shields.io/cocoapods/l/GTMAppAuth.svg?style=flat)](https://cocoapods.org/pods/GTMAppAuth)
+[![tests](https://github.com/google/GTMAppAuth/actions/workflows/tests.yml/badge.svg?event=push)](https://github.com/google/GTMAppAuth/actions/workflows/tests.yml)
 
-GTMAppAuth enables you to use [AppAuth](http://openid.github.io/AppAuth-iOS)
+# GTMAppAuth for Apple Platforms
+
+GTMAppAuth enables you to use [AppAuth](https://github.com/openid/AppAuth-iOS)
 with the
 [Google Toolbox for Mac - Session Fetcher](https://github.com/google/gtm-session-fetcher)
 and
 [Google APIs Client Library for Objective-C For REST](https://github.com/google/google-api-objectivec-client-for-rest)
-libraries by providing an implementation of `GTMFetcherAuthorizationProtocol`
+libraries on iOS, macOS, tvOS, and watchOS by providing an implementation of
+[`GTMFetcherAuthorizationProtocol`](https://github.com/google/gtm-session-fetcher/blob/2a3b5264108e80d62003b770ff02eb7364ff1365/Source/GTMSessionFetcher.h#L660)
 for authorizing requests with AppAuth.
 
-GTMAppAuth is an alternative authorizer to GTMOAuth2. The key differentiator is
-the use of the user's default browser for the authorization, which is more
-secure, more usable (the user's session can be reused) and follows modern OAuth
-[best practices for native apps](https://tools.ietf.org/html/draft-ietf-oauth-native-apps).
+GTMAppAuth is an alternative authorizer to [GTMOAuth2](https://github.com/google/gtm-oauth2)
+. The key differentiator is the use of the user's default browser for the
+authorization, which is more secure, more usable (the user's session can be
+reused) and follows modern OAuth [best practices for native apps](https://datatracker.ietf.org/doc/html/rfc8252).
 Compatibility methods for GTMOAuth2 are offered allowing you to migrate
 from GTMOAuth2 to GTMAppAuth preserving previously serialized authorizations
 (so users shouldn't need to re-authenticate).
@@ -220,17 +226,17 @@ GTMSessionFetcher *fetcher = [fetcherService fetcherWithURL:userinfoEndpoint];
 }];
 ```
 
-### Serialization
+### Saving to the Keychain
 
-You can easily serialize `GTMAppAuthFetcherAuthorization` objects using the
-included Keychain category.
+You can easily save `GTMAppAuthFetcherAuthorization` instances to the Keychain using
+the included `GTMAppAuthFetcherAuthorization+Keychain` category.
 
 ```objc
-// Serialize to Keychain
+// Save to Keychain
 [GTMAppAuthFetcherAuthorization saveAuthorization:_authorization
                                 toKeychainForName:kGTMAppAuthExampleAuthorizerKey];
 
-// Deserialize from Keychain
+// Restore from Keychain
 GTMAppAuthFetcherAuthorization* authorization =
     [GTMAppAuthFetcherAuthorization authorizationFromKeychainForName:kGTMAppAuthExampleAuthorizerKey];
 
@@ -239,13 +245,40 @@ GTMAppAuthFetcherAuthorization* authorization =
     removeAuthorizationFromKeychainForName:kGTMAppAuthExampleAuthorizerKey];
 ```
 
-### GTMOAuth2-compatible Serialization
+#### Keychain Storage
+
+`GTMAppAuthFetcherAuthorization` instances are stored using Keychain items of the
+[`kSecClassGenericPassword`](https://developer.apple.com/documentation/security/ksecclassgenericpassword?language=objc)
+class with a [`kSecAttrAccount`](https://developer.apple.com/documentation/security/ksecattraccount?language=objc)
+value of "OAuth" and a developer supplied value for [`kSecAttrService`](https://developer.apple.com/documentation/security/ksecattrservice?language=objc).
+For this use of generic password items, the combination of account and service
+values acts as the
+[primary key](https://developer.apple.com/documentation/security/1542001-security_framework_result_codes/errsecduplicateitem?language=objc)
+of the Keychain items.  The
+[`kSecAttrAccessible`](https://developer.apple.com/documentation/security/ksecattraccessible?language=objc)
+key is set to
+[`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`](https://developer.apple.com/documentation/security/ksecattraccessibleafterfirstunlockthisdeviceonly?language=objc)
+in order to allow background access after initial device unlock following a
+restart.  A [keyed archive](https://developer.apple.com/documentation/foundation/nskeyedarchiver?language=objc)
+representation of the relevant `GTMAppAuthFetcherAuthorization` instance is supplied as the value for
+[`kSecValueData`](https://developer.apple.com/documentation/security/ksecvaluedata?language=objc)
+and this is encrypted and stored by
+[Keychain Services](https://developer.apple.com/documentation/security/keychain_services?language=objc).
+
+For macOS, two Keychain storage options are available: the traditional file-based Keychain storage
+which uses access control lists and the more modern [data protection keychain storage](https://developer.apple.com/documentation/security/ksecusedataprotectionkeychain?language=objc)
+which uses Keychain access control groups. By default, GTMAppAuth uses the file-based Keychain storage on macOS.  You may opt into using data protection keychain storage by using the parameter
+`useDataProtectionKeychain:YES` in your method calls.  Note that Keychain items stored via one
+storage type will not be available via the other and macOS apps that choose to use the data
+protection Keychain will need to be signed in order for Keychain operations to succeed.
+
+#### GTMOAuth2 Compatibility
 
 To assist the migration from GTMOAuth2 to GTMAppAuth, GTMOAuth2-compatible
-serialization methods are provided in `GTMOAuth2KeychainCompatibility`.
+Keychain methods are provided in `GTMOAuth2KeychainCompatibility`.
 
 ```objc
-// Deserialize from Keychain
+// Restore from Keychain
 GTMAppAuthFetcherAuthorization *auth =
     [GTMOAuth2KeychainCompatibility authForGoogleFromKeychainForName:kKeychainItemName
                                                             clientID:clientID
@@ -255,11 +288,11 @@ GTMAppAuthFetcherAuthorization *auth =
 [GTMOAuth2KeychainCompatibility removeAuthFromKeychainForName:kKeychainItemName];
 ```
 
-You can also serialize to GTMOAuth2 format, though this is discouraged (you
-should serialize in GTMAppAuth format as described above).
+You can also save to GTMOAuth2 format, though this is discouraged (you
+should save in GTMAppAuth format as described above).
 
 ```objc
-// Serialize to Keychain
+// Save to Keychain
 [GTMOAuth2KeychainCompatibility saveAuthToKeychainForName:kKeychainItemName
                                            authentication:authorization];
 ```

@@ -29,8 +29,10 @@ static const unsigned kMaxDepth = 2048;
 // is_string_type returns one if |tag| is a string type and zero otherwise. It
 // ignores the constructed bit.
 static int is_string_type(unsigned tag) {
+  // While BER supports constructed BIT STRINGS, OpenSSL misparses them. To
+  // avoid acting on an ambiguous input, we do not support constructed BIT
+  // STRINGS. See https://github.com/openssl/openssl/issues/12810.
   switch (tag & ~CBS_ASN1_CONSTRUCTED) {
-    case CBS_ASN1_BITSTRING:
     case CBS_ASN1_OCTETSTRING:
     case CBS_ASN1_UTF8STRING:
     case CBS_ASN1_NUMERICSTRING:
@@ -53,7 +55,7 @@ static int is_string_type(unsigned tag) {
 // depending on whether an indefinite length element or constructed string was
 // found. The value of |orig_in| is not changed. It returns one on success (i.e.
 // |*ber_found| was set) and zero on error.
-static int cbs_find_ber(const CBS *orig_in, char *ber_found, unsigned depth) {
+static int cbs_find_ber(const CBS *orig_in, int *ber_found, unsigned depth) {
   CBS in;
 
   if (depth > kMaxDepth) {
@@ -68,14 +70,11 @@ static int cbs_find_ber(const CBS *orig_in, char *ber_found, unsigned depth) {
     unsigned tag;
     size_t header_len;
 
-    if (!CBS_get_any_ber_asn1_element(&in, &contents, &tag, &header_len)) {
+    if (!CBS_get_any_ber_asn1_element(&in, &contents, &tag, &header_len,
+                                      ber_found)) {
       return 0;
     }
-    if (CBS_len(&contents) == header_len &&
-        header_len > 0 &&
-        CBS_data(&contents)[header_len-1] == 0x80) {
-      // Found an indefinite-length element.
-      *ber_found = 1;
+    if (*ber_found) {
       return 1;
     }
     if (tag & CBS_ASN1_CONSTRUCTED) {
@@ -120,9 +119,11 @@ static int cbs_convert_ber(CBS *in, CBB *out, unsigned string_tag,
     CBS contents;
     unsigned tag, child_string_tag = string_tag;
     size_t header_len;
+    int ber_found;
     CBB *out_contents, out_contents_storage;
 
-    if (!CBS_get_any_ber_asn1_element(in, &contents, &tag, &header_len)) {
+    if (!CBS_get_any_ber_asn1_element(in, &contents, &tag, &header_len,
+                                      &ber_found)) {
       return 0;
     }
 
@@ -194,7 +195,7 @@ int CBS_asn1_ber_to_der(CBS *in, CBS *out, uint8_t **out_storage) {
 
   // First, do a quick walk to find any indefinite-length elements. Most of the
   // time we hope that there aren't any and thus we can quickly return.
-  char conversion_needed;
+  int conversion_needed;
   if (!cbs_find_ber(in, &conversion_needed, 0)) {
     return 0;
   }

@@ -7,6 +7,7 @@
 //  License: MIT License
 //
 
+#if !os(watchOS)
 import UIKit
 
 public extension UINib {
@@ -21,3 +22,4 @@ public extension UINib {
     self.init(nibName: resource.name, bundle: resource.bundle)
   }
 }
+#endif

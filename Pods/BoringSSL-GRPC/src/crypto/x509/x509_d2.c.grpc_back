@@ -55,8 +55,8 @@
  * copied and put under another distribution licence
  * [including the GNU Public Licence.] */
 
-#include <openssl/err.h>
-#include <openssl/x509.h>
+#include <openssl_grpc/err.h>
+#include <openssl_grpc/x509.h>
 
 #ifndef OPENSSL_NO_STDIO
 int X509_STORE_set_default_paths(X509_STORE *ctx)

@@ -18,6 +18,8 @@
 
 #include "src/cpp/common/secure_auth_context.h"
 
+#include <algorithm>
+
 #include <grpc/grpc_security.h>
 
 namespace grpc {
@@ -37,7 +39,7 @@ std::vector<grpc::string_ref> SecureAuthContext::GetPeerIdentity() const {
   return identity;
 }
 
-grpc::string SecureAuthContext::GetPeerIdentityPropertyName() const {
+std::string SecureAuthContext::GetPeerIdentityPropertyName() const {
   if (ctx_ == nullptr) {
     return "";
   }
@@ -46,7 +48,7 @@ grpc::string SecureAuthContext::GetPeerIdentityPropertyName() const {
 }
 
 std::vector<grpc::string_ref> SecureAuthContext::FindPropertyValues(
-    const grpc::string& name) const {
+    const std::string& name) const {
   if (ctx_ == nullptr) {
     return std::vector<grpc::string_ref>();
   }
@@ -76,14 +78,14 @@ AuthPropertyIterator SecureAuthContext::end() const {
   return AuthPropertyIterator();
 }
 
-void SecureAuthContext::AddProperty(const grpc::string& key,
+void SecureAuthContext::AddProperty(const std::string& key,
                                     const grpc::string_ref& value) {
   if (ctx_ == nullptr) return;
   grpc_auth_context_add_property(ctx_.get(), key.c_str(), value.data(),
                                  value.size());
 }
 
-bool SecureAuthContext::SetPeerIdentityPropertyName(const grpc::string& name) {
+bool SecureAuthContext::SetPeerIdentityPropertyName(const std::string& name) {
   if (ctx_ == nullptr) return false;
   return grpc_auth_context_set_peer_identity_property_name(ctx_.get(),
                                                            name.c_str()) != 0;

@@ -17,12 +17,14 @@
 #include "Firestore/core/src/core/transaction.h"
 
 #include <algorithm>
+#include <memory>
 #include <unordered_set>
 #include <utility>
 
 #include "Firestore/core/include/firebase/firestore/firestore_errors.h"
 #include "Firestore/core/src/core/user_data.h"
 #include "Firestore/core/src/model/delete_mutation.h"
+#include "Firestore/core/src/model/document.h"
 #include "Firestore/core/src/model/verify_mutation.h"
 #include "Firestore/core/src/remote/datastore.h"
 #include "Firestore/core/src/util/hard_assert.h"
@@ -31,9 +33,9 @@ using firebase::firestore::Error;
 using firebase::firestore::core::ParsedSetData;
 using firebase::firestore::core::ParsedUpdateData;
 using firebase::firestore::model::DeleteMutation;
+using firebase::firestore::model::Document;
 using firebase::firestore::model::DocumentKey;
 using firebase::firestore::model::DocumentKeyHash;
-using firebase::firestore::model::MaybeDocument;
 using firebase::firestore::model::Mutation;
 using firebase::firestore::model::Precondition;
 using firebase::firestore::model::SnapshotVersion;
@@ -46,24 +48,24 @@ namespace firebase {
 namespace firestore {
 namespace core {
 
-Transaction::Transaction(Datastore* datastore)
-    : datastore_{NOT_NULL(datastore)} {
+Transaction::Transaction(std::shared_ptr<Datastore> datastore)
+    : datastore_{datastore} {
 }
 
-Status Transaction::RecordVersion(const MaybeDocument& doc) {
+Status Transaction::RecordVersion(const Document& doc) {
   SnapshotVersion doc_version;
 
-  if (doc.is_document()) {
-    doc_version = doc.version();
-  } else if (doc.is_no_document()) {
+  if (doc->is_found_document()) {
+    doc_version = doc->version();
+  } else if (doc->is_no_document()) {
     // For deleted docs, we must record an explicit no version to build the
     // right precondition when writing.
     doc_version = SnapshotVersion::None();
   } else {
-    HARD_FAIL("Unexpected document type in transaction: %s", doc.type());
+    HARD_FAIL("Unexpected document type in transaction: %s", doc.ToString());
   }
 
-  absl::optional<SnapshotVersion> existing_version = GetVersion(doc.key());
+  absl::optional<SnapshotVersion> existing_version = GetVersion(doc->key());
   if (existing_version.has_value()) {
     if (doc_version != existing_version.value()) {
       // This transaction will fail no matter what.
@@ -72,7 +74,7 @@ Status Transaction::RecordVersion(const MaybeDocument& doc) {
     }
     return Status::OK();
   } else {
-    read_versions_[doc.key()] = doc_version;
+    read_versions_[doc->key()] = doc_version;
     return Status::OK();
   }
 }
@@ -89,16 +91,23 @@ void Transaction::Lookup(const std::vector<DocumentKey>& keys,
     return;
   }
 
-  datastore_->LookupDocuments(
-      keys, [this, callback](
-                const StatusOr<std::vector<MaybeDocument>>& maybe_documents) {
+  std::shared_ptr<Datastore> datastore = datastore_.lock();
+  if (!datastore) {
+    callback(Status(Error::kErrorFailedPrecondition,
+                    "The client has already been terminated."));
+    return;
+  }
+
+  datastore->LookupDocuments(
+      keys,
+      [this, callback](const StatusOr<std::vector<Document>>& maybe_documents) {
         if (!maybe_documents.ok()) {
           callback(maybe_documents.status());
           return;
         }
 
         const auto& documents = maybe_documents.ValueOrDie();
-        for (const MaybeDocument& doc : documents) {
+        for (const Document& doc : documents) {
           Status record_error = RecordVersion(doc);
           if (!record_error.ok()) {
             callback(record_error);
@@ -122,7 +131,11 @@ void Transaction::WriteMutations(std::vector<Mutation>&& mutations) {
 Precondition Transaction::CreatePrecondition(const DocumentKey& key) {
   absl::optional<SnapshotVersion> version = GetVersion(key);
   if (written_docs_.count(key) == 0 && version.has_value()) {
-    return Precondition::UpdateTime(version.value());
+    if (version.value() == SnapshotVersion::None()) {
+      return Precondition::Exists(false);
+    } else {
+      return Precondition::UpdateTime(version.value());
+    }
   } else {
     return Precondition::None();
   }
@@ -159,7 +172,7 @@ StatusOr<Precondition> Transaction::CreateUpdatePrecondition(
 }
 
 void Transaction::Set(const DocumentKey& key, ParsedSetData&& data) {
-  WriteMutations(std::move(data).ToMutations(key, CreatePrecondition(key)));
+  WriteMutations({std::move(data).ToMutation(key, CreatePrecondition(key))});
   written_docs_.insert(key);
 }
 
@@ -169,7 +182,7 @@ void Transaction::Update(const DocumentKey& key, ParsedUpdateData&& data) {
     last_write_error_ = maybe_precondition.status();
   } else {
     WriteMutations(
-        std::move(data).ToMutations(key, maybe_precondition.ValueOrDie()));
+        {std::move(data).ToMutation(key, maybe_precondition.ValueOrDie())});
   }
   written_docs_.insert(key);
 }
@@ -205,7 +218,15 @@ void Transaction::Commit(util::StatusCallback&& callback) {
     mutations_.push_back(VerifyMutation(key, CreatePrecondition(key)));
   }
   committed_ = true;
-  datastore_->CommitMutations(mutations_, std::move(callback));
+
+  std::shared_ptr<Datastore> datastore = datastore_.lock();
+  if (!datastore) {
+    callback(Status(Error::kErrorFailedPrecondition,
+                    "The client has already been terminated."));
+    return;
+  }
+
+  datastore->CommitMutations(mutations_, std::move(callback));
 }
 
 void Transaction::MarkPermanentlyFailed() {

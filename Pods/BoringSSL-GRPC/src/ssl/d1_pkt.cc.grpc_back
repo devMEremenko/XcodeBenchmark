@@ -109,17 +109,17 @@
  * copied and put under another distribution licence
  * [including the GNU Public Licence.] */
 
-#include <openssl/ssl.h>
+#include <openssl_grpc/ssl.h>
 
 #include <assert.h>
 #include <string.h>
 
-#include <openssl/bio.h>
-#include <openssl/bytestring.h>
-#include <openssl/mem.h>
-#include <openssl/evp.h>
-#include <openssl/err.h>
-#include <openssl/rand.h>
+#include <openssl_grpc/bio.h>
+#include <openssl_grpc/bytestring.h>
+#include <openssl_grpc/mem.h>
+#include <openssl_grpc/evp.h>
+#include <openssl_grpc/err.h>
+#include <openssl_grpc/rand.h>
 
 #include "../crypto/internal.h"
 #include "internal.h"

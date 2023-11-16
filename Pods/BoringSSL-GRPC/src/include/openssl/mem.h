@@ -101,6 +101,9 @@ OPENSSL_EXPORT int CRYPTO_memcmp(const void *a, const void *b, size_t len);
 // OPENSSL_hash32 implements the 32 bit, FNV-1a hash.
 OPENSSL_EXPORT uint32_t OPENSSL_hash32(const void *ptr, size_t len);
 
+// OPENSSL_strhash calls |OPENSSL_hash32| on the NUL-terminated string |s|.
+OPENSSL_EXPORT uint32_t OPENSSL_strhash(const char *s);
+
 // OPENSSL_strdup has the same behaviour as strdup(3).
 OPENSSL_EXPORT char *OPENSSL_strdup(const char *s);
 
@@ -147,9 +150,15 @@ OPENSSL_EXPORT size_t OPENSSL_strlcat(char *dst, const char *src,
 
 // Deprecated functions.
 
-#define CRYPTO_malloc OPENSSL_malloc
-#define CRYPTO_realloc OPENSSL_realloc
-#define CRYPTO_free OPENSSL_free
+// CRYPTO_malloc calls |OPENSSL_malloc|. |file| and |line| are ignored.
+OPENSSL_EXPORT void *CRYPTO_malloc(size_t size, const char *file, int line);
+
+// CRYPTO_realloc calls |OPENSSL_realloc|. |file| and |line| are ignored.
+OPENSSL_EXPORT void *CRYPTO_realloc(void *ptr, size_t new_size,
+                                    const char *file, int line);
+
+// CRYPTO_free calls |OPENSSL_free|. |file| and |line| are ignored.
+OPENSSL_EXPORT void CRYPTO_free(void *ptr, const char *file, int line);
 
 // OPENSSL_clear_free calls |OPENSSL_free|. BoringSSL automatically clears all
 // allocations on free, but we define |OPENSSL_clear_free| for compatibility.
