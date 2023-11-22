@@ -28,7 +28,7 @@ If a device you are looking for is not on the list below, check out open [issues
 | MacBook Pro 14" 2023 |     M3 Pro 11-core      |  18 | 512 | 15.0.1| 14.1.1 | 🤯 124 [Link](https://github.com/devMEremenko/XcodeBenchmark/issues/444) |
 | MacBook Pro 16" 2021 |     M1 Pro 10-core      |  16 | 512 | 15.0.1| 14.0   |    136    |
 | MacBook Pro 16" 2021 |     M1 Pro 10-core      |  32 | 512 |  15.0 | 13.5.2 |    137    |
-| MacBook Air 13" 2022 |     M2 8c (10c GPU)     |  16 | 512 | 15.0.1| 14.1.1 |    158    |
+| MacBook Air 13" 2022 |     M2 8c (10c GPU)     |  8  | 512 | 15.0.1| 14.1.1 |    158    |
 | MacBook Air 13" 2020 |      M1 8c (8c GPU)     |  16 | 512 |  15.0 | 14.0   |    208    |
 | MacBook Pro 15" 2018 |     i7 2.6 GHz 6-core   |  16 | 512 |  15.0 | 14.0.0 |    348    |
 
