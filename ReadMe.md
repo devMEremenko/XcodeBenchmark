@@ -164,7 +164,6 @@ If a device you are looking for is not on the list below, check out open [issues
 | MacBook Pro 15" 2016 |    i7 2.7 GHz 4-core    |  16 | 1TB |     |  11.7 | 10.15.6 |    642    |
 |     Mac Mini 2014    |    i5 2.6 GHz 2-core    |  8  |     | 1TB |  11.7 | 10.15.6 |    1193   |
 
-
 ## Custom Hardware - Xcode 15
 
 ```diff
@@ -173,7 +172,8 @@ If a device you are looking for is not on the list below, check out open [issues
 
 |     Device     |             CPU           | RAM |  SSD  |  Xcode  |   macOS   | Time(sec) |    Comments    |
 |:--------------:|:-------------------------:|:---:|:-----:|:-------:|:---------:|:---------:|----------------|
-|   Hackintosh   |           <empty>         | <_> |  <_>  |   <_>   |    <_>    |    <_>    |      <_>       |
+|   Hackintosh   |i5-10400 2.9Ghz 6-core     | 48  | 500GB |   15.3   |    14.0  |    253    | Not overclocked|
+![Screenshot 2024-03-10 at 18 29 00](https://github.com/IkerPerea/XcodeBenchmark/assets/75508112/aeac7fba-1ecb-42d9-bc2f-6a971375b4af)
 
 
 ## Custom Hardware - Xcode 14
@@ -374,6 +374,7 @@ Make sure:
 - [@witekbobrowski](https://twitter.com/witekbobrowski)
 - [@santirodriguezaffonso](https://github.com/santirodriguezaffonso)
 - [@alexpereacode](https://github.com/alexpereacode)
+- [@IkerPerea](https://github.com/IkerPerea)
 - [@fkorotkov](https://github.com/fkorotkov)
 - [@cepheus69](https://github.com/cepheus69)
 - [@facuramirez7](https://github.com/facuramirez7)
