@@ -21,6 +21,7 @@ If a device you are looking for is not on the list below, check out open [issues
 |:--------------------:|:-----------------------:|:---:|:---:|:-----:|:------:|:---------:|
 | Mac Studio 2023      |     M2 Ultra 24-core    | 192 | 2TB | 15.0.1| 14.0   |     63    |
 | MacBook Pro 16" 2023 |     M3 Max 16-core      |  64 | 1TB | 15.0.1| 14.1.1 |     70    |
+| Mac Studio 2022      |     M1 Ultra 20-core    | 128 | 4TB |  15.3 | 14.4   |     73    |
 | MacBook Pro 16" 2023 |     M3 Max 14-core      |  36 | 1TB | 15.0.1| 14.1.1 |     79    |
 | MacBook Pro 14" 2023 |     M3 Max 14-core      |  36 | 1TB | 15.0.1| 14.1.1 |     79    |
 | MacBook Pro 14" 2023 |     M3 Pro 11-core      |  18 | 512 |  15.3 |  14.4  |    108    |
