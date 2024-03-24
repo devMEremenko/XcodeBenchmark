@@ -32,8 +32,9 @@ If a device you are looking for is not on the list below, check out open [issues
 | MacBook Pro 16" 2021 |     M1 Pro 10-core      |  16 | 512 | 15.0.1| 14.0   |    136    |
 | MacBook Pro 16" 2021 |     M1 Pro 10-core      |  32 | 512 |  15.0 | 13.5.2 |    137    |
 | MacBook Air 13" 2024 |     M3 8-core           |  24 | 2TB |  15.3 | 14.4   |    140    |
-| MacBook Pro 14" 2021 |      M1 Pro 8-core      |  32 | 1TB |  15.2 | 14.1.2 |    170    |
-| MacBook Air 13" 2020 |      M1 8c (8c GPU)     |  16 | 512 |  15.0 | 14.0   |    208    |
+| MacBook Pro 14" 2021 |     M1 Pro 8-core       |  32 | 1TB |  15.2 | 14.1.2 |    170    |
+| Mac Mini M1 2020     |     M1 8-core           |  16 | 1TB |  15.2 | 13.6.3 |    180    |
+| MacBook Air 13" 2020 |     M1 8c (8c GPU)      |  16 | 512 |  15.0 | 14.0   |    208    |
 | MacBook Pro 15" 2018 |     i7 2.6 GHz 6-core   |  16 | 512 |  15.0 | 14.0.0 |    348    |
 
 
