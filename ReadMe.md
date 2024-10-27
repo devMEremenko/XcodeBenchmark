@@ -11,6 +11,11 @@ I believe the results will help developers to make the right *cost/performance* 
 PR merging will be performed on a best-effort basis.  
 If a device you are looking for is not on the list below, check out open [issues](https://github.com/devMEremenko/XcodeBenchmark/issues) and [PRs](https://github.com/devMEremenko/XcodeBenchmark/pulls).
 
+## Xcode 16
+
+|        Device        |           CPU           | RAM | SSD | Xcode |  macOS | Time(sec) |
+|:--------------------:|:-----------------------:|:---:|:---:|:-----:|:------:|:---------:|
+
 ## Xcode 15
 
 ```diff
