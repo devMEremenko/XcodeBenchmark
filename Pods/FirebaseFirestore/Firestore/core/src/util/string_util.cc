@@ -15,6 +15,7 @@
  */
 
 #include "Firestore/core/src/util/string_util.h"
+#include "Firestore/core/src/util/no_destructor.h"
 
 namespace firebase {
 namespace firestore {
@@ -46,6 +47,11 @@ std::string ImmediateSuccessor(absl::string_view s) {
   out.append(s.data(), s.size());
   out.push_back('\0');
   return out;
+}
+
+const std::string& EmptyString() {
+  static const NoDestructor<std::string> empty;
+  return *empty;
 }
 
 }  // namespace util

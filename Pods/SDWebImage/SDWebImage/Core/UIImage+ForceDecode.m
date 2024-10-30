@@ -9,12 +9,13 @@
 #import "UIImage+ForceDecode.h"
 #import "SDImageCoderHelper.h"
 #import "objc/runtime.h"
+#import "NSImage+Compatibility.h"
 
 @implementation UIImage (ForceDecode)
 
 - (BOOL)sd_isDecoded {
     NSNumber *value = objc_getAssociatedObject(self, @selector(sd_isDecoded));
-    return value.boolValue;
+    return [value boolValue];
 }
 
 - (void)setSd_isDecoded:(BOOL)sd_isDecoded {

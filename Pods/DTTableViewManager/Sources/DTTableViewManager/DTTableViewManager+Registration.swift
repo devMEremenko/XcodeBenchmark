@@ -26,15 +26,16 @@
 import UIKit
 import DTModelStorage
 
-extension DTTableViewManager
+/// Extension for registering cell and supplementary views
+public extension DTTableViewManager
 {
     /// Registers mapping for `cellClass`. Mapping will automatically check for nib with the same name as `cellClass` and register it, if it is found. `UITableViewCell` can also be designed in storyboard.
     /// - Parameters:
     ///   - cellClass: UITableViewCell subclass type, conforming to `ModelTransfer` protocol.
     ///   - mapping: mapping configuration closure, executed before any registration or dequeue is performed.
     ///   - handler: configuration closure, that is run when cell is dequeued. Please note, that `handler` is called before `update(with:)` method.
-    open func register<Cell:ModelTransfer>(_ cellClass:Cell.Type,
-                                        mapping: ((ViewModelMapping<Cell, Cell.ModelType>) -> Void)? = nil,
+    func register<Cell:ModelTransfer>(_ cellClass:Cell.Type,
+                                        mapping: ((TableViewCellModelMapping<Cell, Cell.ModelType>) -> Void)? = nil,
                                         handler: @escaping (Cell, Cell.ModelType, IndexPath) -> Void = { _, _, _ in }) where Cell: UITableViewCell
     {
         self.viewFactory.registerCellClass(cellClass, handler: handler, mapping: mapping)
@@ -46,8 +47,8 @@ extension DTTableViewManager
     ///   - modelType: Model type, which is mapped to `cellClass`.
     ///   - mapping: mapping configuration closure, executed before any registration or dequeue is performed.
     ///   - handler: configuration closure, that is run when cell is dequeued.
-    open func register<Cell: UITableViewCell, Model>(_ cellClass: Cell.Type, for modelType: Model.Type,
-                                                     mapping: ((ViewModelMapping<Cell, Model>) -> Void)? = nil,
+    func register<Cell: UITableViewCell, Model>(_ cellClass: Cell.Type, for modelType: Model.Type,
+                                                     mapping: ((TableViewCellModelMapping<Cell, Model>) -> Void)? = nil,
                                                      handler: @escaping (Cell, Model, IndexPath) -> Void)
     {
         viewFactory.registerCellClass(cellClass, modelType, handler: handler, mapping: mapping)
@@ -59,8 +60,8 @@ extension DTTableViewManager
     /// This method also sets TableViewConfiguration.sectionHeaderStyle property to .view.
     /// - Note: Views does not need to be `UITableViewHeaderFooterView`, if it's a `UIView` subclass, it also will be created from XIB. In the latter case, events defined inside mapping closure are not supported.
     /// - Note: `handler` closure is called before `update(with:)` method.
-    open func registerHeader<View:ModelTransfer>(_ headerClass : View.Type,
-                                              mapping: ((ViewModelMapping<View, View.ModelType>) -> Void)? = nil,
+    func registerHeader<View:ModelTransfer>(_ headerClass : View.Type,
+                                              mapping: ((TableViewHeaderFooterViewModelMapping<View, View.ModelType>) -> Void)? = nil,
                                               handler: @escaping (View, View.ModelType, Int) -> Void = { _, _, _ in }) where View: UIView
     {
         configuration.sectionHeaderStyle = .view
@@ -72,9 +73,9 @@ extension DTTableViewManager
     /// Method will automatically check for nib with the same name as `headerClass`. If it exists - nib will be registered instead of class.
     /// This method also sets TableViewConfiguration.sectionHeaderStyle property to .view.
     /// - Note: Views does not need to be `UITableViewHeaderFooterView`, if it's a `UIView` subclass, it also will be created from XIB. In the latter case, events defined inside mapping closure are not supported.
-    open func registerHeader<View: UIView, Model>(_ headerClass : View.Type,
+    func registerHeader<View: UIView, Model>(_ headerClass : View.Type,
                                                   for: Model.Type,
-                                                  mapping: ((ViewModelMapping<View, Model>) -> Void)? = nil,
+                                                  mapping: ((TableViewHeaderFooterViewModelMapping<View, Model>) -> Void)? = nil,
                                                   handler: @escaping (View, Model, Int) -> Void)
     {
         configuration.sectionHeaderStyle = .view
@@ -87,8 +88,8 @@ extension DTTableViewManager
     /// This method also sets TableViewConfiguration.sectionFooterStyle property to .view.
     /// - Note: Views does not need to be `UITableViewHeaderFooterView`, if it's a `UIView` subclass, it also will be created from XIB. In the latter case, events defined inside mapping closure are not supported.
     /// - Note: `handler` closure is called before `update(with:)` method.
-    open func registerFooter<View:ModelTransfer>(_ footerClass: View.Type,
-                                              mapping: ((ViewModelMapping<View, View.ModelType>) -> Void)? = nil,
+    func registerFooter<View:ModelTransfer>(_ footerClass: View.Type,
+                                              mapping: ((TableViewHeaderFooterViewModelMapping<View, View.ModelType>) -> Void)? = nil,
                                               handler: @escaping (View, View.ModelType, Int) -> Void = { _, _, _ in }) where View:UIView
     {
         configuration.sectionFooterStyle = .view
@@ -100,9 +101,9 @@ extension DTTableViewManager
     /// Method will automatically check for nib with the same name as `footerClass`. If it exists - nib will be registered instead of class.
     /// This method also sets TableViewConfiguration.sectionFooterStyle property to .view.
     /// - Note: Views does not need to be `UITableViewHeaderFooterView`, if it's a `UIView` subclass, it will be created from XIB. In the latter case, events defined inside mapping closure are not supported.
-    open func registerFooter<View: UIView, Model>(_ footerClass : View.Type,
+    func registerFooter<View: UIView, Model>(_ footerClass : View.Type,
                                            for: Model.Type,
-                                           mapping: ((ViewModelMapping<View, Model>) -> Void)? = nil,
+                                           mapping: ((TableViewHeaderFooterViewModelMapping<View, Model>) -> Void)? = nil,
                                            handler: @escaping (View, Model, Int) -> Void)
     {
         configuration.sectionFooterStyle = .view
@@ -110,17 +111,17 @@ extension DTTableViewManager
     }
     
     /// Unregisters `cellClass` from `DTTableViewManager` and `UITableView`.
-    open func unregister<Cell:ModelTransfer>(_ cellClass: Cell.Type) where Cell:UITableViewCell {
+    func unregister<Cell:ModelTransfer>(_ cellClass: Cell.Type) where Cell:UITableViewCell {
         viewFactory.unregisterCellClass(Cell.self)
     }
     
     /// Unregisters `headerClass` from `DTTableViewManager` and `UITableView`.
-    open func unregisterHeader<View:ModelTransfer>(_ headerClass: View.Type) where View: UIView {
+    func unregisterHeader<View:ModelTransfer>(_ headerClass: View.Type) where View: UIView {
         viewFactory.unregisterHeaderClass(View.self)
     }
     
     /// Unregisters `footerClass` from `DTTableViewManager` and `UITableView`.
-    open func unregisterFooter<View:ModelTransfer>(_ footerClass: View.Type) where View: UIView {
+    func unregisterFooter<View:ModelTransfer>(_ footerClass: View.Type) where View: UIView {
         viewFactory.unregisterFooterClass(View.self)
     }
 }

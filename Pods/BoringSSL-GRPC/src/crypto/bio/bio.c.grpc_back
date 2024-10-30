@@ -54,17 +54,17 @@
  * copied and put under another distribution licence
  * [including the GNU Public Licence.] */
 
-#include <openssl/bio.h>
+#include <openssl_grpc/bio.h>
 
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
 #include <string.h>
 
-#include <openssl/asn1.h>
-#include <openssl/err.h>
-#include <openssl/mem.h>
-#include <openssl/thread.h>
+#include <openssl_grpc/asn1.h>
+#include <openssl_grpc/err.h>
+#include <openssl_grpc/mem.h>
+#include <openssl_grpc/thread.h>
 
 #include "../internal.h"
 
@@ -261,6 +261,8 @@ int BIO_should_io_special(const BIO *bio) {
 }
 
 int BIO_get_retry_reason(const BIO *bio) { return bio->retry_reason; }
+
+void BIO_set_retry_reason(BIO *bio, int reason) { bio->retry_reason = reason; }
 
 void BIO_clear_flags(BIO *bio, int flags) {
   bio->flags &= ~flags;

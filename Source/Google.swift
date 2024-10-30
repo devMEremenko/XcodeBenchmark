@@ -17,7 +17,7 @@ public func printGoogle() {
     print(GMSAddress())
     print(GADBannerView())
     
-    print(GIDSignIn.sharedInstance()!)
+    print(GIDSignIn.sharedInstance)
 }
 
 public extension GMSMarker {

@@ -9,32 +9,12 @@
 #ifndef GOOGLE_PROTOBUF_EMPTY_PROTO_UPB_H_
 #define GOOGLE_PROTOBUF_EMPTY_PROTO_UPB_H_
 
-#if COCOAPODS==1
-  #include  "third_party/upb/upb/generated_util.h"
-#else
-  #include  "upb/generated_util.h"
-#endif
-#if COCOAPODS==1
-  #include  "third_party/upb/upb/msg.h"
-#else
-  #include  "upb/msg.h"
-#endif
-#if COCOAPODS==1
-  #include  "third_party/upb/upb/decode.h"
-#else
-  #include  "upb/decode.h"
-#endif
-#if COCOAPODS==1
-  #include  "third_party/upb/upb/encode.h"
-#else
-  #include  "upb/encode.h"
-#endif
+#include "upb/msg_internal.h"
+#include "upb/decode.h"
+#include "upb/decode_fast.h"
+#include "upb/encode.h"
 
-#if COCOAPODS==1
-  #include  "third_party/upb/upb/port_def.inc"
-#else
-  #include  "upb/port_def.inc"
-#endif
+#include "upb/port_def.inc"
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,33 +22,53 @@ extern "C" {
 
 struct google_protobuf_Empty;
 typedef struct google_protobuf_Empty google_protobuf_Empty;
-extern const upb_msglayout google_protobuf_Empty_msginit;
+extern const upb_MiniTable google_protobuf_Empty_msginit;
+
 
 
 /* google.protobuf.Empty */
 
-UPB_INLINE google_protobuf_Empty *google_protobuf_Empty_new(upb_arena *arena) {
-  return (google_protobuf_Empty *)upb_msg_new(&google_protobuf_Empty_msginit, arena);
+UPB_INLINE google_protobuf_Empty* google_protobuf_Empty_new(upb_Arena* arena) {
+  return (google_protobuf_Empty*)_upb_Message_New(&google_protobuf_Empty_msginit, arena);
 }
-UPB_INLINE google_protobuf_Empty *google_protobuf_Empty_parse(const char *buf, size_t size,
-                        upb_arena *arena) {
-  google_protobuf_Empty *ret = google_protobuf_Empty_new(arena);
-  return (ret && upb_decode(buf, size, ret, &google_protobuf_Empty_msginit, arena)) ? ret : NULL;
+UPB_INLINE google_protobuf_Empty* google_protobuf_Empty_parse(const char* buf, size_t size, upb_Arena* arena) {
+  google_protobuf_Empty* ret = google_protobuf_Empty_new(arena);
+  if (!ret) return NULL;
+  if (upb_Decode(buf, size, ret, &google_protobuf_Empty_msginit, NULL, 0, arena) != kUpb_DecodeStatus_Ok) {
+    return NULL;
+  }
+  return ret;
 }
-UPB_INLINE char *google_protobuf_Empty_serialize(const google_protobuf_Empty *msg, upb_arena *arena, size_t *len) {
-  return upb_encode(msg, &google_protobuf_Empty_msginit, arena, len);
+UPB_INLINE google_protobuf_Empty* google_protobuf_Empty_parse_ex(const char* buf, size_t size,
+                           const upb_ExtensionRegistry* extreg,
+                           int options, upb_Arena* arena) {
+  google_protobuf_Empty* ret = google_protobuf_Empty_new(arena);
+  if (!ret) return NULL;
+  if (upb_Decode(buf, size, ret, &google_protobuf_Empty_msginit, extreg, options, arena) !=
+      kUpb_DecodeStatus_Ok) {
+    return NULL;
+  }
+  return ret;
+}
+UPB_INLINE char* google_protobuf_Empty_serialize(const google_protobuf_Empty* msg, upb_Arena* arena, size_t* len) {
+  char* ptr;
+  (void)upb_Encode(msg, &google_protobuf_Empty_msginit, 0, arena, &ptr, len);
+  return ptr;
+}
+UPB_INLINE char* google_protobuf_Empty_serialize_ex(const google_protobuf_Empty* msg, int options,
+                                 upb_Arena* arena, size_t* len) {
+  char* ptr;
+  (void)upb_Encode(msg, &google_protobuf_Empty_msginit, options, arena, &ptr, len);
+  return ptr;
 }
 
 
+extern const upb_MiniTable_File google_protobuf_empty_proto_upb_file_layout;
 
 #ifdef __cplusplus
 }  /* extern "C" */
 #endif
 
-#if COCOAPODS==1
-  #include  "third_party/upb/upb/port_undef.inc"
-#else
-  #include  "upb/port_undef.inc"
-#endif
+#include "upb/port_undef.inc"
 
 #endif  /* GOOGLE_PROTOBUF_EMPTY_PROTO_UPB_H_ */

@@ -17,10 +17,8 @@
 
 #import <GooglePlaces/GooglePlaces.h>
 
-/*
- * This file contains a set of data objects which represent the list of demos which are provided by
- * this sample app.
- */
+// This file contains a set of data objects which represent the list of demos which are provided by
+// this sample app.
 
 /**
  * Represents a specific demo sample, stores the title and the name of the view controller which
@@ -28,9 +26,7 @@
  */
 @interface Demo : NSObject
 
-/**
- * The title of the demo. This is displayed in the list of demos.
- */
+/** The title of the demo. This is displayed in the list of demos. */
 @property(nonatomic, readonly) NSString *title;
 
 /**
@@ -54,19 +50,13 @@
 
 @end
 
-/**
- * A group of demos which comprise a section in the list of demos.
- */
+/** A group of demos which comprise a section in the list of demos. */
 @interface DemoSection : NSObject
 
-/**
- * The title of the section.
- */
+/** The title of the section. */
 @property(nonatomic, readonly) NSString *title;
 
-/**
- * The list of demos which are contained in the section.
- */
+/** The list of demos which are contained in the section. */
 @property(nonatomic, readonly) NSArray<Demo *> *demos;
 
 /**
@@ -79,19 +69,13 @@
 
 @end
 
-/**
- * A class which encapsulates the data required to create and display demos.
- */
+/** A class which encapsulates the data required to create and display demos. */
 @interface DemoData : NSObject
 
-/**
- * A list of sections to display.
- */
+/** A list of sections to display. */
 @property(nonatomic, readonly) NSArray<DemoSection *> *sections;
 
-/**
- * The first demo to display when launched in side-by-side mode.
- */
+/** The first demo to display when launched in side-by-side mode. */
 @property(nonatomic, readonly) Demo *firstDemo;
 
 @end

@@ -23,9 +23,14 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+/*! @brief The key for the @c discoveryDictionary property.
+ */
+static NSString *const kDiscoveryDictionaryKey = @"discoveryDictionary";
+
 /*! Field keys associated with an OpenID Connect Discovery Document. */
 static NSString *const kIssuerKey = @"issuer";
 static NSString *const kAuthorizationEndpointKey = @"authorization_endpoint";
+static NSString *const kDeviceAuthorizationEndpointKey = @"device_authorization_endpoint";
 static NSString *const kTokenEndpointKey = @"token_endpoint";
 static NSString *const kUserinfoEndpointKey = @"userinfo_endpoint";
 static NSString *const kJWKSURLKey = @"jwks_uri";
@@ -191,7 +196,27 @@ static NSString *const kOPTosURIKey = @"op_tos_uri";
 
 - (nullable instancetype)initWithCoder:(NSCoder *)aDecoder {
   NSError *error;
-  NSDictionary *dictionary = [[NSDictionary alloc] initWithCoder:aDecoder];
+  NSDictionary *dictionary;
+  if ([aDecoder containsValueForKey:kDiscoveryDictionaryKey]) {
+    // We're decoding a collection type (NSDictionary) from NSJSONSerialization's
+    // +JSONObjectWithData, so we need to include all classes that could potentially be contained
+    // within.
+    NSSet<Class> *allowedClasses = [NSSet setWithArray:@[[NSDictionary class],
+                                                         [NSArray class],
+                                                         [NSString class],
+                                                         [NSNumber class],
+                                                         [NSNull class]]];
+    dictionary = [aDecoder decodeObjectOfClasses:allowedClasses
+                                          forKey:kDiscoveryDictionaryKey];
+  } else {
+    // Decode using the old encoding which delegated to NSDictionary's encodeWithCoder:
+    // implementation:
+    //
+    // - (void)encodeWithCoder:(NSCoder *)aCoder {
+    //   [_discoveryDictionary encodeWithCoder:aCoder];
+    // }
+    dictionary = [[NSDictionary alloc] initWithCoder:aDecoder];
+  }
   self = [self initWithDictionary:dictionary error:&error];
   if (error) {
     return nil;
@@ -200,6 +225,8 @@ static NSString *const kOPTosURIKey = @"op_tos_uri";
 }
 
 - (void)encodeWithCoder:(NSCoder *)aCoder {
+  [aCoder encodeObject:_discoveryDictionary forKey:kDiscoveryDictionaryKey];
+  // Provide forward compatibilty by continuing to add the old encoding.
   [_discoveryDictionary encodeWithCoder:aCoder];
 }
 
@@ -215,6 +242,10 @@ static NSString *const kOPTosURIKey = @"op_tos_uri";
 
 - (NSURL *)authorizationEndpoint {
   return [NSURL URLWithString:_discoveryDictionary[kAuthorizationEndpointKey]];
+}
+
+- (nullable NSURL *)deviceAuthorizationEndpoint {
+  return [NSURL URLWithString:_discoveryDictionary[kDeviceAuthorizationEndpointKey]];
 }
 
 - (NSURL *)tokenEndpoint {

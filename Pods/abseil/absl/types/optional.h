@@ -136,10 +136,10 @@ class optional : private optional_internal::optional_data<T>,
   constexpr optional(nullopt_t) noexcept {}  // NOLINT(runtime/explicit)
 
   // Copy constructor, standard semantics
-  optional(const optional& src) = default;
+  optional(const optional&) = default;
 
   // Move constructor, standard semantics
-  optional(optional&& src) = default;
+  optional(optional&&) = default;
 
   // Constructs a non-empty `optional` direct-initialized value of type `T` from
   // the arguments `std::forward<Args>(args)...`  within the `optional`.
@@ -282,15 +282,16 @@ class optional : private optional_internal::optional_data<T>,
   optional& operator=(optional&& src) = default;
 
   // Value assignment operators
-  template <
-      typename U = T,
-      typename = typename std::enable_if<absl::conjunction<
-          absl::negation<
-              std::is_same<optional<T>, typename std::decay<U>::type>>,
-          absl::negation<
-              absl::conjunction<std::is_scalar<T>,
-                                std::is_same<T, typename std::decay<U>::type>>>,
-          std::is_constructible<T, U>, std::is_assignable<T&, U>>::value>::type>
+  template <typename U = T,
+            int&...,  // Workaround an internal compiler error in GCC 5 to 10.
+            typename = typename std::enable_if<absl::conjunction<
+                absl::negation<
+                    std::is_same<optional<T>, typename std::decay<U>::type> >,
+                absl::negation<absl::conjunction<
+                    std::is_scalar<T>,
+                    std::is_same<T, typename std::decay<U>::type> > >,
+                std::is_constructible<T, U>,
+                std::is_assignable<T&, U> >::value>::type>
   optional& operator=(U&& v) {
     this->assign(std::forward<U>(v));
     return *this;
@@ -298,13 +299,14 @@ class optional : private optional_internal::optional_data<T>,
 
   template <
       typename U,
+      int&...,  // Workaround an internal compiler error in GCC 5 to 10.
       typename = typename std::enable_if<absl::conjunction<
-          absl::negation<std::is_same<T, U>>,
+          absl::negation<std::is_same<T, U> >,
           std::is_constructible<T, const U&>, std::is_assignable<T&, const U&>,
           absl::negation<
               optional_internal::
                   is_constructible_convertible_assignable_from_optional<
-                      T, U>>>::value>::type>
+                      T, U> > >::value>::type>
   optional& operator=(const optional<U>& rhs) {
     if (rhs) {
       this->assign(*rhs);
@@ -315,13 +317,14 @@ class optional : private optional_internal::optional_data<T>,
   }
 
   template <typename U,
+            int&...,  // Workaround an internal compiler error in GCC 5 to 10.
             typename = typename std::enable_if<absl::conjunction<
-                absl::negation<std::is_same<T, U>>, std::is_constructible<T, U>,
-                std::is_assignable<T&, U>,
+                absl::negation<std::is_same<T, U> >,
+                std::is_constructible<T, U>, std::is_assignable<T&, U>,
                 absl::negation<
                     optional_internal::
                         is_constructible_convertible_assignable_from_optional<
-                            T, U>>>::value>::type>
+                            T, U> > >::value>::type>
   optional& operator=(optional<U>&& rhs) {
     if (rhs) {
       this->assign(std::move(*rhs));
@@ -412,11 +415,11 @@ class optional : private optional_internal::optional_data<T>,
   //
   // If you need myOpt->foo in constexpr, use (*myOpt).foo instead.
   const T* operator->() const {
-    assert(this->engaged_);
+    ABSL_HARDENING_ASSERT(this->engaged_);
     return std::addressof(this->data_);
   }
   T* operator->() {
-    assert(this->engaged_);
+    ABSL_HARDENING_ASSERT(this->engaged_);
     return std::addressof(this->data_);
   }
 
@@ -425,17 +428,17 @@ class optional : private optional_internal::optional_data<T>,
   // Accesses the underlying `T` value of an `optional`. If the `optional` is
   // empty, behavior is undefined.
   constexpr const T& operator*() const& {
-    return ABSL_ASSERT(this->engaged_), reference();
+    return ABSL_HARDENING_ASSERT(this->engaged_), reference();
   }
   T& operator*() & {
-    assert(this->engaged_);
+    ABSL_HARDENING_ASSERT(this->engaged_);
     return reference();
   }
   constexpr const T&& operator*() const && {
-    return absl::move(reference());
+    return ABSL_HARDENING_ASSERT(this->engaged_), absl::move(reference());
   }
   T&& operator*() && {
-    assert(this->engaged_);
+    ABSL_HARDENING_ASSERT(this->engaged_);
     return std::move(reference());
   }
 
@@ -444,7 +447,7 @@ class optional : private optional_internal::optional_data<T>,
   // Returns false if and only if the `optional` is empty.
   //
   //   if (opt) {
-  //     // do something with opt.value();
+  //     // do something with *opt or opt->;
   //   } else {
   //     // opt is empty.
   //   }

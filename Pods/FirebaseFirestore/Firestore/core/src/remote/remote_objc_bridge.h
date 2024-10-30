@@ -32,6 +32,8 @@
 #include "Firestore/core/src/util/status_fwd.h"
 #include "grpcpp/support/byte_buffer.h"
 
+#include "absl/container/flat_hash_map.h"
+
 namespace firebase {
 namespace firestore {
 
@@ -40,8 +42,8 @@ class TargetData;
 }  // namespace local
 
 namespace model {
+class AggregateField;
 class DocumentKey;
-class MaybeDocument;
 class SnapshotVersion;
 }  // namespace model
 
@@ -75,9 +77,13 @@ class WatchStreamSerializer {
 
   nanopb::Message<google_firestore_v1_ListenResponse> ParseResponse(
       nanopb::Reader* reader) const;
+  /**
+   * Decodes the listen response. Modifies the provided proto to release
+   * ownership of any Value messages.
+   */
   std::unique_ptr<WatchChange> DecodeWatchChange(
       nanopb::Reader* reader,
-      const google_firestore_v1_ListenResponse& response) const;
+      google_firestore_v1_ListenResponse& response) const;
   model::SnapshotVersion DecodeSnapshotVersion(
       nanopb::Reader* reader,
       const google_firestore_v1_ListenResponse& response) const;
@@ -102,9 +108,12 @@ class WriteStreamSerializer {
   model::SnapshotVersion DecodeCommitVersion(
       nanopb::Reader* reader,
       const google_firestore_v1_WriteResponse& proto) const;
+  /**
+   * Decodes the write response. Modifies the provided proto to release
+   * ownership of any Value messages.
+   */
   std::vector<model::MutationResult> DecodeMutationResults(
-      nanopb::Reader* reader,
-      const google_firestore_v1_WriteResponse& proto) const;
+      nanopb::Reader* reader, google_firestore_v1_WriteResponse& proto) const;
 
  private:
   Serializer serializer_;
@@ -124,8 +133,18 @@ class DatastoreSerializer {
    * Merges results of the streaming read together. The array is sorted by the
    * document key.
    */
-  util::StatusOr<std::vector<model::MaybeDocument>> MergeLookupResponses(
+  util::StatusOr<std::vector<model::Document>> MergeLookupResponses(
       const std::vector<grpc::ByteBuffer>& responses) const;
+
+  nanopb::Message<google_firestore_v1_RunAggregationQueryRequest>
+  EncodeAggregateQueryRequest(
+      const core::Query& query,
+      const std::vector<model::AggregateField>& aggregates,
+      absl::flat_hash_map<std::string, std::string>& aliasMap) const;
+
+  util::StatusOr<model::ObjectValue> DecodeAggregateQueryResponse(
+      const grpc::ByteBuffer& response,
+      const absl::flat_hash_map<std::string, std::string>& aliasMap) const;
 
   const Serializer& serializer() const {
     return serializer_;

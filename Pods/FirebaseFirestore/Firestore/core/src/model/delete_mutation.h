@@ -52,13 +52,13 @@ class DeleteMutation : public Mutation {
       return Type::Delete;
     }
 
-    MaybeDocument ApplyToRemoteDocument(
-        const absl::optional<MaybeDocument>& maybe_doc,
+    void ApplyToRemoteDocument(
+        MutableDocument& document,
         const MutationResult& mutation_result) const override;
 
-    absl::optional<MaybeDocument> ApplyToLocalView(
-        const absl::optional<MaybeDocument>& maybe_doc,
-        const absl::optional<MaybeDocument>&,
+    absl::optional<FieldMask> ApplyToLocalView(
+        MutableDocument& document,
+        absl::optional<FieldMask> previous_mask,
         const Timestamp&) const override;
 
     // Does not override Equals or Hash; Mutation's versions are sufficient.

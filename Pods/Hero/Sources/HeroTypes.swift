@@ -20,14 +20,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#if canImport(UIKit)
+
 import UIKit
 
-public protocol HeroPreprocessor: class {
+public protocol HeroPreprocessor: AnyObject {
   var hero: HeroTransition! { get set }
   func process(fromViews: [UIView], toViews: [UIView])
 }
 
-public protocol HeroAnimator: class {
+public protocol HeroAnimator: AnyObject {
   var hero: HeroTransition! { get set }
   func canAnimate(view: UIView, appearing: Bool) -> Bool
   func animate(fromViews: [UIView], toViews: [UIView]) -> TimeInterval
@@ -39,10 +41,12 @@ public protocol HeroAnimator: class {
   func changeTarget(state: HeroTargetState, isDestination: Bool, to view: UIView)
 }
 
-public protocol HeroProgressUpdateObserver: class {
+public protocol HeroProgressUpdateObserver: AnyObject {
   func heroDidUpdateProgress(progress: Double)
 }
 
 public enum HeroViewOrderingStrategy {
   case auto, sourceViewOnTop, destinationViewOnTop
 }
+
+#endif

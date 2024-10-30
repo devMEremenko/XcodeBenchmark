@@ -25,6 +25,7 @@
 @interface VKRelative : VKApiObject
 
 @property(nonatomic, strong) NSNumber *id;
+@property(nonatomic, strong) NSString *name;
 @property(nonatomic, strong) NSString *type;
 
 @end

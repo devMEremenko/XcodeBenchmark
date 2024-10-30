@@ -50,9 +50,9 @@
  * (eay@cryptsoft.com).  This product includes software written by Tim
  * Hudson (tjh@cryptsoft.com). */
 
-#include <openssl/bn.h>
+#include <openssl_grpc/bn.h>
 
-#include <openssl/err.h>
+#include <openssl_grpc/err.h>
 
 #include "internal.h"
 

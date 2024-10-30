@@ -18,7 +18,8 @@
 #import "GoogleMapsDemos/UIViewController+GMSToastMessages.h"
 #import <GoogleMaps/GoogleMaps.h>
 
-@interface MarkerInfoWindowViewController ()<GMSMapViewDelegate>
+@interface MarkerInfoWindowViewController () <GMSMapViewDelegate>
+
 @end
 
 @implementation MarkerInfoWindowViewController {
@@ -35,14 +36,12 @@
                                                                zoom:4];
   GMSMapView *mapView = [GMSMapView mapWithFrame:CGRectZero camera:camera];
 
-
   _sydneyMarker = [[GMSMarker alloc] init];
   _sydneyMarker.title = @"Sydney";
   _sydneyMarker.snippet = @"Population: 4,605,992";
   _sydneyMarker.position = CLLocationCoordinate2DMake(-33.8683, 151.2086);
   _sydneyMarker.map = mapView;
   NSLog(@"sydneyMarker: %@", _sydneyMarker);
-
 
   _melbourneMarker.map = nil;
   _melbourneMarker = [[GMSMarker alloc] init];

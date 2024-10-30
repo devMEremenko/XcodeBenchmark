@@ -46,11 +46,11 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ==================================================================== */
 
-#include <openssl/aes.h>
+#include <openssl_grpc/aes.h>
 
 #include <assert.h>
 
-#include <openssl/cpu.h>
+#include <openssl_grpc/cpu.h>
 
 #include "internal.h"
 #include "../modes/internal.h"

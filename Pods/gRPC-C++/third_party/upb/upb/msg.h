@@ -1,73 +1,71 @@
 /*
-** Data structures for message tables, used for parsing and serialization.
-** This are much lighter-weight than full reflection, but they are do not
-** have enough information to convert to text format, JSON, etc.
-**
-** The definitions in this file are internal to upb.
-**/
+ * Copyright (c) 2009-2021, Google LLC
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of Google LLC nor the
+ *       names of its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL Google LLC BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/*
+ * Public APIs for message operations that do not require descriptors.
+ * These functions can be used even in build that does not want to depend on
+ * reflection or descriptors.
+ *
+ * Descriptor-based reflection functionality lives in reflection.h.
+ */
 
 #ifndef UPB_MSG_H_
 #define UPB_MSG_H_
 
-#include <stdint.h>
-#include <string.h>
-#if COCOAPODS==1
-  #include  "third_party/upb/upb/upb.h"
-#else
-  #include  "upb/upb.h"
-#endif
+#include <stddef.h>
+
+// TODO(b/232091617): Remove this and fix everything that breaks as a result.
+#include "upb/extension_registry.h"
+#include "upb/upb.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef void upb_msg;
+typedef void upb_Message;
 
-/** upb_msglayout *************************************************************/
+/* For users these are opaque. They can be obtained from
+ * upb_MessageDef_MiniTable() but users cannot access any of the members. */
+struct upb_MiniTable;
+typedef struct upb_MiniTable upb_MiniTable;
 
-/* upb_msglayout represents the memory layout of a given upb_msgdef.  The
- * members are public so generated code can initialize them, but users MUST NOT
- * read or write any of its members. */
+/* Adds unknown data (serialized protobuf data) to the given message.  The data
+ * is copied into the message instance. */
+void upb_Message_AddUnknown(upb_Message* msg, const char* data, size_t len,
+                            upb_Arena* arena);
 
-typedef struct {
-  uint32_t number;
-  uint16_t offset;
-  int16_t presence;      /* If >0, hasbit_index+1.  If <0, oneof_index+1. */
-  uint16_t submsg_index;  /* undefined if descriptortype != MESSAGE or GROUP. */
-  uint8_t descriptortype;
-  uint8_t label;
-} upb_msglayout_field;
+/* Returns a reference to the message's unknown data. */
+const char* upb_Message_GetUnknown(const upb_Message* msg, size_t* len);
 
-typedef struct upb_msglayout {
-  const struct upb_msglayout *const* submsgs;
-  const upb_msglayout_field *fields;
-  /* Must be aligned to sizeof(void*).  Doesn't include internal members like
-   * unknown fields, extension dict, pointer to msglayout, etc. */
-  uint16_t size;
-  uint16_t field_count;
-  bool extendable;
-} upb_msglayout;
-
-/** Message internal representation *******************************************/
-
-/* Our internal representation for repeated fields. */
-typedef struct {
-  void *data;   /* Each element is element_size. */
-  size_t len;   /* Measured in elements. */
-  size_t size;  /* Measured in elements. */
-} upb_array;
-
-upb_msg *upb_msg_new(const upb_msglayout *l, upb_arena *a);
-upb_msg *upb_msg_new(const upb_msglayout *l, upb_arena *a);
-
-void upb_msg_addunknown(upb_msg *msg, const char *data, size_t len,
-                        upb_arena *arena);
-const char *upb_msg_getunknown(const upb_msg *msg, size_t *len);
-
-upb_array *upb_array_new(upb_arena *a);
+/* Returns the number of extensions present in this message. */
+size_t upb_Message_ExtensionCount(const upb_Message* msg);
 
 #ifdef __cplusplus
-}  /* extern "C" */
+} /* extern "C" */
 #endif
 
-#endif /* UPB_MSG_H_ */
+#endif /* UPB_MSG_INT_H_ */

@@ -152,6 +152,11 @@ NS_ASSUME_NONNULL_BEGIN
     additionalParameters:(nullable NSDictionary<NSString *, NSString *> *)additionalParameters
     NS_DESIGNATED_INITIALIZER;
 
+/*! @brief Designated initializer for NSSecureCoding.
+    @param aDecoder Unarchiver object to decode
+ */
+- (instancetype)initWithCoder:(NSCoder *)aDecoder NS_DESIGNATED_INITIALIZER;
+
 /*! @brief Constructs an @c NSURLRequest representing the token request.
     @return An @c NSURLRequest representing the token request.
  */

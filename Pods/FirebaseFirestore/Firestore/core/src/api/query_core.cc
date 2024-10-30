@@ -21,28 +21,34 @@
 #include <utility>
 #include <vector>
 
+#include "Firestore/core/src/api/aggregate_query.h"
 #include "Firestore/core/src/api/firestore.h"
 #include "Firestore/core/src/api/query_listener_registration.h"
 #include "Firestore/core/src/api/query_snapshot.h"
 #include "Firestore/core/src/api/source.h"
 #include "Firestore/core/src/core/bound.h"
+#include "Firestore/core/src/core/composite_filter.h"
 #include "Firestore/core/src/core/field_filter.h"
 #include "Firestore/core/src/core/filter.h"
 #include "Firestore/core/src/core/firestore_client.h"
 #include "Firestore/core/src/core/listen_options.h"
 #include "Firestore/core/src/core/operator.h"
-#include "Firestore/core/src/model/field_value.h"
+#include "Firestore/core/src/model/aggregate_field.h"
 #include "Firestore/core/src/model/resource_path.h"
+#include "Firestore/core/src/model/value_util.h"
+#include "Firestore/core/src/nanopb/nanopb_util.h"
 #include "Firestore/core/src/util/exception.h"
 #include "absl/algorithm/container.h"
+#include "absl/strings/match.h"
+#include "absl/types/span.h"
 
 namespace firebase {
 namespace firestore {
 namespace api {
 
-namespace util = firebase::firestore::util;
 using core::AsyncEventListener;
 using core::Bound;
+using core::CompositeFilter;
 using core::Direction;
 using core::EventListener;
 using core::FieldFilter;
@@ -52,15 +58,51 @@ using core::IsDisjunctiveOperator;
 using core::ListenOptions;
 using core::QueryListener;
 using core::ViewSnapshot;
+using model::AggregateAlias;
+using model::AggregateField;
 using model::DocumentKey;
 using model::FieldPath;
-using model::FieldValue;
+using model::GetTypeOrder;
+using model::IsArray;
+using model::RefValue;
 using model::ResourcePath;
+using model::TypeOrder;
+using nanopb::MakeSharedMessage;
+using nanopb::Message;
 using util::Status;
 using util::StatusOr;
 using util::ThrowInvalidArgument;
 
-using Operator = Filter::Operator;
+using Operator = FieldFilter::Operator;
+
+namespace {
+/**
+ * Given an operator, returns the set of operators that cannot be used with
+ * it.
+ *
+ * This is not a comprehensive check, and this function should be removed in the
+ * long term.
+ * Validations should occur in the Firestore backend.
+ *
+ * Operators in a query must adhere to the following set of rules:
+ * 1. Only one inequality per query.
+ * 2. NOT_IN cannot be used with array, disjunctive, or NOT_EQUAL operators.
+ */
+static std::vector<Operator> ConflictingOps(Operator op) {
+  switch (op) {
+    case Operator::NotEqual:
+      return {Operator::NotEqual, Operator::NotIn};
+    case Operator::ArrayContainsAny:
+    case Operator::In:
+      return {Operator::NotIn};
+    case Operator::NotIn:
+      return {Operator::ArrayContainsAny, Operator::In, Operator::NotIn,
+              Operator::NotEqual};
+    default:
+      return {};
+  }
+}
+}  // unnamed namespace
 
 Query::Query(core::Query query, std::shared_ptr<Firestore> firestore)
     : firestore_{std::move(firestore)}, query_{std::move(query)} {
@@ -130,7 +172,7 @@ void Query::GetDocuments(Source source, QuerySnapshotListener&& callback) {
   };
 
   auto listener = absl::make_unique<ListenOnce>(source, std::move(callback));
-  auto listener_unowned = listener.get();
+  auto* listener_unowned = listener.get();
 
   std::unique_ptr<ListenerRegistration> registration =
       AddSnapshotListener(std::move(options), std::move(listener));
@@ -187,45 +229,54 @@ std::unique_ptr<ListenerRegistration> Query::AddSnapshotListener(
       std::move(query_listener));
 }
 
-Query Query::Filter(FieldPath field_path,
-                    Filter::Operator op,
-                    FieldValue field_value,
-                    const std::function<std::string()>& type_describer) const {
+core::FieldFilter Query::ParseFieldFilter(
+    const FieldPath& field_path,
+    Operator op,
+    nanopb::SharedMessage<google_firestore_v1_Value> value,
+    const std::function<std::string()>& type_describer) const {
   if (field_path.IsKeyFieldPath()) {
     if (IsArrayOperator(op)) {
       ThrowInvalidArgument(
           "Invalid query. You can't perform %s queries on document "
           "ID since document IDs are not arrays.",
           Describe(op));
-    } else if (op == Filter::Operator::In) {
-      ValidateDisjunctiveFilterElements(field_value, op);
-      std::vector<FieldValue> references;
-      for (const auto& array_value : field_value.array_value()) {
-        references.push_back(
-            ParseExpectedReferenceValue(array_value, type_describer));
-      }
-      field_value = FieldValue::FromArray(references);
+    } else if (op == Operator::In || op == Operator::NotIn) {
+      ValidateDisjunctiveFilterElements(*value, op);
+      // TODO(mutabledocuments): See if we can remove this copy and modify the
+      // input values directly.
+      auto references = MakeSharedMessage<google_firestore_v1_Value>({});
+      references->which_value_type = google_firestore_v1_Value_array_value_tag;
+      nanopb::SetRepeatedField(
+          &references->array_value.values,
+          &references->array_value.values_count,
+          absl::Span<google_firestore_v1_Value>(
+              value->array_value.values, value->array_value.values_count),
+          [&](const google_firestore_v1_Value& value) {
+            return *ParseExpectedReferenceValue(value, type_describer)
+                        .release();
+          });
+      value = std::move(references);
     } else {
-      field_value = ParseExpectedReferenceValue(field_value, type_describer);
+      value = ParseExpectedReferenceValue(*value, type_describer);
     }
   } else {
     if (IsDisjunctiveOperator(op)) {
-      ValidateDisjunctiveFilterElements(field_value, op);
+      ValidateDisjunctiveFilterElements(*value, op);
     }
   }
+  return FieldFilter::Create(field_path, op, std::move(value));
+}
 
-  FieldFilter filter = FieldFilter::Create(field_path, op, field_value);
+Query Query::AddNewFilter(core::Filter&& filter) const {
   ValidateNewFilter(filter);
-
   return Wrap(query_.AddingFilter(std::move(filter)));
 }
 
 Query Query::OrderBy(FieldPath field_path, bool descending) const {
-  return OrderBy(field_path, Direction::FromDescending(descending));
+  return OrderBy(std::move(field_path), Direction::FromDescending(descending));
 }
 
 Query Query::OrderBy(FieldPath field_path, Direction direction) const {
-  ValidateNewOrderByPath(field_path);
   if (query_.start_at()) {
     ThrowInvalidArgument(
         "Invalid query. You must not specify a starting point "
@@ -266,79 +317,32 @@ Query Query::EndAt(Bound bound) const {
   return Wrap(query_.EndingAt(std::move(bound)));
 }
 
-void Query::ValidateNewFilter(const class Filter& filter) const {
-  if (filter.IsAFieldFilter()) {
-    FieldFilter field_filter(filter);
-
-    if (field_filter.IsInequality()) {
-      const FieldPath* existing_inequality = query_.InequalityFilterField();
-      const FieldPath* new_inequality = &filter.field();
-
-      if (existing_inequality && *existing_inequality != *new_inequality) {
-        ThrowInvalidArgument(
-            "Invalid Query. All where filters with an inequality (lessThan, "
-            "lessThanOrEqual, greaterThan, or greaterThanOrEqual) must be on "
-            "the same field. But you have inequality filters on '%s' and '%s'",
-            existing_inequality->CanonicalString(),
-            new_inequality->CanonicalString());
-      }
-
-      const FieldPath* first_order_by_field = query_.FirstOrderByField();
-      if (first_order_by_field) {
-        ValidateOrderByField(*first_order_by_field, filter.field());
-      }
-
+void Query::ValidateNewFieldFilter(const core::Query& query,
+                                   const FieldFilter& field_filter) const {
+  Operator filter_op = field_filter.op();
+  absl::optional<Operator> conflicting_op =
+      query.FindOpInsideFilters(ConflictingOps(filter_op));
+  if (conflicting_op) {
+    // We special case when it's a duplicate op to give a slightly clearer
+    // error message.
+    if (*conflicting_op == filter_op) {
+      ThrowInvalidArgument(
+          "Invalid Query. You cannot use more than one '%s' filter.",
+          Describe(filter_op));
     } else {
-      // You can have at most 1 disjunctive filter and 1 array filter. Check if
-      // the new filter conflicts with an existing one.
-      absl::optional<Operator> conflicting_op;
-      Operator filter_op = field_filter.op();
-
-      if (IsDisjunctiveOperator(filter_op)) {
-        conflicting_op = query_.FirstDisjunctiveOperator();
-      }
-      if (!conflicting_op.has_value() && IsArrayOperator(filter_op)) {
-        conflicting_op = query_.FirstArrayOperator();
-      }
-      if (conflicting_op) {
-        // We special case when it's a duplicate op to give a slightly clearer
-        // error message.
-        if (*conflicting_op == filter_op) {
-          ThrowInvalidArgument(
-              "Invalid Query. You cannot use more than one '%s' filter.",
-              Describe(filter_op));
-        } else {
-          ThrowInvalidArgument(
-              "Invalid Query. You cannot use '%s' filters with"
-              " '%s' filters.",
-              Describe(filter_op), Describe(conflicting_op.value()));
-        }
-      }
+      ThrowInvalidArgument(
+          "Invalid Query. You cannot use '%s' filters with"
+          " '%s' filters.",
+          Describe(filter_op), Describe(conflicting_op.value()));
     }
   }
 }
 
-void Query::ValidateNewOrderByPath(const FieldPath& field_path) const {
-  if (!query_.FirstOrderByField()) {
-    // This is the first order by. It must match any inequality.
-    const FieldPath* inequality_field = query_.InequalityFilterField();
-    if (inequality_field) {
-      ValidateOrderByField(field_path, *inequality_field);
-    }
-  }
-}
-
-void Query::ValidateOrderByField(const FieldPath& order_by_field,
-                                 const FieldPath& inequality_field) const {
-  if (order_by_field != inequality_field) {
-    ThrowInvalidArgument(
-        "Invalid query. You have a where filter with an inequality "
-        "(lessThan, lessThanOrEqual, greaterThan, or greaterThanOrEqual) on "
-        "field '%s' and so you must also use '%s' as your first queryOrderedBy "
-        "field, but your first queryOrderedBy is currently on field '%s' "
-        "instead.",
-        inequality_field.CanonicalString(), inequality_field.CanonicalString(),
-        order_by_field.CanonicalString());
+void Query::ValidateNewFilter(const Filter& filter) const {
+  core::Query test_query(query_);
+  for (const auto& field_filter : filter.GetFlattenedFilters()) {
+    ValidateNewFieldFilter(test_query, field_filter);
+    test_query = test_query.AddingFilter(field_filter);
   }
 }
 
@@ -351,52 +355,30 @@ void Query::ValidateHasExplicitOrderByForLimitToLast() const {
 }
 
 void Query::ValidateDisjunctiveFilterElements(
-    const model::FieldValue& field_value, core::Filter::Operator op) const {
+    const google_firestore_v1_Value& value, Operator op) const {
   HARD_ASSERT(
-      field_value.type() == FieldValue::Type::Array,
+      IsArray(value),
       "A FieldValue of Array type is required for disjunctive filters.");
-  if (field_value.array_value().size() == 0) {
+  if (value.array_value.values_count == 0) {
     ThrowInvalidArgument(
         "Invalid Query. A non-empty array is required for '%s'"
         " filters.",
         Describe(op));
   }
-  if (field_value.array_value().size() > 10) {
-    ThrowInvalidArgument(
-        "Invalid Query. '%s' filters support a maximum of 10"
-        " elements in the value array.",
-        Describe(op));
-  }
-
-  std::vector<FieldValue> array = field_value.array_value();
-  for (const auto& val : array) {
-    if (val.is_null()) {
-      ThrowInvalidArgument(
-          "Invalid Query. '%s' filters cannot contain 'null' in"
-          " the value array.",
-          Describe(op));
-    }
-    if (val.is_nan()) {
-      ThrowInvalidArgument(
-          "Invalid Query. '%s' filters cannot contain 'NaN' in"
-          " the value array.",
-          Describe(op));
-    }
-  }
 }
 
-FieldValue Query::ParseExpectedReferenceValue(
-    const model::FieldValue& field_value,
+Message<google_firestore_v1_Value> Query::ParseExpectedReferenceValue(
+    const google_firestore_v1_Value& value,
     const std::function<std::string()>& type_describer) const {
-  if (field_value.type() == FieldValue::Type::String) {
-    const std::string& document_key = field_value.string_value();
+  if (GetTypeOrder(value) == TypeOrder::kString) {
+    std::string document_key = nanopb::MakeString(value.string_value);
     if (document_key.empty()) {
       ThrowInvalidArgument(
           "Invalid query. When querying by document ID you must provide a "
           "valid document ID, but it was an empty string.");
     }
     if (!query().IsCollectionGroupQuery() &&
-        document_key.find('/') != std::string::npos) {
+        absl::StrContains(document_key, "/")) {
       ThrowInvalidArgument(
           "Invalid query. When querying a collection by document ID you must "
           "provide a plain document ID, but '%s' contains a '/' character.",
@@ -411,10 +393,9 @@ FieldValue Query::ParseExpectedReferenceValue(
           "is not because it has an odd number of segments.",
           path.CanonicalString());
     }
-    return FieldValue::FromReference(firestore_->database_id(),
-                                     DocumentKey{path});
-  } else if (field_value.type() == FieldValue::Type::Reference) {
-    return field_value;
+    return RefValue(firestore_->database_id(), DocumentKey{path});
+  } else if (GetTypeOrder(value) == TypeOrder::kReference) {
+    return model::DeepClone(value);
   } else {
     ThrowInvalidArgument(
         "Invalid query. When querying by document ID you must provide a "
@@ -423,27 +404,44 @@ FieldValue Query::ParseExpectedReferenceValue(
   }
 }
 
-std::string Query::Describe(Filter::Operator op) const {
+std::string Query::Describe(Operator op) const {
   switch (op) {
-    case Filter::Operator::LessThan:
+    case Operator::LessThan:
       return "lessThan";
-    case Filter::Operator::LessThanOrEqual:
+    case Operator::LessThanOrEqual:
       return "lessThanOrEqual";
-    case Filter::Operator::Equal:
+    case Operator::Equal:
       return "equal";
-    case Filter::Operator::GreaterThanOrEqual:
+    case Operator::NotEqual:
+      return "notEqual";
+    case Operator::GreaterThanOrEqual:
       return "greaterThanOrEqual";
-    case Filter::Operator::GreaterThan:
+    case Operator::GreaterThan:
       return "greaterThan";
-    case Filter::Operator::ArrayContains:
+    case Operator::ArrayContains:
       return "arrayContains";
-    case Filter::Operator::In:
+    case Operator::In:
       return "in";
-    case Filter::Operator::ArrayContainsAny:
+    case Operator::ArrayContainsAny:
       return "arrayContainsAny";
+    case Operator::NotIn:
+      return "notIn";
   }
 
   UNREACHABLE();
+}
+
+AggregateQuery Query::Aggregate(
+    std::vector<AggregateField>&& aggregations) const {
+  return AggregateQuery(*this, std::move(aggregations));
+}
+
+// TODO(b/280805906) Remove this count specific API after the c++ SDK migrates
+// to the new Aggregate API
+AggregateQuery Query::Count() const {
+  return AggregateQuery(
+      *this, std::vector<AggregateField>{AggregateField(
+                 AggregateField::OpKind::Count, AggregateAlias("count"))});
 }
 
 }  // namespace api

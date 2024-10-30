@@ -58,7 +58,7 @@
 #include <openssl_grpc/x509.h>
 #include <openssl_grpc/x509v3.h>
 
-#include "pcy_int.h"
+#include "internal.h"
 
 /* accessor functions */
 

@@ -61,6 +61,11 @@
 #include <openssl_grpc/mem.h>
 #include <openssl_grpc/x509v3.h>
 
+#include "internal.h"
+
+
+typedef BIT_STRING_BITNAME ENUMERATED_NAMES;
+
 static const ENUMERATED_NAMES crl_reasons[] = {
     {CRL_REASON_UNSPECIFIED, "Unspecified", "unspecified"},
     {CRL_REASON_KEY_COMPROMISE, "Key Compromise", "keyCompromise"},
@@ -87,7 +92,8 @@ const X509V3_EXT_METHOD v3_crl_reason = {
     (void *)crl_reasons
 };
 
-char *i2s_ASN1_ENUMERATED_TABLE(X509V3_EXT_METHOD *method, ASN1_ENUMERATED *e)
+char *i2s_ASN1_ENUMERATED_TABLE(X509V3_EXT_METHOD *method,
+                                const ASN1_ENUMERATED *e)
 {
     const ENUMERATED_NAMES *enam;
     long strval;

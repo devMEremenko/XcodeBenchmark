@@ -6,10 +6,9 @@ import RxSwift
 /// advertise, to publish L2CAP channels and more.
 /// You can start using this class by adding services and starting advertising.
 /// Before calling any public `PeripheralManager`'s functions you should make sure that Bluetooth is turned on and powered on. It can be done
-/// by `observeState()`, observing it's value and then chaining it with `add(_:)` and `startAdvertising(_:)`:
+/// by `observeStateWithInitialValue()`, observing it's value and then chaining it with `add(_:)` and `startAdvertising(_:)`:
 /// ```
-/// let disposable = centralManager.observeState
-///     .startWith(centralManager.state)
+/// let disposable = centralManager.observeStateWithInitialValue()
 ///     .filter { $0 == .poweredOn }
 ///     .take(1)
 ///     .flatMap { centralManager.add(myService) }
@@ -48,11 +47,15 @@ public class PeripheralManager: ManagerType {
     /// - parameter queue: Queue on which bluetooth callbacks are received. By default main thread is used.
     /// - parameter options: An optional dictionary containing initialization options for a peripheral manager.
     /// For more info about it please refer to [Peripheral Manager initialization options](https://developer.apple.com/documentation/corebluetooth/cbperipheralmanager/peripheral_manager_initialization_options)
+    /// - parameter cbPeripheralManager: Optional instance of `CBPeripheralManager` to be used as a `manager`. If you
+    /// skip this parameter, there will be created an instance of `CBPeripheralManager` using given queue and options.
     public convenience init(queue: DispatchQueue = .main,
-                            options: [String: AnyObject]? = nil) {
+                            options: [String: AnyObject]? = nil,
+                            cbPeripheralManager: CBPeripheralManager? = nil) {
         let delegateWrapper = CBPeripheralManagerDelegateWrapper()
         #if os(iOS) || os(macOS)
-        let peripheralManager = CBPeripheralManager(delegate: delegateWrapper, queue: queue, options: options)
+        let peripheralManager = cbPeripheralManager ??
+            CBPeripheralManager(delegate: delegateWrapper, queue: queue, options: options)
         #else
         let peripheralManager = CBPeripheralManager()
         peripheralManager.delegate = delegateWrapper
@@ -69,11 +72,23 @@ public class PeripheralManager: ManagerType {
     // MARK: State
 
     public var state: BluetoothState {
-        return BluetoothState(rawValue: manager.state.rawValue) ?? .unsupported
+        return BluetoothState(rawValue: manager.state.rawValue) ?? .unknown
     }
 
     public func observeState() -> Observable<BluetoothState> {
         return self.delegateWrapper.didUpdateState.asObservable()
+    }
+
+    public func observeStateWithInitialValue() -> Observable<BluetoothState> {
+        return Observable.deferred { [weak self] in
+            guard let self = self else {
+                RxBluetoothKitLog.w("observeState - PeripheralManager deallocated")
+                return .never()
+            }
+
+            return self.delegateWrapper.didUpdateState.asObservable()
+                .startWith(self.state)
+        }
     }
 
     // MARK: Advertising

@@ -24,7 +24,29 @@
 #import "VKApiObject.h"
 #import "VKApiObjectArray.h"
 
-@class VKDocs;
+@class VKPhoto;
+
+@interface VKGraffiti : VKApiObject
+@property(nonatomic, strong) NSString *src;
+@property(nonatomic, strong) NSNumber *width;
+@property(nonatomic, strong) NSNumber *height;
+@end
+
+@interface VKAudioMsg : VKApiObject
+@property(nonatomic, strong) NSNumber *duration;
+@property(nonatomic, strong) NSArray<NSNumber *> *waveform;
+@property(nonatomic, strong) NSString *link_ogg;
+@property(nonatomic, strong) NSString *link_mp3;
+@end
+
+/**
+ Document preview data.
+*/
+@interface VKDocsPreview : VKApiObject
+@property(nonatomic, strong) VKPhoto *photo;
+@property(nonatomic, strong) VKGraffiti *graffiti;
+@property(nonatomic, strong) VKAudioMsg *audio_msg;
+@end
 
 /**
  Docs type of VK API. See descriptions here https://vk.com/dev/doc
@@ -36,10 +58,9 @@
 @property(nonatomic, strong) NSNumber *size;
 @property(nonatomic, copy) NSString *ext;
 @property(nonatomic, copy) NSString *url;
-@property(nonatomic, copy) NSString *photo_100;
-@property(nonatomic, copy) NSString *photo_130;
 @property(nonatomic, strong) NSNumber *date;
 @property(nonatomic, strong) NSNumber *type;
+@property(nonatomic, strong) VKDocsPreview *preview;
 @end
 
 /**

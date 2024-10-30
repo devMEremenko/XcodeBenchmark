@@ -331,7 +331,8 @@ open class DTTableViewDelegateWrapper : NSObject {
         }
         if super.responds(to: aSelector) {
             if let eventSelector = EventMethodSignature(rawValue: String(describing: aSelector)) {
-                return (unmappedReactions.contains {
+//                print("responds to \(aSelector)")
+                let result = (unmappedReactions.contains {
                     $0.methodSignature == eventSelector.rawValue
                 } ||
                 (viewFactory?.mappings ?? [])
@@ -340,6 +341,8 @@ open class DTTableViewDelegateWrapper : NSObject {
                         reaction.methodSignature == eventSelector.rawValue
                     })
                 })) || shouldEnableMethodCall(signature: eventSelector)
+//                print("result: \(result)")
+                return result
             }
             return true
         }

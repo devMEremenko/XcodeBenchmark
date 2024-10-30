@@ -23,6 +23,9 @@
 #include <memory>
 #include <string>
 
+#include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
+
 namespace firebase {
 namespace firestore {
 
@@ -57,6 +60,9 @@ class DocumentKey {
   /** Creates and returns a new document key with the given segments. */
   static DocumentKey FromSegments(std::initializer_list<std::string> list);
 
+  /** Returns a DocumentKey from a fully qualified resource name. */
+  static DocumentKey FromName(const std::string& name);
+
   /** Returns a shared instance of an empty document key. */
   static const DocumentKey& Empty();
 
@@ -76,8 +82,11 @@ class DocumentKey {
   /** The path to the document. */
   const ResourcePath& path() const;
 
-  /** Returns true if the document is in the specified collection_id. */
-  bool HasCollectionId(const std::string& collection_id) const;
+  /** Returns true if the document is in the specified collection group. */
+  bool HasCollectionGroup(absl::string_view collection_group) const;
+
+  /** Returns the collection group, if this document key has one. */
+  absl::optional<std::string> GetCollectionGroup() const;
 
  private:
   // This is an optimization to make passing DocumentKey around cheaper (it's

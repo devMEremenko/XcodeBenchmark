@@ -66,6 +66,10 @@
 #include <openssl_grpc/obj.h>
 #include <openssl_grpc/x509v3.h>
 
+#include "internal.h"
+#include "../x509/internal.h"
+
+
 static void *v2i_crld(const X509V3_EXT_METHOD *method,
                       X509V3_CTX *ctx, STACK_OF(CONF_VALUE) *nval);
 static int i2r_crldp(const X509V3_EXT_METHOD *method, void *pcrldp, BIO *out,
@@ -340,8 +344,6 @@ static void *v2i_crld(const X509V3_EXT_METHOD *method,
     sk_DIST_POINT_pop_free(crld, DIST_POINT_free);
     return NULL;
 }
-
-IMPLEMENT_ASN1_SET_OF(DIST_POINT)
 
 static int dpn_cb(int operation, ASN1_VALUE **pval, const ASN1_ITEM *it,
                   void *exarg)
