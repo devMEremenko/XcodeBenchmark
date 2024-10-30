@@ -15,6 +15,7 @@ If a device you are looking for is not on the list below, check out open [issues
 
 |        Device        |           CPU           | RAM | SSD | Xcode |  macOS | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:-----:|:------:|:---------:|
+| MacBook Pro 13" 2020 |      M1 8c (8c GPU)     | 16  | 256 | 16.1  |  15.1  |    258    |
 
 ## Xcode 15
 
@@ -392,3 +393,4 @@ Make sure:
 - [@cepheus69](https://github.com/cepheus69)
 - [@facuramirez7](https://github.com/facuramirez7)
 - [@lprhodes](https://github.com/lprhodes)
+- [@KAnggara75](https://github.com/KAnggara75)
