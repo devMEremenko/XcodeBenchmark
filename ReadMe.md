@@ -13,8 +13,9 @@ If a device you are looking for is not on the list below, check out open [issues
 
 ## Xcode 16
 
-|        Device        |           CPU           | RAM | SSD | Xcode |  macOS | Time(sec) |
-|:--------------------:|:-----------------------:|:---:|:---:|:-----:|:------:|:---------:|
+|        Device        |           CPU           | RAM | SSD | Xcode |   macOS  | Time(sec) |
+|:--------------------:|:-----------------------:|:---:|:---:|:-----:|:--------:|:---------:|
+| Mac Pro 2023         |      M2 Ultra 24-core   | 192 | 8TB | 16.1  |   15.1   |    87     |
 | MacBook Pro 16" 2023 |      M3 Max 14-core     | 36  | 1TB | 16.1  |  14.7.1  |    110    |
 | MacBook Pro 16" 2021 |      M1 Max 10-core     | 32  | 1TB | 16.1  |   15.1   |    152    |
 | MacBook Pro 13" 2020 |      M1 8c (8c GPU)     | 16  | 256 | 16.1  |   15.1   |    258    |
