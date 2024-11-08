@@ -11,6 +11,18 @@ I believe the results will help developers to make the right *cost/performance* 
 PR merging will be performed on a best-effort basis.  
 If a device you are looking for is not on the list below, check out open [issues](https://github.com/devMEremenko/XcodeBenchmark/issues) and [PRs](https://github.com/devMEremenko/XcodeBenchmark/pulls).
 
+## Xcode 16
+
+|        Device        |           CPU           | RAM | SSD | Xcode |   macOS  | Time(sec) |
+|:--------------------:|:-----------------------:|:---:|:---:|:-----:|:--------:|:---------:|
+| Mac Pro 2023         |      M2 Ultra 24-core   | 192 | 8TB | 16.1  |   15.1   |    87     |
+| Mac Mini 2024        |      M4 Pro 12-core     | 24  | 1TB | 16.1  |   15.1   |    109    |
+| MacBook Pro 16" 2023 |      M3 Max 14-core     | 36  | 1TB | 16.1  |  14.7.1  |    110    |
+| Mac Mini 2023        |      M2 Pro 10-core     | 16  | 1TB | 16.1  |  15.0.1  |    147    |
+| MacBook Pro 16" 2021 |      M1 Max 10-core     | 32  | 1TB | 16.1  |   15.1   |    152    |
+| MacBook Air 13" 2024 |      M3 8-core          | 8   | 256 | 16.1  |  15.0.1  |    201    |
+| MacBook Pro 13" 2020 |      M1 8c (8c GPU)     | 16  | 256 | 16.1  |   15.1   |    258    |
+
 ## Xcode 15
 
 ```diff
@@ -20,17 +32,28 @@ If a device you are looking for is not on the list below, check out open [issues
 |        Device        |           CPU           | RAM | SSD | Xcode |  macOS | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:-----:|:------:|:---------:|
 | Mac Studio 2023      |     M2 Ultra 24-core    | 192 | 2TB | 15.0.1| 14.0   |     63    |
+| MacBook Pro 16" 2023 | M3 Max 16 (High Power)  |  48 | 1TB | 15.3.1| 14.4.0 |     67    |
 | MacBook Pro 16" 2023 |     M3 Max 16-core      |  64 | 1TB | 15.0.1| 14.1.1 |     70    |
+| Mac Studio 2022      |     M1 Ultra 20-core    | 128 | 4TB |  15.3 | 14.4   |     73    |
 | MacBook Pro 16" 2023 |     M3 Max 14-core      |  36 | 1TB | 15.0.1| 14.1.1 |     79    |
 | MacBook Pro 14" 2023 |     M3 Max 14-core      |  36 | 1TB | 15.0.1| 14.1.1 |     79    |
+| MacBook Pro 16" 2023 |     M3 Pro 12-core      |  18 | 512 | 15.0.1| 14.1.2 |    104    |
+| MacBook Pro 14" 2023 |     M3 Pro 11-core      |  18 | 512 |  15.3 |  14.4  |    108    |
 | MacBook Pro 16" 2023 |     M3 Pro 12-core      |  36 | 512 | 15.0.1| 14.1.1 |    110    |
+| MacBook Pro 16" 2023 |     M2 Max 12-core      |  64 | 1TB | 15.0.1| 14.1.1 |    110    |
+| MacBook Pro 16" 2023 |     M2 Pro 12-core      |  16 | 512 |  15.1 | 14.2.1 |    111    |
 | MacBook Pro 14" 2023 |     M2 Pro 10-core      |  16 | 512 |  15.0 | 13.6.0 |    119    |
 | MacBook Pro 16" 2021 |     M1 Pro 10-core      |  32 | 1TB | 15.0.1|  14.1  |    122    |
-| MacBook Pro 14" 2023 |     M3 Pro 11-core      |  18 | 512 | 15.0.1| 14.1.1 | 🤯 124 [Link](https://github.com/devMEremenko/XcodeBenchmark/issues/444) |
+| Mac Studio 2022      |     M1 Max 10-core      |  32 | 512 | 15.0.1| 14.1.1 |    134    |
 | MacBook Pro 16" 2021 |     M1 Pro 10-core      |  16 | 512 | 15.0.1| 14.0   |    136    |
 | MacBook Pro 16" 2021 |     M1 Pro 10-core      |  32 | 512 |  15.0 | 13.5.2 |    137    |
-| MacBook Air 13" 2020 |      M1 8c (8c GPU)     |  16 | 512 |  15.0 | 14.0   |    208    |
+| MacBook Air 13" 2024 |     M3 8-core           |  24 | 2TB |  15.3 | 14.4   |    140    |
+| MacBook Air 13" 2022 |     M2 8c (10c GPU)     |  8  | 512 | 15.0.1| 14.1.1 |    158    |
+| MacBook Pro 14" 2021 |     M1 Pro 8-core       |  32 | 1TB |  15.2 | 14.1.2 |    170    |
+| Mac Mini M1 2020     |     M1 8-core           |  16 | 1TB |  15.2 | 13.6.3 |    180    |
+| MacBook Air 13" 2020 |     M1 8c (8c GPU)      |  16 | 512 |  15.0 | 14.0   |    208    |
 | MacBook Pro 15" 2018 |     i7 2.6 GHz 6-core   |  16 | 512 |  15.0 | 14.0.0 |    348    |
+| Mac Mini 2018        |     i3 3.6 GHz 4-core   |  16 | 256 | 15.0.1|  13.6  |    569    |
 
 
 ## Xcode 13-14
@@ -165,7 +188,6 @@ If a device you are looking for is not on the list below, check out open [issues
 | MacBook Pro 15" 2016 |    i7 2.7 GHz 4-core    |  16 | 1TB |     |  11.7 | 10.15.6 |    642    |
 |     Mac Mini 2014    |    i5 2.6 GHz 2-core    |  8  |     | 1TB |  11.7 | 10.15.6 |    1193   |
 
-
 ## Custom Hardware - Xcode 15
 
 ```diff
@@ -174,7 +196,7 @@ If a device you are looking for is not on the list below, check out open [issues
 
 |     Device     |             CPU           | RAM |  SSD  |  Xcode  |   macOS   | Time(sec) |    Comments    |
 |:--------------:|:-------------------------:|:---:|:-----:|:-------:|:---------:|:---------:|----------------|
-|   Hackintosh   |           <empty>         | <_> |  <_>  |   <_>   |    <_>    |    <_>    |      <_>       |
+|   Hackintosh   |i5-10400 2.9Ghz 6-core     | 48  | 500GB |   15.3   |    14.0  |    253    | Not overclocked|
 
 
 ## Custom Hardware - Xcode 14
@@ -375,7 +397,9 @@ Make sure:
 - [@witekbobrowski](https://twitter.com/witekbobrowski)
 - [@santirodriguezaffonso](https://github.com/santirodriguezaffonso)
 - [@alexpereacode](https://github.com/alexpereacode)
+- [@IkerPerea](https://github.com/IkerPerea)
 - [@fkorotkov](https://github.com/fkorotkov)
 - [@cepheus69](https://github.com/cepheus69)
 - [@facuramirez7](https://github.com/facuramirez7)
 - [@lprhodes](https://github.com/lprhodes)
+- [@KAnggara75](https://github.com/KAnggara75)
