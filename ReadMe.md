@@ -17,6 +17,7 @@ If a device you are looking for is not on the list below, check out open [issues
 |:--------------------:|:-----------------------:|:---:|:---:|:-----:|:--------:|:---------:|
 | Mac Pro 2023         |      M2 Ultra 24-core   | 192 | 8TB | 16.1  |   15.1   |    87     |
 | MacBook Pro 16" 2023 |      M3 Max 16-core     | 128 | 1TB | 16.1  |   15.1   |    90     |
+| Mac Mini 2024        |      M4 Pro 12-core     | 24  | 1TB | 16.1  |   15.1   |    109    |
 | MacBook Pro 16" 2023 |      M3 Max 14-core     | 36  | 1TB | 16.1  |  14.7.1  |    110    |
 | Mac Mini 2023        |      M2 Pro 10-core     | 16  | 1TB | 16.1  |  15.0.1  |    147    |
 | MacBook Pro 16" 2021 |      M1 Max 10-core     | 32  | 1TB | 16.1  |   15.1   |    152    |
@@ -39,6 +40,7 @@ If a device you are looking for is not on the list below, check out open [issues
 | MacBook Pro 14" 2023 |     M3 Max 14-core      |  36 | 1TB | 15.0.1| 14.1.1 |     79    |
 | MacBook Pro 16" 2023 |     M3 Pro 12-core      |  18 | 512 | 15.0.1| 14.1.2 |    104    |
 | MacBook Pro 14" 2023 |     M3 Pro 11-core      |  18 | 512 |  15.3 |  14.4  |    108    |
+| MacBook Pro 16" 2023 |     M3 Pro 12-core      |  36 | 512 | 15.0.1| 14.1.1 |    110    |
 | MacBook Pro 16" 2023 |     M2 Max 12-core      |  64 | 1TB | 15.0.1| 14.1.1 |    110    |
 | MacBook Pro 16" 2023 |     M2 Pro 12-core      |  16 | 512 |  15.1 | 14.2.1 |    111    |
 | MacBook Pro 14" 2023 |     M2 Pro 10-core      |  16 | 512 |  15.0 | 13.6.0 |    119    |
@@ -52,6 +54,7 @@ If a device you are looking for is not on the list below, check out open [issues
 | Mac Mini M1 2020     |     M1 8-core           |  16 | 1TB |  15.2 | 13.6.3 |    180    |
 | MacBook Air 13" 2020 |     M1 8c (8c GPU)      |  16 | 512 |  15.0 | 14.0   |    208    |
 | MacBook Pro 15" 2018 |     i7 2.6 GHz 6-core   |  16 | 512 |  15.0 | 14.0.0 |    348    |
+| Mac Mini 2018        |     i3 3.6 GHz 4-core   |  16 | 256 | 15.0.1|  13.6  |    569    |
 
 
 ## Xcode 13-14
