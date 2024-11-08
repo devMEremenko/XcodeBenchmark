@@ -190,6 +190,14 @@ If a device you are looking for is not on the list below, check out open [issues
 | MacBook Pro 15" 2016 |    i7 2.7 GHz 4-core    |  16 | 1TB |     |  11.7 | 10.15.6 |    642    |
 |     Mac Mini 2014    |    i5 2.6 GHz 2-core    |  8  |     | 1TB |  11.7 | 10.15.6 |    1193   |
 
+
+## Custom Hardware - Xcode 16
+
+|     Device     |             CPU           | RAM |  SSD  |  Xcode  |   macOS   | Time(sec) |    Comments    |
+|:--------------:|:-------------------------:|:---:|:-----:|:-------:|:---------:|:---------:|----------------|
+|   Hackintosh   |              -            |  -  |   -   |    -    |     -     |     -     |                |
+
+
 ## Custom Hardware - Xcode 15
 
 ```diff
