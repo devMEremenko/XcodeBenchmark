@@ -26,6 +26,7 @@ If a device you are looking for is not on the list below, check out open [issues
 | Mac Mini 2023        |      M2 Pro 10-core     | 16  | 1TB | 16.1  |  15.0.1  |    147    |
 | MacBook Pro 16" 2021 |      M1 Max 10-core     | 32  | 1TB | 16.1  |   15.1   |    152    |
 | MacBook Air 13" 2024 |      M3 8-core          | 8   | 256 | 16.1  |  15.0.1  |    201    |
+| MacBook Air 13" 2022 |      M2 8-core          | 16  | 512 | 16.1  |   15.1   |    202    |
 | MacBook Pro 13" 2020 |      M1 8c (8c GPU)     | 16  | 256 | 16.1  |   15.1   |    258    |
 
 ## Xcode 15
