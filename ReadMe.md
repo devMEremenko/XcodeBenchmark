@@ -15,17 +15,25 @@ If a device you are looking for is not on the list below, check out open [issues
 
 |        Device        |           CPU           | RAM | SSD | Xcode |   macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:-----:|:--------:|:---------:|
+| MacBook Pro 16" 2024 |      M4 Max 16-core     | 128 | 4TB | 16.1  |   15.1   |    81     |
 | Mac Pro 2023         |      M2 Ultra 24-core   | 192 | 8TB | 16.1  |   15.1   |    87     |
 | MacBook Pro 16" 2023 |      M3 Max 16-core     | 128 | 1TB | 16.1  |   15.1   |    90     |
+| MacBook Pro 14" 2024 |	    M4 Pro 14-core	   | 24  | 1TB | 16.1  | 	 15.1   |    95     |
+| Mac Mini 2024        |      M4 Pro 14-core     | 24  | 512 | 16.1  |   15.1   |    96     |
 | Mac Mini 2024        |      M4 Pro 14-core     | 64  | 1TB | 16.1  |   15.1   |    96    |
-| MacBook Pro 14" 2024 |	  M4 Pro 12-core	 | 48  | 512 | 16.1  | 	 15.1   |    106    |
+| MacBook Pro 14" 2024 |      M4 Pro 14-core     | 48  | 512 | 16.1  |   15.1   |    97     |
+| MacBook Pro 14" 2024 |	    M4 Pro 12-core	   | 48  | 512 | 16.1  | 	 15.1   |    106    |
 | Mac Studio 2022      |      M1 Ultra 20-core   | 64  | 2TB | 16.1  |  15.0.1  |    109    |
 | Mac Mini 2024        |      M4 Pro 12-core     | 24  | 1TB | 16.1  |   15.1   |    109    |
 | MacBook Pro 16" 2023 |      M3 Max 14-core     | 36  | 1TB | 16.1  |  14.7.1  |    110    |
+| MacBook Pro 16" 2022 |      M2 Max 12-core     | 64  | 2TB | 16.1  |   15.1   |    127    |
 | MacBook Pro 14" 2023 |      M3 Pro 11-core     | 18  | 512 | 16.1  |   15.1   |    140    |
+| MacBook Pro 14" 2024 |      M4 10-core         | 16  | 512 | 16.1  |   15.1   |    141    |
+| Mac Mini 2024        |      M4 10-core         | 16  | 256 | 16.1  |   15.1   |    141    |
 | Mac Mini 2023        |      M2 Pro 10-core     | 16  | 1TB | 16.1  |  15.0.1  |    147    |
 | MacBook Pro 16" 2021 |      M1 Max 10-core     | 32  | 1TB | 16.1  |   15.1   |    152    |
 | MacBook Air 13" 2024 |      M3 8-core          | 8   | 256 | 16.1  |  15.0.1  |    201    |
+| MacBook Air 13" 2022 |      M2 8-core          | 16  | 512 | 16.1  |   15.1   |    202    |
 | MacBook Pro 13" 2020 |      M1 8c (8c GPU)     | 16  | 256 | 16.1  |   15.1   |    258    |
 
 ## Xcode 15
