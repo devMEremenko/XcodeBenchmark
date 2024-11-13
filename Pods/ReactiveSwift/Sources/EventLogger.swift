@@ -10,20 +10,18 @@ import Foundation
 
 /// A namespace for logging event types.
 public enum LoggingEvent {
-	public enum Signal: String {
+	public enum Signal: String, CaseIterable {
 		case value, completed, failed, terminated, disposed, interrupted
 
-		public static let allEvents: Set<Signal> = [
-			.value, .completed, .failed, .terminated, .disposed, .interrupted,
-		]
+		@available(*, deprecated, message:"Use `allCases` instead.")
+		public static var allEvents: Set<Signal> { Set(allCases) }
 	}
 
-	public enum SignalProducer: String {
+	public enum SignalProducer: String, CaseIterable {
 		case starting, started, value, completed, failed, terminated, disposed, interrupted
 
-		public static let allEvents: Set<SignalProducer> = [
-			.starting, .started, .value, .completed, .failed, .terminated, .disposed, .interrupted,
-		]
+		@available(*, deprecated, message:"Use `allCases` instead.")
+		public static var allEvents: Set<SignalProducer> { Set(allCases) }
 	}
 }
 
@@ -82,7 +80,7 @@ extension Signal {
 	///   - logger: Logger that logs the events.
 	///
 	/// - returns: Signal that, when observed, logs the fired events.
-	public func logEvents(identifier: String = "", events: Set<LoggingEvent.Signal> = LoggingEvent.Signal.allEvents, fileName: String = #file, functionName: String = #function, lineNumber: Int = #line, logger: @escaping EventLogger = defaultEventLog) -> Signal<Value, Error> {
+	public func logEvents(identifier: String = "", events: Set<LoggingEvent.Signal> = Set(LoggingEvent.Signal.allCases), fileName: String = #file, functionName: String = #function, lineNumber: Int = #line, logger: @escaping EventLogger = defaultEventLog) -> Signal<Value, Error> {
 		let logContext = LogContext(events: events,
 		                            identifier: identifier,
 		                            fileName: fileName,
@@ -116,7 +114,7 @@ extension SignalProducer {
 	///
 	/// - returns: Signal producer that, when started, logs the fired events.
 	public func logEvents(identifier: String = "",
-	                      events: Set<LoggingEvent.SignalProducer> = LoggingEvent.SignalProducer.allEvents,
+	                      events: Set<LoggingEvent.SignalProducer> = Set(LoggingEvent.SignalProducer.allCases),
 	                      fileName: String = #file,
 	                      functionName: String = #function,
 	                      lineNumber: Int = #line,

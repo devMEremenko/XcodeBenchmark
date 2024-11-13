@@ -35,6 +35,8 @@ static const char *RCNRemoteConfigQueueLabel = "com.google.GoogleConfigService.F
 static NSString *const RCNFetchResponseKeyEntries = @"entries";
 /// Key that includes data for experiment descriptions in ABT.
 static NSString *const RCNFetchResponseKeyExperimentDescriptions = @"experimentDescriptions";
+/// Key that includes data for Personalization metadata.
+static NSString *const RCNFetchResponseKeyPersonalizationMetadata = @"personalizationMetadata";
 /// Error key.
 static NSString *const RCNFetchResponseKeyError = @"error";
 /// Error code.
@@ -56,3 +58,5 @@ static NSString *const RCNFetchResponseKeyStateNoTemplate = @"NO_TEMPLATE";
 static NSString *const RCNFetchResponseKeyStateNoChange = @"NO_CHANGE";
 /// Template found, but evaluates to empty (e.g. all keys omitted).
 static NSString *const RCNFetchResponseKeyStateEmptyConfig = @"EMPTY_CONFIG";
+/// Template Version key
+static NSString *const RCNFetchResponseKeyTemplateVersion = @"templateVersion";

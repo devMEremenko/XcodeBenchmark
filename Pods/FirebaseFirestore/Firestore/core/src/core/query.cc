@@ -20,7 +20,6 @@
 #include <ostream>
 
 #include "Firestore/core/src/core/bound.h"
-#include "Firestore/core/src/core/field_filter.h"
 #include "Firestore/core/src/core/operator.h"
 #include "Firestore/core/src/model/document.h"
 #include "Firestore/core/src/model/document_key.h"
@@ -37,7 +36,7 @@ namespace firebase {
 namespace firestore {
 namespace core {
 
-using Operator = Filter::Operator;
+using Operator = FieldFilter::Operator;
 using Type = Filter::Type;
 
 using model::Document;
@@ -68,95 +67,68 @@ bool Query::MatchesAllDocuments() const {
            explicit_order_bys_.front().field().IsKeyFieldPath()));
 }
 
-const FieldPath* Query::InequalityFilterField() const {
-  for (const auto& filter : filters_) {
-    if (filter.IsInequality()) {
-      return &filter.field();
+const std::set<model::FieldPath> Query::InequalityFilterFields() const {
+  std::set<FieldPath> result;
+  for (const Filter& filter : filters_) {
+    for (const FieldFilter& subFilter : filter.GetFlattenedFilters()) {
+      if (subFilter.IsInequality()) {
+        result.emplace(subFilter.field());
+      }
     }
   }
-  return nullptr;
+  return result;
 }
 
-absl::optional<Operator> Query::FirstArrayOperator() const {
+absl::optional<Operator> Query::FindOpInsideFilters(
+    const std::vector<Operator>& ops) const {
   for (const auto& filter : filters_) {
-    if (filter.IsAFieldFilter()) {
-      FieldFilter relation_filter(filter);
-      if (IsArrayOperator(relation_filter.op())) {
-        return relation_filter.op();
+    for (const auto& field_filter : filter.GetFlattenedFilters()) {
+      if (absl::c_linear_search(ops, field_filter.op())) {
+        return field_filter.op();
       }
     }
   }
   return absl::nullopt;
 }
 
-absl::optional<Operator> Query::FirstDisjunctiveOperator() const {
-  for (const auto& filter : filters_) {
-    if (filter.IsAFieldFilter()) {
-      FieldFilter relation_filter(filter);
-      if (IsDisjunctiveOperator(relation_filter.op())) {
-        return relation_filter.op();
+const std::vector<OrderBy>& Query::normalized_order_bys() const {
+  return memoized_normalized_order_bys_->memoize([&]() {
+    // Any explicit order by fields should be added as is.
+    std::vector<OrderBy> result = explicit_order_bys_;
+    std::set<FieldPath> fieldsNormalized;
+    for (const OrderBy& order_by : explicit_order_bys_) {
+      fieldsNormalized.insert(order_by.field());
+    }
+
+    // The order of the implicit ordering always matches the last explicit order
+    // by.
+    Direction last_direction = explicit_order_bys_.empty()
+                                   ? Direction::Ascending
+                                   : explicit_order_bys_.back().direction();
+
+    // Any inequality fields not explicitly ordered should be implicitly ordered
+    // in a lexicographical order. When there are multiple inequality filters on
+    // the same field, the field should be added only once. Note:
+    // `std::set<model::FieldPath>` sorts the key field before other fields.
+    // However, we want the key field to be sorted last.
+    const std::set<model::FieldPath> inequality_fields =
+        InequalityFilterFields();
+
+    for (const model::FieldPath& field : inequality_fields) {
+      if (fieldsNormalized.find(field) == fieldsNormalized.end() &&
+          !field.IsKeyFieldPath()) {
+        result.push_back(OrderBy(field, last_direction));
       }
     }
-  }
-  return absl::nullopt;
-}
 
-const OrderByList& Query::order_bys() const {
-  if (memoized_order_bys_.empty()) {
-    const FieldPath* inequality_field = InequalityFilterField();
-    const FieldPath* first_order_by_field = FirstOrderByField();
-    if (inequality_field && !first_order_by_field) {
-      // In order to implicitly add key ordering, we must also add the
-      // inequality filter field for it to be a valid query. Note that the
-      // default inequality field and key ordering is ascending.
-      if (inequality_field->IsKeyFieldPath()) {
-        memoized_order_bys_ = {
-            OrderBy(FieldPath::KeyFieldPath(), Direction::Ascending),
-        };
-      } else {
-        memoized_order_bys_ = {
-            OrderBy(*inequality_field, Direction::Ascending),
-            OrderBy(FieldPath::KeyFieldPath(), Direction::Ascending),
-        };
-      }
-    } else {
-      HARD_ASSERT(
-          !inequality_field || *inequality_field == *first_order_by_field,
-          "First orderBy %s should match inequality field %s.",
-          first_order_by_field->CanonicalString(),
-          inequality_field->CanonicalString());
-
-      OrderByList result = explicit_order_bys_;
-
-      bool found_explicit_key_order = false;
-      for (const OrderBy& order_by : explicit_order_bys_) {
-        if (order_by.field().IsKeyFieldPath()) {
-          found_explicit_key_order = true;
-          break;
-        }
-      }
-
-      if (!found_explicit_key_order) {
-        // The direction of the implicit key ordering always matches the
-        // direction of the last explicit sort order
-        Direction last_direction = explicit_order_bys_.empty()
-                                       ? Direction::Ascending
-                                       : explicit_order_bys_.back().direction();
-        result = result.emplace_back(FieldPath::KeyFieldPath(), last_direction);
-      }
-
-      memoized_order_bys_ = std::move(result);
+    // Add the document key field to the last if it is not explicitly ordered.
+    if (fieldsNormalized.find(FieldPath::KeyFieldPath()) ==
+        fieldsNormalized.end()) {
+      result.push_back(OrderBy(FieldPath::KeyFieldPath(), last_direction));
     }
-  }
-  return memoized_order_bys_;
-}
 
-const FieldPath* Query::FirstOrderByField() const {
-  if (explicit_order_bys_.empty()) {
-    return nullptr;
-  }
-
-  return &explicit_order_bys_.front().field();
+    return result;
+  });
 }
 
 LimitType Query::limit_type() const {
@@ -174,74 +146,69 @@ int32_t Query::limit() const {
 Query Query::AddingFilter(Filter filter) const {
   HARD_ASSERT(!IsDocumentQuery(), "No filter is allowed for document query");
 
-  const FieldPath* new_inequality_field = nullptr;
-  if (filter.IsInequality()) {
-    new_inequality_field = &filter.field();
-  }
-  const FieldPath* query_inequality_field = InequalityFilterField();
-  HARD_ASSERT(!query_inequality_field || !new_inequality_field ||
-                  *query_inequality_field == *new_inequality_field,
-              "Query must only have one inequality field.");
+  std::vector<Filter> filters_copy(filters_);
+  filters_copy.push_back(std::move(filter));
 
-  // TODO(rsgowman): ensure first orderby must match inequality field
-
-  return Query(path_, collection_group_, filters_.push_back(std::move(filter)),
-               explicit_order_bys_, limit_, limit_type_, start_at_, end_at_);
+  return {path_,
+          collection_group_,
+          std::move(filters_copy),
+          explicit_order_bys_,
+          limit_,
+          limit_type_,
+          start_at_,
+          end_at_};
 }
 
 Query Query::AddingOrderBy(OrderBy order_by) const {
   HARD_ASSERT(!IsDocumentQuery(), "No ordering is allowed for document query");
 
-  if (explicit_order_bys_.empty()) {
-    const FieldPath* inequality = InequalityFilterField();
-    HARD_ASSERT(inequality == nullptr || *inequality == order_by.field(),
-                "First OrderBy must match inequality field.");
-  }
+  std::vector<OrderBy> order_bys_copy(explicit_order_bys_);
+  order_bys_copy.push_back(std::move(order_by));
 
-  return Query(path_, collection_group_, filters_,
-               explicit_order_bys_.push_back(std::move(order_by)), limit_,
-               limit_type_, start_at_, end_at_);
+  return {path_,  collection_group_, filters_,  std::move(order_bys_copy),
+          limit_, limit_type_,       start_at_, end_at_};
 }
 
 Query Query::WithLimitToFirst(int32_t limit) const {
-  return Query(path_, collection_group_, filters_, explicit_order_bys_, limit,
-               LimitType::First, start_at_, end_at_);
+  return {path_, collection_group_, filters_,  explicit_order_bys_,
+          limit, LimitType::First,  start_at_, end_at_};
 }
 
 Query Query::WithLimitToLast(int32_t limit) const {
-  return Query(path_, collection_group_, filters_, explicit_order_bys_, limit,
-               LimitType::Last, start_at_, end_at_);
+  return {path_, collection_group_, filters_,  explicit_order_bys_,
+          limit, LimitType::Last,   start_at_, end_at_};
 }
 
 Query Query::StartingAt(Bound bound) const {
-  return Query(path_, collection_group_, filters_, explicit_order_bys_, limit_,
-               limit_type_, std::make_shared<Bound>(std::move(bound)), end_at_);
+  return {path_,  collection_group_, filters_,         explicit_order_bys_,
+          limit_, limit_type_,       std::move(bound), end_at_};
 }
 
 Query Query::EndingAt(Bound bound) const {
-  return Query(path_, collection_group_, filters_, explicit_order_bys_, limit_,
-               limit_type_, start_at_,
-               std::make_shared<Bound>(std::move(bound)));
+  return {path_,  collection_group_, filters_,  explicit_order_bys_,
+          limit_, limit_type_,       start_at_, std::move(bound)};
 }
 
 Query Query::AsCollectionQueryAtPath(ResourcePath path) const {
-  return Query(path, /*collection_group=*/nullptr, filters_,
-               explicit_order_bys_, limit_, limit_type_, start_at_, end_at_);
+  return {std::move(path), /*collection_group=*/nullptr,
+          filters_,        explicit_order_bys_,
+          limit_,          limit_type_,
+          start_at_,       end_at_};
 }
 
 // MARK: - Matching
 
 bool Query::Matches(const Document& doc) const {
-  return MatchesPathAndCollectionGroup(doc) && MatchesOrderBy(doc) &&
-         MatchesFilters(doc) && MatchesBounds(doc);
+  return doc->is_found_document() && MatchesPathAndCollectionGroup(doc) &&
+         MatchesOrderBy(doc) && MatchesFilters(doc) && MatchesBounds(doc);
 }
 
 bool Query::MatchesPathAndCollectionGroup(const Document& doc) const {
-  const ResourcePath& doc_path = doc.key().path();
+  const ResourcePath& doc_path = doc->key().path();
   if (collection_group_) {
     // NOTE: path_ is currently always empty since we don't expose Collection
     // Group queries rooted at a document path yet.
-    return doc.key().HasCollectionId(*collection_group_) &&
+    return doc->key().HasCollectionGroup(*collection_group_) &&
            path_.IsPrefixOf(doc_path);
   } else if (DocumentKey::IsDocumentKey(path_)) {
     // Exact match for document queries.
@@ -253,18 +220,24 @@ bool Query::MatchesPathAndCollectionGroup(const Document& doc) const {
 }
 
 bool Query::MatchesFilters(const Document& doc) const {
-  for (const auto& filter : filters_) {
-    if (!filter.Matches(doc)) return false;
-  }
-  return true;
+  return std::all_of(
+      filters_.cbegin(), filters_.cend(),
+      [&doc](const Filter& filter) { return filter.Matches(doc); });
 }
 
 bool Query::MatchesOrderBy(const Document& doc) const {
-  for (const OrderBy& order_by : explicit_order_bys_) {
+  // We must use `order_bys()` to get the list of all orderBys
+  // (both implicit and explicit). Note that for OR queries, orderBy applies to
+  // all disjunction terms and implicit orderBys must be taken into account.
+  // For example, the query "a > 1 || b == 1" has an implicit "orderBy a" due
+  // to the inequality, and is evaluated as "a > 1 orderBy a || b == 1 orderBy
+  // a". A document with content of {b:1} matches the filters, but does not
+  // match the orderBy because it's missing the field 'a'.
+  for (const OrderBy& order_by : normalized_order_bys()) {
     const FieldPath& field_path = order_by.field();
     // order by key always matches
     if (field_path != FieldPath::KeyFieldPath() &&
-        doc.field(field_path) == absl::nullopt) {
+        doc->field(field_path) == absl::nullopt) {
       return false;
     }
   }
@@ -272,18 +245,18 @@ bool Query::MatchesOrderBy(const Document& doc) const {
 }
 
 bool Query::MatchesBounds(const Document& doc) const {
-  const OrderByList& ordering = order_bys();
-  if (start_at_ && !start_at_->SortsBeforeDocument(ordering, doc)) {
+  if (start_at_ &&
+      !start_at_->SortsBeforeDocument(normalized_order_bys(), doc)) {
     return false;
   }
-  if (end_at_ && end_at_->SortsBeforeDocument(ordering, doc)) {
+  if (end_at_ && !end_at_->SortsAfterDocument(normalized_order_bys(), doc)) {
     return false;
   }
   return true;
 }
 
 model::DocumentComparator Query::Comparator() const {
-  OrderByList ordering = order_bys();
+  std::vector<OrderBy> ordering = normalized_order_bys();
 
   bool has_key_ordering = false;
   for (const OrderBy& order_by : ordering) {
@@ -292,8 +265,10 @@ model::DocumentComparator Query::Comparator() const {
       break;
     }
   }
-  HARD_ASSERT(has_key_ordering,
-              "QueryComparator needs to have a key ordering.");
+
+  if (!has_key_ordering) {
+    HARD_FAIL("QueryComparator needs to have a key ordering: %s", ToString());
+  }
 
   return DocumentComparator(
       [ordering](const Document& doc1, const Document& doc2) {
@@ -305,7 +280,7 @@ model::DocumentComparator Query::Comparator() const {
       });
 }
 
-const std::string Query::CanonicalId() const {
+std::string Query::CanonicalId() const {
   if (limit_type_ != LimitType::None) {
     return absl::StrCat(ToTarget().CanonicalId(),
                         "|lt:", (limit_type_ == LimitType::Last) ? "l" : "f");
@@ -322,38 +297,42 @@ std::string Query::ToString() const {
 }
 
 const Target& Query::ToTarget() const& {
-  if (memoized_target == nullptr) {
-    if (limit_type_ == LimitType::Last) {
-      // Flip the orderBy directions since we want the last results
-      OrderByList new_order_bys;
-      for (const auto& order_by : order_bys()) {
-        Direction dir = order_by.direction() == Direction::Descending
-                            ? Direction::Ascending
-                            : Direction::Descending;
-        new_order_bys = new_order_bys.push_back(OrderBy(order_by.field(), dir));
-      }
+  return memoized_target_->memoize(
+      [&]() { return ToTarget(normalized_order_bys()); });
+}
 
-      // We need to swap the cursors to match the now-flipped query ordering.
-      auto new_start_at =
-          (end_at_ != nullptr)
-              ? std::make_shared<Bound>(end_at_->position(), !end_at_->before())
-              : nullptr;
-      auto new_end_at = (start_at_ != nullptr)
-                            ? std::make_shared<Bound>(start_at_->position(),
-                                                      !start_at_->before())
-                            : nullptr;
+const Target& Query::ToAggregateTarget() const& {
+  return memoized_aggregate_target_->memoize(
+      [&]() { return ToTarget(explicit_order_bys_); });
+}
 
-      Target target(path(), collection_group(), filters(), new_order_bys,
-                    limit_, new_start_at, new_end_at);
-      memoized_target = std::make_shared<Target>(std::move(target));
-    } else {
-      Target target(path(), collection_group(), filters(), order_bys(), limit_,
-                    start_at(), end_at());
-      memoized_target = std::make_shared<Target>(std::move(target));
+Target Query::ToTarget(const std::vector<OrderBy>& order_bys) const {
+  if (limit_type_ == LimitType::Last) {
+    // Flip the orderBy directions since we want the last results
+    std::vector<OrderBy> new_order_bys;
+    for (const auto& order_by : order_bys) {
+      Direction dir = order_by.direction() == Direction::Descending
+                          ? Direction::Ascending
+                          : Direction::Descending;
+      new_order_bys.emplace_back(order_by.field(), dir);
     }
-  }
 
-  return *memoized_target;
+    // We need to swap the cursors to match the now-flipped query ordering.
+    auto new_start_at = end_at_
+                            ? absl::optional<Bound>{Bound::FromValue(
+                                  end_at_->position(), end_at_->inclusive())}
+                            : absl::nullopt;
+    auto new_end_at = start_at_
+                          ? absl::optional<Bound>{Bound::FromValue(
+                                start_at_->position(), start_at_->inclusive())}
+                          : absl::nullopt;
+
+    return Target(path(), collection_group(), filters(), new_order_bys, limit_,
+                  new_start_at, new_end_at);
+  } else {
+    return Target(path(), collection_group(), filters(), order_bys, limit_,
+                  start_at(), end_at());
+  }
 }
 
 std::ostream& operator<<(std::ostream& os, const Query& query) {

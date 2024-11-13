@@ -16,16 +16,15 @@
 
 #import "FirebaseInstallations/Source/Library/InstallationsAPI/FIRInstallationsAPIService.h"
 
-#import "FirebaseInstallations/Source/Library/Public/FirebaseInstallations/FIRInstallationsVersion.h"
-
 #if __has_include(<FBLPromises/FBLPromises.h>)
 #import <FBLPromises/FBLPromises.h>
 #else
 #import "FBLPromises.h"
 #endif
 
-#import "FirebaseCore/Sources/Private/FirebaseCoreInternal.h"
+#import "FirebaseCore/Extension/FirebaseCoreInternal.h"
 #import "FirebaseInstallations/Source/Library/Errors/FIRInstallationsErrorUtil.h"
+#import "FirebaseInstallations/Source/Library/Errors/FIRInstallationsHTTPError.h"
 #import "FirebaseInstallations/Source/Library/FIRInstallationsLogger.h"
 #import "FirebaseInstallations/Source/Library/InstallationsAPI/FIRInstallationsItem+RegisterInstallationAPI.h"
 
@@ -33,9 +32,7 @@ NSString *const kFIRInstallationsAPIBaseURL = @"https://firebaseinstallations.go
 NSString *const kFIRInstallationsAPIKey = @"X-Goog-Api-Key";
 NSString *const kFIRInstallationsBundleId = @"X-Ios-Bundle-Identifier";
 NSString *const kFIRInstallationsIIDMigrationAuthHeader = @"x-goog-fis-ios-iid-migration-auth";
-NSString *const kFIRInstallationsHeartbeatKey = @"X-firebase-client-log-type";
-NSString *const kFIRInstallationsHeartbeatTag = @"fire-installations";
-NSString *const kFIRInstallationsUserAgentKey = @"X-firebase-client";
+NSString *const kFIRInstallationsHeartbeatKey = @"X-firebase-client";
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -63,27 +60,35 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, readonly) NSURLSession *URLSession;
 @property(nonatomic, readonly) NSString *APIKey;
 @property(nonatomic, readonly) NSString *projectID;
+@property(readonly) id<FIRHeartbeatLoggerProtocol> heartbeatLogger;
 @end
 
 NS_ASSUME_NONNULL_END
 
 @implementation FIRInstallationsAPIService
 
-- (instancetype)initWithAPIKey:(NSString *)APIKey projectID:(NSString *)projectID {
+- (instancetype)initWithAPIKey:(NSString *)APIKey
+                     projectID:(NSString *)projectID
+               heartbeatLogger:(id<FIRHeartbeatLoggerProtocol>)heartbeatLogger {
   NSURLSession *URLSession = [NSURLSession
-      sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];
-  return [self initWithURLSession:URLSession APIKey:APIKey projectID:projectID];
+      sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration]];
+  return [self initWithURLSession:URLSession
+                           APIKey:APIKey
+                        projectID:projectID
+                  heartbeatLogger:heartbeatLogger];
 }
 
 /// The initializer for tests.
 - (instancetype)initWithURLSession:(NSURLSession *)URLSession
                             APIKey:(NSString *)APIKey
-                         projectID:(NSString *)projectID {
+                         projectID:(NSString *)projectID
+                   heartbeatLogger:(id<FIRHeartbeatLoggerProtocol>)heartbeatLogger {
   self = [super init];
   if (self) {
     _URLSession = URLSession;
     _APIKey = [APIKey copy];
     _projectID = [projectID copy];
+    _heartbeatLogger = heartbeatLogger;
   }
   return self;
 }
@@ -91,7 +96,10 @@ NS_ASSUME_NONNULL_END
 #pragma mark - Public
 
 - (FBLPromise<FIRInstallationsItem *> *)registerInstallation:(FIRInstallationsItem *)installation {
-  return [self registerRequestWithInstallation:installation]
+  return [self validateInstallation:installation]
+      .then(^id _Nullable(FIRInstallationsItem *_Nullable validInstallation) {
+        return [self registerRequestWithInstallation:validInstallation];
+      })
       .then(^id _Nullable(NSURLRequest *_Nullable request) {
         return [self sendURLRequest:request];
       })
@@ -137,7 +145,9 @@ NS_ASSUME_NONNULL_END
   NSURL *URL = [NSURL URLWithString:URLString];
 
   NSDictionary *bodyDict = @{
-    @"fid" : installation.firebaseInstallationID,
+    // `firebaseInstallationID` is validated before but let's make sure it is not `nil` one more
+    // time to prevent a crash.
+    @"fid" : installation.firebaseInstallationID ?: @"",
     @"authVersion" : @"FIS_v2",
     @"appId" : installation.appID,
     @"sdkVersion" : [self SDKVersion]
@@ -267,14 +277,11 @@ NS_ASSUME_NONNULL_END
                NSString *authHeader = [NSString stringWithFormat:@"FIS_v2 %@", refreshToken];
                [request setValue:authHeader forHTTPHeaderField:@"Authorization"];
              }
-             // User agent Header.
-             [request setValue:[FIRApp firebaseUserAgent]
-                 forHTTPHeaderField:kFIRInstallationsUserAgentKey];
              // Heartbeat Header.
-             [request setValue:@([FIRHeartbeatInfo
-                                     heartbeatCodeForTag:kFIRInstallationsHeartbeatTag])
-                                   .stringValue
+             [request setValue:FIRHeaderValueFromHeartbeatsPayload(
+                                   [self.heartbeatLogger flushHeartbeatsIntoPayload])
                  forHTTPHeaderField:kFIRInstallationsHeartbeatKey];
+
              [additionalHeaders
                  enumerateKeysAndObjectsUsingBlock:^(NSString *_Nonnull key, NSString *_Nonnull obj,
                                                      BOOL *_Nonnull stop) {
@@ -333,7 +340,8 @@ NS_ASSUME_NONNULL_END
   return [FBLPromise attempts:1
       delay:1
       condition:^BOOL(NSInteger remainingAttempts, NSError *_Nonnull error) {
-        return [FIRInstallationsErrorUtil isAPIError:error withHTTPCode:500];
+        return [FIRInstallationsErrorUtil isAPIError:error
+                                        withHTTPCode:FIRInstallationsHTTPCodesServerInternalError];
       }
       retry:^id _Nullable {
         return [self URLRequestPromise:request];
@@ -341,7 +349,21 @@ NS_ASSUME_NONNULL_END
 }
 
 - (NSString *)SDKVersion {
-  return [NSString stringWithFormat:@"i:%s", FIRInstallationsVersionStr];
+  return [NSString stringWithFormat:@"i:%@", FIRFirebaseVersion()];
+}
+
+#pragma mark - Validation
+
+- (FBLPromise<FIRInstallationsItem *> *)validateInstallation:(FIRInstallationsItem *)installation {
+  FBLPromise<FIRInstallationsItem *> *result = [FBLPromise pendingPromise];
+
+  NSError *validationError;
+  if ([installation isValid:&validationError]) {
+    [result fulfill:installation];
+  } else {
+    [result reject:validationError];
+  }
+  return result;
 }
 
 #pragma mark - JSON

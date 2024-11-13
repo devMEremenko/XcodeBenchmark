@@ -15,7 +15,6 @@
 
 #import "GoogleMapsDemos/MasterViewController.h"
 
-#import "GoogleMapsDemos/DemoAppDelegate.h"
 #import "GoogleMapsDemos/Samples/Samples.h"
 #import <GoogleMaps/GoogleMaps.h>
 
@@ -38,12 +37,11 @@ typedef NSMutableArray<NSArray<NSDictionary<NSString *, NSObject *> *> *> DemoSa
 
   self.tableView.autoresizingMask =
       UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
+  self.tableView.accessibilityIdentifier = @"SamplesTableView";
 
   _demoSections = [Samples loadSections];
   _demos = [Samples loadDemos];
-
 }
-
 
 #pragma mark - UITableViewController
 
@@ -80,6 +78,7 @@ typedef NSMutableArray<NSArray<NSDictionary<NSString *, NSObject *> *> *> DemoSa
   NSDictionary *demo = [[_demos objectAtIndex:indexPath.section] objectAtIndex:indexPath.row];
   cell.textLabel.text = [demo objectForKey:@"title"];
   cell.detailTextLabel.text = [demo objectForKey:@"description"];
+  cell.accessibilityLabel = [demo objectForKey:@"title"];
 
   return cell;
 }
@@ -100,6 +99,7 @@ typedef NSMutableArray<NSArray<NSDictionary<NSString *, NSObject *> *> *> DemoSa
 
     UINavigationController *navController =
         [[UINavigationController alloc] initWithRootViewController:controller];
+    navController.navigationBar.translucent = NO;
     [self showDetailViewController:navController sender:nil];
 
     controller.navigationItem.leftBarButtonItem = self.splitViewController.displayModeButtonItem;

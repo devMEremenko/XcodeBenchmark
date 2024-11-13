@@ -17,6 +17,8 @@
 #include "Firestore/core/src/core/sync_engine.h"
 
 #include "Firestore/core/include/firebase/firestore/firestore_errors.h"
+#include "Firestore/core/src/bundle/bundle_element.h"
+#include "Firestore/core/src/bundle/bundle_loader.h"
 #include "Firestore/core/src/core/sync_engine_callback.h"
 #include "Firestore/core/src/core/transaction.h"
 #include "Firestore/core/src/core/transaction_runner.h"
@@ -26,15 +28,16 @@
 #include "Firestore/core/src/local/local_write_result.h"
 #include "Firestore/core/src/local/query_result.h"
 #include "Firestore/core/src/local/target_data.h"
+#include "Firestore/core/src/model/aggregate_field.h"
 #include "Firestore/core/src/model/document_key.h"
 #include "Firestore/core/src/model/document_key_set.h"
-#include "Firestore/core/src/model/document_map.h"
 #include "Firestore/core/src/model/document_set.h"
+#include "Firestore/core/src/model/mutable_document.h"
 #include "Firestore/core/src/model/mutation_batch_result.h"
-#include "Firestore/core/src/model/no_document.h"
 #include "Firestore/core/src/util/async_queue.h"
 #include "Firestore/core/src/util/log.h"
 #include "Firestore/core/src/util/status.h"
+#include "absl/strings/match.h"
 
 namespace firebase {
 namespace firestore {
@@ -42,7 +45,11 @@ namespace core {
 
 namespace {
 
-using auth::User;
+using bundle::BundleElement;
+using bundle::BundleLoader;
+using bundle::InitialProgress;
+using bundle::SuccessProgress;
+using credentials::User;
 using firestore::Error;
 using local::LocalStore;
 using local::LocalViewChanges;
@@ -50,14 +57,15 @@ using local::LocalWriteResult;
 using local::QueryPurpose;
 using local::QueryResult;
 using local::TargetData;
+using model::AggregateField;
 using model::BatchId;
 using model::DocumentKey;
 using model::DocumentKeySet;
 using model::DocumentMap;
+using model::DocumentUpdateMap;
 using model::kBatchIdUnknown;
 using model::ListenSequenceNumber;
-using model::MaybeDocumentMap;
-using model::NoDocument;
+using model::MutableDocument;
 using model::SnapshotVersion;
 using model::TargetId;
 using remote::RemoteEvent;
@@ -73,7 +81,7 @@ const ListenSequenceNumber kIrrelevantSequenceNumber = -1;
 bool ErrorIsInteresting(const Status& error) {
   bool missing_index =
       (error.code() == Error::kErrorFailedPrecondition &&
-       error.error_message().find("requires an index") != std::string::npos);
+       absl::StrContains(error.error_message(), "requires an index"));
   bool no_permission = (error.code() == Error::kErrorPermissionDenied);
   return missing_index || no_permission;
 }
@@ -82,7 +90,7 @@ bool ErrorIsInteresting(const Status& error) {
 
 SyncEngine::SyncEngine(LocalStore* local_store,
                        remote::RemoteStore* remote_store,
-                       const auth::User& initial_user,
+                       const credentials::User& initial_user,
                        size_t max_concurrent_limbo_resolutions)
     : local_store_(local_store),
       remote_store_(remote_store),
@@ -103,20 +111,22 @@ TargetId SyncEngine::Listen(Query query) {
               "We already listen to query: %s", query.ToString());
 
   TargetData target_data = local_store_->AllocateTarget(query.ToTarget());
-  ViewSnapshot view_snapshot =
-      InitializeViewAndComputeSnapshot(query, target_data.target_id());
+  TargetId target_id = target_data.target_id();
+  nanopb::ByteString resume_token = target_data.resume_token();
+
+  ViewSnapshot view_snapshot = InitializeViewAndComputeSnapshot(
+      query, target_id, std::move(resume_token));
   std::vector<ViewSnapshot> snapshots;
   // Not using the `std::initializer_list` constructor to avoid extra copies.
   snapshots.push_back(std::move(view_snapshot));
   sync_engine_callback_->OnViewSnapshots(std::move(snapshots));
 
-  // TODO(wuandy): move `target_data` into `Listen`.
-  remote_store_->Listen(target_data);
-  return target_data.target_id();
+  remote_store_->Listen(std::move(target_data));
+  return target_id;
 }
 
-ViewSnapshot SyncEngine::InitializeViewAndComputeSnapshot(const Query& query,
-                                                          TargetId target_id) {
+ViewSnapshot SyncEngine::InitializeViewAndComputeSnapshot(
+    const Query& query, TargetId target_id, nanopb::ByteString resume_token) {
   QueryResult query_result =
       local_store_->ExecuteQuery(query, /* use_previous_results= */ true);
 
@@ -128,13 +138,13 @@ ViewSnapshot SyncEngine::InitializeViewAndComputeSnapshot(const Query& query,
     const Query& mirror_query = queries_by_target_[target_id][0];
     current_sync_state =
         query_views_by_query_[mirror_query]->view().sync_state();
-    synthesized_current_change = TargetChange::CreateSynthesizedTargetChange(
-        current_sync_state == SyncState::Synced);
   }
+  synthesized_current_change = TargetChange::CreateSynthesizedTargetChange(
+      current_sync_state == SyncState::Synced, std::move(resume_token));
 
   View view(query, query_result.remote_keys());
   ViewDocumentChanges view_doc_changes =
-      view.ComputeDocumentChanges(query_result.documents().underlying_map());
+      view.ComputeDocumentChanges(query_result.documents());
   ViewChange view_change =
       view.ApplyChanges(view_doc_changes, synthesized_current_change);
   UpdateTrackedLimboDocuments(view_change.limbo_changes(), target_id);
@@ -161,7 +171,8 @@ void SyncEngine::StopListening(const Query& query) {
 
   TargetId target_id = query_view->target_id();
   auto& queries = queries_by_target_[target_id];
-  queries.erase(std::remove(queries.begin(), queries.end(), query));
+  queries.erase(std::remove(queries.begin(), queries.end(), query),
+                queries.end());
 
   if (queries.empty()) {
     local_store_->ReleaseTarget(target_id);
@@ -227,21 +238,29 @@ void SyncEngine::RegisterPendingWritesCallback(StatusCallback callback) {
       std::move(callback));
 }
 
-void SyncEngine::Transaction(int retries,
+void SyncEngine::Transaction(int max_attempts,
                              const std::shared_ptr<AsyncQueue>& worker_queue,
                              TransactionUpdateCallback update_callback,
                              TransactionResultCallback result_callback) {
+  HARD_ASSERT(max_attempts >= 0, "invalid max_attempts: %s", max_attempts);
   worker_queue->VerifyIsCurrentQueue();
-  HARD_ASSERT(retries >= 0, "Got negative number of retries for transaction");
 
   // Allocate a shared_ptr so that the TransactionRunner can outlive this frame.
-  auto runner = std::make_shared<TransactionRunner>(worker_queue, remote_store_,
-                                                    std::move(update_callback),
-                                                    std::move(result_callback));
+  auto runner = std::make_shared<TransactionRunner>(
+      worker_queue, remote_store_, std::move(update_callback),
+      std::move(result_callback), max_attempts);
   runner->Run();
 }
 
-void SyncEngine::HandleCredentialChange(const auth::User& user) {
+void SyncEngine::RunAggregateQuery(
+    const core::Query& query,
+    const std::vector<model::AggregateField>& aggregates,
+    api::AggregateQueryCallback&& result_callback) {
+  remote_store_->RunAggregateQuery(query, aggregates,
+                                   std::move(result_callback));
+}
+
+void SyncEngine::HandleCredentialChange(const credentials::User& user) {
   bool user_changed = (current_user_ != user);
   current_user_ = user;
 
@@ -251,7 +270,7 @@ void SyncEngine::HandleCredentialChange(const auth::User& user) {
         "'waitForPendingWrites' callback is cancelled due to a user change.");
     // Notify local store and emit any resulting events from swapping out the
     // mutation queue.
-    MaybeDocumentMap changes = local_store_->HandleUserChange(user);
+    DocumentMap changes = local_store_->HandleUserChange(user);
     EmitNewSnapshotsAndNotifyLocalStore(changes, absl::nullopt);
   }
 
@@ -295,7 +314,7 @@ void SyncEngine::ApplyRemoteEvent(const RemoteEvent& remote_event) {
     }
   }
 
-  MaybeDocumentMap changes = local_store_->ApplyRemoteEvent(remote_event);
+  DocumentMap changes = local_store_->ApplyRemoteEvent(remote_event);
   EmitNewSnapshotsAndNotifyLocalStore(changes, remote_event);
 }
 
@@ -317,8 +336,8 @@ void SyncEngine::HandleRejectedListen(TargetId target_id, Status error) {
     // kind of a hack. Ideally, we would have a method in the local store to
     // purge a document. However, it would be tricky to keep all of the local
     // store's invariants with another method.
-    NoDocument doc(limbo_key, SnapshotVersion::None(),
-                   /* has_committed_mutations= */ false);
+    MutableDocument doc =
+        MutableDocument::NoDocument(limbo_key, SnapshotVersion::None());
 
     // Explicitly instantiate these to work around a bug in the default
     // constructor of the std::unordered_map that comes with GCC 4.8. Without
@@ -326,8 +345,8 @@ void SyncEngine::HandleRejectedListen(TargetId target_id, Status error) {
     // copy-initialization" error.
     DocumentKeySet limbo_documents{limbo_key};
     RemoteEvent::TargetChangeMap target_changes;
-    RemoteEvent::TargetSet target_mismatches;
-    RemoteEvent::DocumentUpdateMap document_updates{{limbo_key, doc}};
+    RemoteEvent::TargetMismatchMap target_mismatches;
+    DocumentUpdateMap document_updates{{limbo_key, doc}};
 
     RemoteEvent event{SnapshotVersion::None(), std::move(target_changes),
                       std::move(target_mismatches), std::move(document_updates),
@@ -340,7 +359,7 @@ void SyncEngine::HandleRejectedListen(TargetId target_id, Status error) {
 }
 
 void SyncEngine::HandleSuccessfulWrite(
-    const model::MutationBatchResult& batch_result) {
+    model::MutationBatchResult batch_result) {
   AssertCallbackExists("HandleSuccessfulWrite");
 
   // The local store may or may not be able to apply the write result and
@@ -351,7 +370,7 @@ void SyncEngine::HandleSuccessfulWrite(
 
   TriggerPendingWriteCallbacks(batch_result.batch().batch_id());
 
-  MaybeDocumentMap changes = local_store_->AcknowledgeBatch(batch_result);
+  DocumentMap changes = local_store_->AcknowledgeBatch(batch_result);
   EmitNewSnapshotsAndNotifyLocalStore(changes, absl::nullopt);
 }
 
@@ -359,7 +378,7 @@ void SyncEngine::HandleRejectedWrite(
     firebase::firestore::model::BatchId batch_id, Status error) {
   AssertCallbackExists("HandleRejectedWrite");
 
-  MaybeDocumentMap changes = local_store_->RejectBatch(batch_id);
+  DocumentMap changes = local_store_->RejectBatch(batch_id);
 
   if (!changes.empty() && ErrorIsInteresting(error)) {
     const DocumentKey& min_key = changes.min()->first;
@@ -456,7 +475,7 @@ void SyncEngine::FailOutstandingPendingWriteCallbacks(
 }
 
 void SyncEngine::EmitNewSnapshotsAndNotifyLocalStore(
-    const MaybeDocumentMap& changes,
+    const DocumentMap& changes,
     const absl::optional<RemoteEvent>& maybe_remote_event) {
   std::vector<ViewSnapshot> new_snapshots;
   std::vector<LocalViewChanges> document_changes_in_all_views;
@@ -471,8 +490,8 @@ void SyncEngine::EmitNewSnapshotsAndNotifyLocalStore(
       // any good docs that had been past the limit.
       QueryResult query_result = local_store_->ExecuteQuery(
           query_view->query(), /* use_previous_results= */ false);
-      view_doc_changes = view.ComputeDocumentChanges(
-          query_result.documents().underlying_map(), view_doc_changes);
+      view_doc_changes = view.ComputeDocumentChanges(query_result.documents(),
+                                                     view_doc_changes);
     }
 
     absl::optional<TargetChange> target_changes;
@@ -529,9 +548,9 @@ void SyncEngine::UpdateTrackedLimboDocuments(
 void SyncEngine::TrackLimboChange(const LimboDocumentChange& limbo_change) {
   const DocumentKey& key = limbo_change.key();
   if (active_limbo_targets_by_key_.find(key) ==
-      active_limbo_targets_by_key_.end()) {
+          active_limbo_targets_by_key_.end() &&
+      enqueued_limbo_resolutions_.push_back(key)) {
     LOG_DEBUG("New document in limbo: %s", key.ToString());
-    enqueued_limbo_resolutions_.push_back(key);
     PumpEnqueuedLimboResolutions();
   }
 }
@@ -553,6 +572,7 @@ void SyncEngine::PumpEnqueuedLimboResolutions() {
 }
 
 void SyncEngine::RemoveLimboTarget(const DocumentKey& key) {
+  enqueued_limbo_resolutions_.remove(key);
   auto it = active_limbo_targets_by_key_.find(key);
   if (it == active_limbo_targets_by_key_.end()) {
     // This target already got removed, because the query failed.
@@ -564,6 +584,85 @@ void SyncEngine::RemoveLimboTarget(const DocumentKey& key) {
   active_limbo_targets_by_key_.erase(key);
   active_limbo_resolutions_by_target_.erase(limbo_target_id);
   PumpEnqueuedLimboResolutions();
+}
+
+absl::optional<BundleLoader> SyncEngine::ReadIntoLoader(
+    const bundle::BundleMetadata& metadata,
+    bundle::BundleReader& reader,
+    api::LoadBundleTask& result_task) {
+  BundleLoader loader(local_store_, metadata);
+  int64_t current_bytes_read = 0;
+  // Breaks when either error happened, or when there is no more element to
+  // read.
+  while (true) {
+    auto element = reader.GetNextElement();
+    if (!reader.reader_status().ok()) {
+      LOG_WARN("Failed to GetNextElement() from bundle with error %s",
+               reader.reader_status().error_message());
+      result_task.SetError(reader.reader_status());
+      return absl::nullopt;
+    }
+
+    // No more elements from reader.
+    if (element == nullptr) {
+      break;
+    }
+
+    int64_t old_bytes_read = current_bytes_read;
+    current_bytes_read = reader.bytes_read();
+    auto maybe_progress = loader.AddElement(
+        std::move(element), current_bytes_read - old_bytes_read);
+    if (!maybe_progress.ok()) {
+      LOG_WARN("Failed to AddElement() to bundle loader with error %s",
+               maybe_progress.status().error_message());
+      result_task.SetError(maybe_progress.status());
+      return absl::nullopt;
+    }
+
+    if (maybe_progress.ValueOrDie().has_value()) {
+      result_task.UpdateProgress(maybe_progress.ConsumeValueOrDie().value());
+    }
+  }
+
+  return loader;
+}
+
+void SyncEngine::LoadBundle(std::shared_ptr<bundle::BundleReader> reader,
+                            std::shared_ptr<api::LoadBundleTask> result_task) {
+  auto bundle_metadata = reader->GetBundleMetadata();
+  if (!reader->reader_status().ok()) {
+    LOG_WARN("Failed to GetBundleMetadata() for bundle with error %s",
+             reader->reader_status().error_message());
+    result_task->SetError(reader->reader_status());
+    return;
+  }
+
+  bool has_newer_bundle = local_store_->HasNewerBundle(bundle_metadata);
+  if (has_newer_bundle) {
+    result_task->SetSuccess(SuccessProgress(bundle_metadata));
+    return;
+  }
+
+  result_task->UpdateProgress(InitialProgress(bundle_metadata));
+  auto maybe_loader = ReadIntoLoader(bundle_metadata, *reader, *result_task);
+  if (!maybe_loader.has_value()) {
+    // `ReadIntoLoader` would call `result_task.SetError` should there be an
+    // error, so we do not need set it here.
+    return;
+  }
+
+  util::StatusOr<DocumentMap> changes = maybe_loader.value().ApplyChanges();
+  if (!changes.ok()) {
+    LOG_WARN("Failed to ApplyChanges() for bundle elements with error %s",
+             changes.status().error_message());
+    result_task->SetError(changes.status());
+    return;
+  }
+
+  EmitNewSnapshotsAndNotifyLocalStore(changes.ConsumeValueOrDie(),
+                                      absl::nullopt);
+
+  result_task->SetSuccess(SuccessProgress(bundle_metadata));
 }
 
 }  // namespace core

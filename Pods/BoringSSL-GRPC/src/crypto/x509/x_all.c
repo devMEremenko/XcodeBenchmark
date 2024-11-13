@@ -66,20 +66,23 @@
 #include <openssl_grpc/rsa.h>
 #include <openssl_grpc/stack.h>
 
-int X509_verify(X509 *a, EVP_PKEY *r)
+#include "internal.h"
+
+
+int X509_verify(X509 *x509, EVP_PKEY *pkey)
 {
-    if (X509_ALGOR_cmp(a->sig_alg, a->cert_info->signature)) {
+    if (X509_ALGOR_cmp(x509->sig_alg, x509->cert_info->signature)) {
         OPENSSL_PUT_ERROR(X509, X509_R_SIGNATURE_ALGORITHM_MISMATCH);
         return 0;
     }
-    return (ASN1_item_verify(ASN1_ITEM_rptr(X509_CINF), a->sig_alg,
-                             a->signature, a->cert_info, r));
+    return ASN1_item_verify(ASN1_ITEM_rptr(X509_CINF), x509->sig_alg,
+                            x509->signature, x509->cert_info, pkey);
 }
 
-int X509_REQ_verify(X509_REQ *a, EVP_PKEY *r)
+int X509_REQ_verify(X509_REQ *req, EVP_PKEY *pkey)
 {
-    return (ASN1_item_verify(ASN1_ITEM_rptr(X509_REQ_INFO),
-                             a->sig_alg, a->signature, a->req_info, r));
+    return ASN1_item_verify(ASN1_ITEM_rptr(X509_REQ_INFO),
+                            req->sig_alg, req->signature, req->req_info, pkey);
 }
 
 int X509_sign(X509 *x, EVP_PKEY *pkey, const EVP_MD *md)
@@ -131,13 +134,12 @@ int NETSCAPE_SPKI_sign(NETSCAPE_SPKI *x, EVP_PKEY *pkey, const EVP_MD *md)
                            x->signature, x->spkac, pkey, md));
 }
 
-int NETSCAPE_SPKI_verify(NETSCAPE_SPKI *x, EVP_PKEY *pkey)
+int NETSCAPE_SPKI_verify(NETSCAPE_SPKI *spki, EVP_PKEY *pkey)
 {
-    return (ASN1_item_verify(ASN1_ITEM_rptr(NETSCAPE_SPKAC), x->sig_algor,
-                             x->signature, x->spkac, pkey));
+    return (ASN1_item_verify(ASN1_ITEM_rptr(NETSCAPE_SPKAC), spki->sig_algor,
+                             spki->signature, spki->spkac, pkey));
 }
 
-#ifndef OPENSSL_NO_FP_API
 X509 *d2i_X509_fp(FILE *fp, X509 **x509)
 {
     return ASN1_item_d2i_fp(ASN1_ITEM_rptr(X509), fp, x509);
@@ -147,7 +149,6 @@ int i2d_X509_fp(FILE *fp, X509 *x509)
 {
     return ASN1_item_i2d_fp(ASN1_ITEM_rptr(X509), fp, x509);
 }
-#endif
 
 X509 *d2i_X509_bio(BIO *bp, X509 **x509)
 {
@@ -159,7 +160,6 @@ int i2d_X509_bio(BIO *bp, X509 *x509)
     return ASN1_item_i2d_bio(ASN1_ITEM_rptr(X509), bp, x509);
 }
 
-#ifndef OPENSSL_NO_FP_API
 X509_CRL *d2i_X509_CRL_fp(FILE *fp, X509_CRL **crl)
 {
     return ASN1_item_d2i_fp(ASN1_ITEM_rptr(X509_CRL), fp, crl);
@@ -169,7 +169,6 @@ int i2d_X509_CRL_fp(FILE *fp, X509_CRL *crl)
 {
     return ASN1_item_i2d_fp(ASN1_ITEM_rptr(X509_CRL), fp, crl);
 }
-#endif
 
 X509_CRL *d2i_X509_CRL_bio(BIO *bp, X509_CRL **crl)
 {
@@ -181,7 +180,6 @@ int i2d_X509_CRL_bio(BIO *bp, X509_CRL *crl)
     return ASN1_item_i2d_bio(ASN1_ITEM_rptr(X509_CRL), bp, crl);
 }
 
-#ifndef OPENSSL_NO_FP_API
 X509_REQ *d2i_X509_REQ_fp(FILE *fp, X509_REQ **req)
 {
     return ASN1_item_d2i_fp(ASN1_ITEM_rptr(X509_REQ), fp, req);
@@ -191,7 +189,6 @@ int i2d_X509_REQ_fp(FILE *fp, X509_REQ *req)
 {
     return ASN1_item_i2d_fp(ASN1_ITEM_rptr(X509_REQ), fp, req);
 }
-#endif
 
 X509_REQ *d2i_X509_REQ_bio(BIO *bp, X509_REQ **req)
 {
@@ -203,7 +200,6 @@ int i2d_X509_REQ_bio(BIO *bp, X509_REQ *req)
     return ASN1_item_i2d_bio(ASN1_ITEM_rptr(X509_REQ), bp, req);
 }
 
-#ifndef OPENSSL_NO_FP_API
 
 #define IMPLEMENT_D2I_FP(type, name, bio_func) \
   type *name(FILE *fp, type **obj) {           \
@@ -235,7 +231,6 @@ IMPLEMENT_I2D_FP(RSA, i2d_RSAPublicKey_fp, i2d_RSAPublicKey_bio)
 
 IMPLEMENT_D2I_FP(RSA, d2i_RSA_PUBKEY_fp, d2i_RSA_PUBKEY_bio)
 IMPLEMENT_I2D_FP(RSA, i2d_RSA_PUBKEY_fp, i2d_RSA_PUBKEY_bio)
-#endif
 
 #define IMPLEMENT_D2I_BIO(type, name, d2i_func)         \
   type *name(BIO *bio, type **obj) {                    \
@@ -272,13 +267,11 @@ IMPLEMENT_D2I_BIO(RSA, d2i_RSA_PUBKEY_bio, d2i_RSA_PUBKEY)
 IMPLEMENT_I2D_BIO(RSA, i2d_RSA_PUBKEY_bio, i2d_RSA_PUBKEY)
 
 #ifndef OPENSSL_NO_DSA
-# ifndef OPENSSL_NO_FP_API
 IMPLEMENT_D2I_FP(DSA, d2i_DSAPrivateKey_fp, d2i_DSAPrivateKey_bio)
 IMPLEMENT_I2D_FP(DSA, i2d_DSAPrivateKey_fp, i2d_DSAPrivateKey_bio)
 
 IMPLEMENT_D2I_FP(DSA, d2i_DSA_PUBKEY_fp, d2i_DSA_PUBKEY_bio)
 IMPLEMENT_I2D_FP(DSA, i2d_DSA_PUBKEY_fp, i2d_DSA_PUBKEY_bio)
-# endif
 
 IMPLEMENT_D2I_BIO(DSA, d2i_DSAPrivateKey_bio, d2i_DSAPrivateKey)
 IMPLEMENT_I2D_BIO(DSA, i2d_DSAPrivateKey_bio, i2d_DSAPrivateKey)
@@ -287,13 +280,11 @@ IMPLEMENT_D2I_BIO(DSA, d2i_DSA_PUBKEY_bio, d2i_DSA_PUBKEY)
 IMPLEMENT_I2D_BIO(DSA, i2d_DSA_PUBKEY_bio, i2d_DSA_PUBKEY)
 #endif
 
-#ifndef OPENSSL_NO_FP_API
 IMPLEMENT_D2I_FP(EC_KEY, d2i_ECPrivateKey_fp, d2i_ECPrivateKey_bio)
 IMPLEMENT_I2D_FP(EC_KEY, i2d_ECPrivateKey_fp, i2d_ECPrivateKey_bio)
 
 IMPLEMENT_D2I_FP(EC_KEY, d2i_EC_PUBKEY_fp, d2i_EC_PUBKEY_bio)
 IMPLEMENT_I2D_FP(EC_KEY, i2d_EC_PUBKEY_fp, i2d_EC_PUBKEY_bio)
-#endif
 
 IMPLEMENT_D2I_BIO(EC_KEY, d2i_ECPrivateKey_bio, d2i_ECPrivateKey)
 IMPLEMENT_I2D_BIO(EC_KEY, i2d_ECPrivateKey_bio, i2d_ECPrivateKey)
@@ -339,15 +330,12 @@ int X509_NAME_digest(const X509_NAME *data, const EVP_MD *type,
             (ASN1_ITEM_rptr(X509_NAME), type, (char *)data, md, len));
 }
 
-#ifndef OPENSSL_NO_FP_API
 IMPLEMENT_D2I_FP(X509_SIG, d2i_PKCS8_fp, d2i_PKCS8_bio)
 IMPLEMENT_I2D_FP(X509_SIG, i2d_PKCS8_fp, i2d_PKCS8_bio)
-#endif
 
 IMPLEMENT_D2I_BIO(X509_SIG, d2i_PKCS8_bio, d2i_X509_SIG)
 IMPLEMENT_I2D_BIO(X509_SIG, i2d_PKCS8_bio, i2d_X509_SIG)
 
-#ifndef OPENSSL_NO_FP_API
 IMPLEMENT_D2I_FP(PKCS8_PRIV_KEY_INFO, d2i_PKCS8_PRIV_KEY_INFO_fp,
                  d2i_PKCS8_PRIV_KEY_INFO_bio)
 IMPLEMENT_I2D_FP(PKCS8_PRIV_KEY_INFO, i2d_PKCS8_PRIV_KEY_INFO_fp,
@@ -387,7 +375,6 @@ int i2d_PKCS8PrivateKeyInfo_bio(BIO *bp, EVP_PKEY *key)
     PKCS8_PRIV_KEY_INFO_free(p8inf);
     return ret;
 }
-#endif
 
 IMPLEMENT_D2I_BIO(EVP_PKEY, d2i_PrivateKey_bio, d2i_AutoPrivateKey)
 IMPLEMENT_I2D_BIO(EVP_PKEY, i2d_PrivateKey_bio, i2d_PrivateKey)

@@ -22,10 +22,10 @@
 #import <AppKit/AppKit.h>
 #endif  // TARGET_OS_IOS || TARGET_OS_TV
 
+#import "GoogleDataTransport/GDTCORLibrary/Internal/GDTCORPlatform.h"
 #import "GoogleDataTransport/GDTCORLibrary/Public/GoogleDataTransport/GDTCORClock.h"
 #import "GoogleDataTransport/GDTCORLibrary/Public/GoogleDataTransport/GDTCORConsoleLogger.h"
 #import "GoogleDataTransport/GDTCORLibrary/Public/GoogleDataTransport/GDTCOREvent.h"
-#import "GoogleDataTransport/GDTCORLibrary/Public/GoogleDataTransport/GDTCORPlatform.h"
 
 #import <nanopb/pb.h>
 #import <nanopb/pb_decode.h>
@@ -163,7 +163,7 @@ gdt_cct_LogEvent GDTCCTConstructLogEvent(GDTCOREvent *event) {
   return logEvent;
 }
 
-gdt_cct_ClientInfo GDTCCTConstructClientInfo() {
+gdt_cct_ClientInfo GDTCCTConstructClientInfo(void) {
   gdt_cct_ClientInfo clientInfo = gdt_cct_ClientInfo_init_default;
   clientInfo.client_type = gdt_cct_ClientInfo_ClientType_IOS_FIREBASE;
   clientInfo.has_client_type = 1;
@@ -171,12 +171,13 @@ gdt_cct_ClientInfo GDTCCTConstructClientInfo() {
   clientInfo.ios_client_info = GDTCCTConstructiOSClientInfo();
   clientInfo.has_ios_client_info = 1;
 #elif TARGET_OS_OSX
-  // TODO(mikehaney24): Expand the proto to include macOS client info.
+  clientInfo.mac_client_info = GDTCCTConstructMacClientInfo();
+  clientInfo.has_mac_client_info = 1;
 #endif
   return clientInfo;
 }
 
-gdt_cct_IosClientInfo GDTCCTConstructiOSClientInfo() {
+gdt_cct_IosClientInfo GDTCCTConstructiOSClientInfo(void) {
   gdt_cct_IosClientInfo iOSClientInfo = gdt_cct_IosClientInfo_init_default;
 #if TARGET_OS_IOS || TARGET_OS_TV
   UIDevice *device = [UIDevice currentDevice];
@@ -202,7 +203,35 @@ gdt_cct_IosClientInfo GDTCCTConstructiOSClientInfo() {
   return iOSClientInfo;
 }
 
-NSData *GDTCCTConstructNetworkConnectionInfoData() {
+gdt_cct_MacClientInfo GDTCCTConstructMacClientInfo(void) {
+  gdt_cct_MacClientInfo macOSClientInfo = gdt_cct_MacClientInfo_init_default;
+
+  NSOperatingSystemVersion osVersion = [NSProcessInfo processInfo].operatingSystemVersion;
+  NSString *majorVersion = [@(osVersion.majorVersion) stringValue];
+  NSString *minorVersion = [@(osVersion.minorVersion) stringValue];
+  NSString *majorAndMinorString = [NSString stringWithFormat:@"%@.%@", majorVersion, minorVersion];
+  macOSClientInfo.os_major_version = GDTCCTEncodeString(majorAndMinorString);
+
+  NSString *patchVersion = [@(osVersion.patchVersion) stringValue];
+  NSString *majorMinorPatchString =
+      [NSString stringWithFormat:@"%@.%@", majorAndMinorString, patchVersion];
+  macOSClientInfo.os_full_version = GDTCCTEncodeString(majorMinorPatchString);
+
+  NSBundle *bundle = [NSBundle mainBundle];
+  NSString *version = [bundle objectForInfoDictionaryKey:(NSString *)kCFBundleVersionKey];
+  if (version) {
+    macOSClientInfo.application_build = GDTCCTEncodeString(version);
+  }
+
+  NSString *bundleID = bundle.bundleIdentifier;
+  if (bundleID) {
+    macOSClientInfo.application_bundle_id = GDTCCTEncodeString(bundleID);
+  }
+
+  return macOSClientInfo;
+}
+
+NSData *GDTCCTConstructNetworkConnectionInfoData(void) {
   gdt_cct_NetworkConnectionInfo networkConnectionInfo = gdt_cct_NetworkConnectionInfo_init_default;
   NSInteger currentNetworkType = GDTCORNetworkTypeMessage();
   if (currentNetworkType) {
@@ -223,7 +252,7 @@ NSData *GDTCCTConstructNetworkConnectionInfoData() {
   return networkConnectionInfoData;
 }
 
-gdt_cct_NetworkConnectionInfo_MobileSubtype GDTCCTNetworkConnectionInfoNetworkMobileSubtype() {
+gdt_cct_NetworkConnectionInfo_MobileSubtype GDTCCTNetworkConnectionInfoNetworkMobileSubtype(void) {
   NSNumber *networkMobileSubtypeMessage = @(GDTCORNetworkMobileSubTypeMessage());
   if (!networkMobileSubtypeMessage.intValue) {
     return gdt_cct_NetworkConnectionInfo_MobileSubtype_UNKNOWN_MOBILE_SUBTYPE;

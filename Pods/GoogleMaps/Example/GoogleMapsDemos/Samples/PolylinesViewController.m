@@ -17,21 +17,6 @@
 
 #import <GoogleMaps/GoogleMaps.h>
 
-@interface GMSPolyline (length)
-
-@property(nonatomic, readonly) double length;
-
-@end
-
-@implementation GMSPolyline (length)
-
-- (double)length {
-  GMSLengthKind kind = [self geodesic] ? kGMSLengthGeodesic : kGMSLengthRhumb;
-  return [[self path] lengthOfKind:kind];
-}
-
-@end
-
 static CLLocationCoordinate2D kSydneyAustralia = {-33.866901, 151.195988};
 static CLLocationCoordinate2D kHawaiiUSA = {21.291982, -157.821856};
 static CLLocationCoordinate2D kFiji = {-18, 179};
@@ -49,15 +34,15 @@ static bool kAnimate = true;
 
 - (void)tick {
   for (GMSPolyline *poly in _polys) {
-    poly.spans =
-        GMSStyleSpansOffset(poly.path, _styles, _lengths, kGMSLengthGeodesic, _pos);
+    poly.spans = GMSStyleSpansOffset(poly.path, _styles, _lengths, kGMSLengthGeodesic, _pos);
   }
   _pos -= _step;
   if (kAnimate) {
     __weak id weakSelf = self;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC / 10),
-                   dispatch_get_main_queue(),
-                   ^{ [weakSelf tick]; });
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC / 10), dispatch_get_main_queue(),
+                   ^{
+                     [weakSelf tick];
+                   });
   }
 }
 
@@ -72,7 +57,7 @@ static bool kAnimate = true;
     [path addCoordinate:kLimaPeru];
     [path addCoordinate:kSydneyAustralia];
     path = [path pathOffsetByLatitude:-30 longitude:0];
-    _lengths = @[@([path lengthOfKind:kGMSLengthGeodesic] / 21)];
+    _lengths = @[ @([path lengthOfKind:kGMSLengthGeodesic] / 21) ];
     for (int i = 0; i < 30; ++i) {
       GMSPolyline *poly = [[GMSPolyline alloc] init];
       poly.path = [path pathOffsetByLatitude:(i * 1.5) longitude:0];
@@ -87,26 +72,24 @@ static bool kAnimate = true;
 
 - (void)viewDidLoad {
   [super viewDidLoad];
-  GMSCameraPosition *camera = [GMSCameraPosition cameraWithLatitude:-30
-                                                          longitude:-175
-                                                               zoom:3];
+  GMSCameraPosition *camera = [GMSCameraPosition cameraWithLatitude:-30 longitude:-175 zoom:3];
   GMSMapView *mapView = [GMSMapView mapWithFrame:CGRectZero camera:camera];
   mapView.accessibilityElementsHidden = YES;
   self.view = mapView;
   _mapView = mapView;
 
   CGFloat alpha = 1;
-  UIColor *green = [UIColor colorWithRed:0 green:1 blue: 0 alpha:alpha];
-  UIColor *greenTransp = [UIColor colorWithRed:0 green:1 blue: 0 alpha:0];
-  UIColor *red = [UIColor colorWithRed:1 green:0 blue: 0 alpha:alpha];
-  UIColor *redTransp = [UIColor colorWithRed:1 green:0 blue: 0 alpha:0];
+  UIColor *green = [UIColor colorWithRed:0 green:1 blue:0 alpha:alpha];
+  UIColor *greenTransp = [UIColor colorWithRed:0 green:1 blue:0 alpha:0];
+  UIColor *red = [UIColor colorWithRed:1 green:0 blue:0 alpha:alpha];
+  UIColor *redTransp = [UIColor colorWithRed:1 green:0 blue:0 alpha:0];
   GMSStrokeStyle *grad1 = [GMSStrokeStyle gradientFromColor:green toColor:greenTransp];
   GMSStrokeStyle *grad2 = [GMSStrokeStyle gradientFromColor:redTransp toColor:red];
   _styles = @[
-              grad1,
-              grad2,
-              [GMSStrokeStyle solidColor:[UIColor colorWithWhite:0 alpha:0]],
-              ];
+    grad1,
+    grad2,
+    [GMSStrokeStyle solidColor:[UIColor colorWithWhite:0 alpha:0]],
+  ];
   _step = 50000;
   [self initLines];
   [self tick];

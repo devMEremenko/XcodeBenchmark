@@ -21,8 +21,9 @@
 /// The gRPC C++ API mainly consists of the following classes:
 /// <br>
 /// - grpc::Channel, which represents the connection to an endpoint. See [the
-/// gRPC Concepts page](https://grpc.io/docs/guides/concepts.html) for more
-/// details. Channels are created by the factory function grpc::CreateChannel.
+/// gRPC Concepts page](https://grpc.io/docs/what-is-grpc/core-concepts) for
+/// more details. Channels are created by the factory function
+/// grpc::CreateChannel.
 ///
 /// - grpc::CompletionQueue, the producer-consumer queue used for all
 /// asynchronous communication with the gRPC runtime.
@@ -48,7 +49,6 @@
 // headers are not private for grpcpp.h and are part of its interface.
 // IWYU pragma: begin_exports
 #include <grpc/grpc.h>
-
 #include <grpcpp/channel.h>
 #include <grpcpp/client_context.h>
 #include <grpcpp/completion_queue.h>
@@ -62,7 +62,7 @@
 
 namespace grpc {
 /// Return gRPC library version.
-grpc::string Version();
+std::string Version();
 }  // namespace grpc
 
 #endif  // GRPCPP_GRPCPP_H

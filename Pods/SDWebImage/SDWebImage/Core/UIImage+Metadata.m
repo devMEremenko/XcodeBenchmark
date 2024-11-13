@@ -29,6 +29,32 @@
     objc_setAssociatedObject(self, @selector(sd_imageLoopCount), value, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
+- (NSUInteger)sd_imageFrameCount {
+    NSArray<UIImage *> *animatedImages = self.images;
+    if (!animatedImages || animatedImages.count <= 1) {
+        return 1;
+    }
+    NSNumber *value = objc_getAssociatedObject(self, @selector(sd_imageFrameCount));
+    if ([value isKindOfClass:[NSNumber class]]) {
+        return [value unsignedIntegerValue];
+    }
+    __block NSUInteger frameCount = 1;
+    __block UIImage *previousImage = animatedImages.firstObject;
+    [animatedImages enumerateObjectsUsingBlock:^(UIImage * _Nonnull image, NSUInteger idx, BOOL * _Nonnull stop) {
+        // ignore first
+        if (idx == 0) {
+            return;
+        }
+        if (![image isEqual:previousImage]) {
+            frameCount++;
+        }
+        previousImage = image;
+    }];
+    objc_setAssociatedObject(self, @selector(sd_imageFrameCount), @(frameCount), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    
+    return frameCount;
+}
+
 - (BOOL)sd_isAnimated {
     return (self.images != nil);
 }
@@ -87,6 +113,19 @@
     }
 }
 
+- (NSUInteger)sd_imageFrameCount {
+    NSRect imageRect = NSMakeRect(0, 0, self.size.width, self.size.height);
+    NSImageRep *imageRep = [self bestRepresentationForRect:imageRect context:nil hints:nil];
+    NSBitmapImageRep *bitmapImageRep;
+    if ([imageRep isKindOfClass:[NSBitmapImageRep class]]) {
+        bitmapImageRep = (NSBitmapImageRep *)imageRep;
+    }
+    if (bitmapImageRep) {
+        return [[bitmapImageRep valueForProperty:NSImageFrameCount] unsignedIntegerValue];
+    }
+    return 1;
+}
+
 - (BOOL)sd_isAnimated {
     BOOL isAnimated = NO;
     NSRect imageRect = NSMakeRect(0, 0, self.size.width, self.size.height);
@@ -127,10 +166,8 @@
         return imageFormat;
     }
     // Check CGImage's UTType, may return nil for non-Image/IO based image
-    if (@available(iOS 9.0, tvOS 9.0, macOS 10.11, watchOS 2.0, *)) {
-        CFStringRef uttype = CGImageGetUTType(self.CGImage);
-        imageFormat = [NSData sd_imageFormatFromUTType:uttype];
-    }
+    CFStringRef uttype = CGImageGetUTType(self.CGImage);
+    imageFormat = [NSData sd_imageFormatFromUTType:uttype];
     return imageFormat;
 }
 
@@ -145,6 +182,40 @@
 - (BOOL)sd_isIncremental {
     NSNumber *value = objc_getAssociatedObject(self, @selector(sd_isIncremental));
     return value.boolValue;
+}
+
+- (void)setSd_isTransformed:(BOOL)sd_isTransformed {
+    objc_setAssociatedObject(self, @selector(sd_isTransformed), @(sd_isTransformed), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (BOOL)sd_isTransformed {
+    NSNumber *value = objc_getAssociatedObject(self, @selector(sd_isTransformed));
+    return value.boolValue;
+}
+
+- (void)setSd_decodeOptions:(SDImageCoderOptions *)sd_decodeOptions {
+    objc_setAssociatedObject(self, @selector(sd_decodeOptions), sd_decodeOptions, OBJC_ASSOCIATION_COPY_NONATOMIC);
+}
+
+-(BOOL)sd_isThumbnail {
+    CGSize thumbnailSize = CGSizeZero;
+    NSValue *thumbnailSizeValue = self.sd_decodeOptions[SDImageCoderDecodeThumbnailPixelSize];
+    if (thumbnailSizeValue != nil) {
+    #if SD_MAC
+        thumbnailSize = thumbnailSizeValue.sizeValue;
+    #else
+        thumbnailSize = thumbnailSizeValue.CGSizeValue;
+    #endif
+    }
+    return thumbnailSize.width > 0 && thumbnailSize.height > 0;
+}
+
+- (SDImageCoderOptions *)sd_decodeOptions {
+    SDImageCoderOptions *value = objc_getAssociatedObject(self, @selector(sd_decodeOptions));
+    if ([value isKindOfClass:NSDictionary.class]) {
+        return value;
+    }
+    return nil;
 }
 
 @end

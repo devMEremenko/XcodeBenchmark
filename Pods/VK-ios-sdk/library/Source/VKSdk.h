@@ -48,6 +48,11 @@ typedef NS_OPTIONS(NSUInteger, VKAuthorizationOptions) {
     VKAuthorizationOptionsUnlimitedToken = 1 << 0,
     ///Pass this option to disable usage of SFSafariViewController
     VKAuthorizationOptionsDisableSafariController = 1 << 1,
+    ///VKAuthorizationOptionsEnableProviders is deprecated. Now the transition to the authorization provider is performed automatically.
+    ///To disable the transition, use the VKAuthorizationOptionsDisableProviders option.
+    VKAuthorizationOptionsEnableProviders DEPRECATED_MSG_ATTRIBUTE("Now the transition to the authorization provider is performed automatically. To disable the transition, use the VKAuthorizationOptionsDisableProviders option.") = 1 << 2,
+    ///Pass this option to disable usage of authorization providers
+    VKAuthorizationOptionsDisableProviders = 1 << 3
 };
 
 /**
@@ -275,6 +280,13 @@ Initialize SDK with responder for global SDK events.
 */
 + (VKAccessToken *)accessToken;
 
+/**
+ Set your own access token
+ @param token token token token
+*/
+
++ (void)setAccessToken:(VKAccessToken *)token;
+
 ///-------------------------------
 /// @name Other methods
 ///-------------------------------
@@ -283,7 +295,7 @@ Initialize SDK with responder for global SDK events.
  Checks passed URL for access token.
  
  @param passedUrl url from external application
- @param sourceApplication source application
+ @param sourceApplication source application (it is an optional param, because the check is performed not only by this parameter, but also by the URL scheme)
  @return YES if parsed successfully
 */
 + (BOOL)processOpenURL:(NSURL *)passedUrl fromApplication:(NSString *)sourceApplication;

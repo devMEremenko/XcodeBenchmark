@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Google
+ * Copyright 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,20 +18,26 @@
 
 #include <random>
 #include <string>
+#include <type_traits>
 
 #include "Firestore/core/src/util/secure_random.h"
 
 namespace firebase {
 namespace firestore {
 namespace util {
-
 namespace {
 
 const int kAutoIdLength = 20;
 const char kAutoIdAlphabet[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-SecureRandom shared_random;
+SecureRandom& GetSharedRandom() {
+  static_assert(std::is_trivially_destructible<SecureRandom>::value,
+                "SecureRandom should be trivially-destructible; otherwise, it "
+                "should use NoDestructor below.");
+  static SecureRandom shared_random;
+  return shared_random;
+}
 
 }  // namespace
 
@@ -44,6 +50,7 @@ std::string CreateAutoId() {
   //   * uniform_int_distribution is inclusive on both sizes
   std::uniform_int_distribution<int> letters(0, sizeof(kAutoIdAlphabet) - 2);
 
+  SecureRandom& shared_random = GetSharedRandom();
   for (int i = 0; i < kAutoIdLength; i++) {
     int rand_index = letters(shared_random);
     auto_id.append(1, kAutoIdAlphabet[rand_index]);

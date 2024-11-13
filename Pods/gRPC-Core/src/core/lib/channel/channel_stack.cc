@@ -18,15 +18,18 @@
 
 #include <grpc/support/port_platform.h>
 
-#include <grpc/support/alloc.h>
-#include <grpc/support/log.h>
 #include "src/core/lib/channel/channel_stack.h"
+
+#include <stdint.h>
+
+#include <utility>
+
+#include <grpc/support/log.h>
+
 #include "src/core/lib/gpr/alloc.h"
 
-#include <stdlib.h>
-#include <string.h>
-
 grpc_core::TraceFlag grpc_trace_channel(false, "channel");
+grpc_core::TraceFlag grpc_trace_channel_stack(false, "channel_stack");
 
 /* Memory layouts.
 
@@ -81,16 +84,37 @@ grpc_channel_element* grpc_channel_stack_last_element(
   return grpc_channel_stack_element(channel_stack, channel_stack->count - 1);
 }
 
+size_t grpc_channel_stack_filter_instance_number(
+    grpc_channel_stack* channel_stack, grpc_channel_element* elem) {
+  size_t num_found = 0;
+  for (size_t i = 0; i < channel_stack->count; ++i) {
+    grpc_channel_element* element =
+        grpc_channel_stack_element(channel_stack, i);
+    if (element == elem) break;
+    if (element->filter == elem->filter) ++num_found;
+  }
+  return num_found;
+}
+
 grpc_call_element* grpc_call_stack_element(grpc_call_stack* call_stack,
                                            size_t index) {
   return CALL_ELEMS_FROM_STACK(call_stack) + index;
 }
 
-grpc_error* grpc_channel_stack_init(
+grpc_error_handle grpc_channel_stack_init(
     int initial_refs, grpc_iomgr_cb_func destroy, void* destroy_arg,
     const grpc_channel_filter** filters, size_t filter_count,
-    const grpc_channel_args* channel_args, grpc_transport* optional_transport,
-    const char* name, grpc_channel_stack* stack) {
+    const grpc_channel_args* channel_args, const char* name,
+    grpc_channel_stack* stack) {
+  if (grpc_trace_channel_stack.enabled()) {
+    gpr_log(GPR_INFO, "CHANNEL_STACK: init %s", name);
+    for (size_t i = 0; i < filter_count; i++) {
+      gpr_log(GPR_INFO, "CHANNEL_STACK:   filter %s", filters[i]->name);
+    }
+  }
+
+  stack->on_destroy.Init([]() {});
+
   size_t call_size =
       GPR_ROUND_UP_TO_ALIGNMENT_SIZE(sizeof(grpc_call_stack)) +
       GPR_ROUND_UP_TO_ALIGNMENT_SIZE(filter_count * sizeof(grpc_call_element));
@@ -108,18 +132,18 @@ grpc_error* grpc_channel_stack_init(
                                              sizeof(grpc_channel_element));
 
   /* init per-filter data */
-  grpc_error* first_error = GRPC_ERROR_NONE;
+  grpc_error_handle first_error = GRPC_ERROR_NONE;
   for (i = 0; i < filter_count; i++) {
     args.channel_stack = stack;
     args.channel_args = channel_args;
-    args.optional_transport = optional_transport;
     args.is_first = i == 0;
     args.is_last = i == (filter_count - 1);
     elems[i].filter = filters[i];
     elems[i].channel_data = user_data;
-    grpc_error* error = elems[i].filter->init_channel_elem(&elems[i], &args);
-    if (error != GRPC_ERROR_NONE) {
-      if (first_error == GRPC_ERROR_NONE) {
+    grpc_error_handle error =
+        elems[i].filter->init_channel_elem(&elems[i], &args);
+    if (!GRPC_ERROR_IS_NONE(error)) {
+      if (GRPC_ERROR_IS_NONE(first_error)) {
         first_error = error;
       } else {
         GRPC_ERROR_UNREF(error);
@@ -147,12 +171,15 @@ void grpc_channel_stack_destroy(grpc_channel_stack* stack) {
   for (i = 0; i < count; i++) {
     channel_elems[i].filter->destroy_channel_elem(&channel_elems[i]);
   }
+
+  (*stack->on_destroy)();
+  stack->on_destroy.Destroy();
 }
 
-grpc_error* grpc_call_stack_init(grpc_channel_stack* channel_stack,
-                                 int initial_refs, grpc_iomgr_cb_func destroy,
-                                 void* destroy_arg,
-                                 const grpc_call_element_args* elem_args) {
+grpc_error_handle grpc_call_stack_init(
+    grpc_channel_stack* channel_stack, int initial_refs,
+    grpc_iomgr_cb_func destroy, void* destroy_arg,
+    const grpc_call_element_args* elem_args) {
   grpc_channel_element* channel_elems = CHANNEL_ELEMS_FROM_STACK(channel_stack);
   size_t count = channel_stack->count;
   grpc_call_element* call_elems;
@@ -166,7 +193,7 @@ grpc_error* grpc_call_stack_init(grpc_channel_stack* channel_stack,
               GPR_ROUND_UP_TO_ALIGNMENT_SIZE(count * sizeof(grpc_call_element));
 
   /* init per-filter data */
-  grpc_error* first_error = GRPC_ERROR_NONE;
+  grpc_error_handle first_error = GRPC_ERROR_NONE;
   for (size_t i = 0; i < count; i++) {
     call_elems[i].filter = channel_elems[i].filter;
     call_elems[i].channel_data = channel_elems[i].channel_data;
@@ -175,10 +202,10 @@ grpc_error* grpc_call_stack_init(grpc_channel_stack* channel_stack,
         GPR_ROUND_UP_TO_ALIGNMENT_SIZE(call_elems[i].filter->sizeof_call_data);
   }
   for (size_t i = 0; i < count; i++) {
-    grpc_error* error =
+    grpc_error_handle error =
         call_elems[i].filter->init_call_elem(&call_elems[i], elem_args);
-    if (error != GRPC_ERROR_NONE) {
-      if (first_error == GRPC_ERROR_NONE) {
+    if (!GRPC_ERROR_IS_NONE(error)) {
+      if (GRPC_ERROR_IS_NONE(first_error)) {
         first_error = error;
       } else {
         GRPC_ERROR_UNREF(error);
@@ -249,4 +276,36 @@ grpc_call_stack* grpc_call_stack_from_top_element(grpc_call_element* elem) {
   return reinterpret_cast<grpc_call_stack*>(
       reinterpret_cast<char*>(elem) -
       GPR_ROUND_UP_TO_ALIGNMENT_SIZE(sizeof(grpc_call_stack)));
+}
+
+void grpc_channel_stack_no_post_init(grpc_channel_stack*,
+                                     grpc_channel_element*) {}
+
+namespace {
+
+grpc_core::NextPromiseFactory ClientNext(grpc_channel_element* elem) {
+  return [elem](grpc_core::CallArgs args) {
+    return elem->filter->make_call_promise(elem, std::move(args),
+                                           ClientNext(elem + 1));
+  };
+}
+
+grpc_core::NextPromiseFactory ServerNext(grpc_channel_element* elem) {
+  return [elem](grpc_core::CallArgs args) {
+    return elem->filter->make_call_promise(elem, std::move(args),
+                                           ServerNext(elem - 1));
+  };
+}
+
+}  // namespace
+
+grpc_core::ArenaPromise<grpc_core::ServerMetadataHandle>
+grpc_channel_stack::MakeCallPromise(grpc_core::CallArgs call_args) {
+  if (is_client) {
+    return ClientNext(grpc_channel_stack_element(this, 0))(
+        std::move(call_args));
+  } else {
+    return ServerNext(grpc_channel_stack_element(this, this->count - 1))(
+        std::move(call_args));
+  }
 }

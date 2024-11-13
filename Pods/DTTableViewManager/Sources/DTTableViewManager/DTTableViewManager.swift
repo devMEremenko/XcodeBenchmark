@@ -26,10 +26,11 @@
 import Foundation
 import UIKit
 import DTModelStorage
+import SwiftUI
 
 /// Adopting this protocol will automatically inject `manager` property to your object, that lazily instantiates `DTTableViewManager` object.
 /// Target is not required to be `UITableViewController`, and can be a regular UIViewController with UITableView, or any other view, that contains UITableView.
-public protocol DTTableViewManageable : class
+public protocol DTTableViewManageable : AnyObject
 {
     /// Table view, that will be managed by DTTableViewManager. This property or `optionalTableView` property must be implemented in order for `DTTableViewManager` to work.
     var tableView : UITableView! { get }
@@ -94,12 +95,13 @@ open class DTTableViewManager {
     ///  Factory for creating cells and views for UITableView
     final lazy var viewFactory: TableViewFactory = {
         precondition(isManagingTableView, "Received attempt to register views for UITableView, but UITableView is nil.")
-        //swiftlint:disable:next force_unwrapping
+        // swiftlint:disable:next force_unwrapping
         let factory = TableViewFactory(tableView: self.tableView!)
         factory.anomalyHandler = anomalyHandler
         factory.resetDelegates = { [weak self] in
             self?.tableDataSource?.delegateWasReset()
             self?.tableDelegate?.delegateWasReset()
+            self?.tablePrefetchDataSource?.delegateWasReset()
             
             #if os(iOS)
             self?.tableDragDelegate?.delegateWasReset()
@@ -120,7 +122,7 @@ open class DTTableViewManager {
     }
     
     /// `DTTableViewManageable` delegate.
-    final fileprivate weak var delegate : AnyObject?
+    final weak var delegate : AnyObject?
     
     /// Implicitly unwrap storage property to `MemoryStorage`.
     /// - Warning: if storage is not MemoryStorage, will throw an exception.
@@ -176,32 +178,26 @@ open class DTTableViewManager {
         }
     }
     
-    #if os(iOS)
-    // Yeah, @availability macros does not work on stored properties ¯\_(ツ)_/¯
-    private var _tableDragDelegatePrivate : AnyObject?
-    
-    /// Object, that is responsible for implementing `UITableViewDragDelegate` protocol
-    open var tableDragDelegate : DTTableViewDragDelegate? {
-        get {
-            return _tableDragDelegatePrivate as? DTTableViewDragDelegate
-        }
-        set {
-            _tableDragDelegatePrivate = newValue
-            tableView?.dragDelegate = newValue
+    /// Object, responsible for implementing `UITableViewDataSourcePrefetching` protocol
+    open var tablePrefetchDataSource: DTTableViewPrefetchDataSource? {
+        didSet {
+            tableView?.prefetchDataSource = tablePrefetchDataSource
         }
     }
     
-    // Yeah, @availability macros does not work on stored properties ¯\_(ツ)_/¯
-    private var _tableDropDelegatePrivate : AnyObject?
+    #if os(iOS)
+    
+    /// Object, that is responsible for implementing `UITableViewDragDelegate` protocol
+    open var tableDragDelegate : DTTableViewDragDelegate? {
+        didSet {
+            tableView?.dragDelegate = tableDragDelegate
+        }
+    }
 
     /// Object, that is responsible for implementing `UITableViewDropDelegate` protocol
     open var tableDropDelegate : DTTableViewDropDelegate? {
-        get {
-            return _tableDropDelegatePrivate as? DTTableViewDropDelegate
-        }
-        set {
-            _tableDropDelegatePrivate = newValue
-            tableView?.dropDelegate = newValue
+        didSet {
+            tableView?.dropDelegate = tableDropDelegate
         }
     }
     #endif
@@ -217,7 +213,6 @@ open class DTTableViewManager {
         self.storage = storage
     }
     
-#if compiler(>=5.1)
     @available(iOS 13.0, tvOS 13.0, *)
     /// Configures `UITableViewDiffableDataSource` to be used with `DTTableViewManager`.
     ///  Because `UITableViewDiffableDataSource` handles UITableView updates, `tableViewUpdater` property on `DTTableViewManager` will be set to nil.
@@ -233,39 +228,18 @@ open class DTTableViewManager {
         tableViewUpdater = nil
         
         // Cell is provided by `DTTableViewDataSource` without actually calling closure that is passed to `UITableViewDiffableDataSource`.
-        let dataSource = UITableViewDiffableDataSource<SectionIdentifier, ItemIdentifier>(tableView: tableView) { _, _, _ in nil }
-        storage = ProxyDiffableDataSourceStorage(tableView: tableView,
-                                                                 dataSource: dataSource,
-                                                                 modelProvider: modelProvider)
-        tableView.dataSource = tableDataSource
+        let dataSource = DTTableViewDiffableDataSource<SectionIdentifier, ItemIdentifier>(
+            tableView: tableView,
+            viewFactory: viewFactory,
+            manager: self,
+            cellProvider: { _, _, _ in
+            nil
+            }, modelProvider: modelProvider)
+        storage = dataSource
+        tableView.dataSource = dataSource
         
         return dataSource
     }
-    
-    @available(iOS 13.0, tvOS 13.0, *)
-    @available(*, deprecated, message: "Please use configureDiffableDataSource method for models, that are Hashable. From Apple documentation: If you’re working in a Swift codebase, always use UITableViewDiffableDataSource instead.")
-    /// Configures `UITableViewDiffableDataSourceReference` to be used with `DTTableViewManager`.
-    ///  Because `UITableViewDiffableDataSourceReference` handles UITableView updates, `tableViewUpdater` property on `DTTableViewManager` will be set to nil.
-    /// - Parameter modelProvider: closure that provides `DTTableViewManager` models.
-    /// This closure mirrors `cellProvider` property on `UITableViewDiffableDataSourceReference`, but strips away tableView, and asks for data model instead of a cell. Cell mapping is then executed in the same way as without diffable data sources.
-    open func configureDiffableDataSource(modelProvider: @escaping (IndexPath, Any) -> Any) -> UITableViewDiffableDataSourceReference
-    {
-        guard let tableView = tableView else {
-            fatalError("Attempt to configure diffable datasource before tableView have been initialized")
-        }
-        // UITableViewDiffableDataSourceReference will update UITableView instead of `TableViewUpdater` object.
-        tableViewUpdater = nil
-        
-        // Cell is provided by `DTTableViewDataSource` without actually calling closure that is passed to `UITableViewDiffableDataSourceReference`.
-        let dataSource = UITableViewDiffableDataSourceReference(tableView: tableView) { _, _, _ in nil }
-        storage = ProxyDiffableDataSourceStorage(tableView: tableView,
-                                                                 dataSource: dataSource,
-                                                                 modelProvider: modelProvider)
-        tableView.dataSource = tableDataSource
-        
-        return dataSource
-    }
-#endif
     
     /// If you access `manager` property when managed `UITableView` is already created(for example: viewDidLoad method), calling this method is not necessary.
     /// If for any reason, `UITableView` is created later, please call this method before modifying storage or registering cells/supplementary views.
@@ -289,6 +263,7 @@ open class DTTableViewManager {
         tableViewUpdater = TableViewUpdater(tableView: tableView)
         tableDelegate = DTTableViewDelegate(delegate: delegate, tableViewManager: self)
         tableDataSource = DTTableViewDataSource(delegate: delegate, tableViewManager: self)
+        tablePrefetchDataSource = DTTableViewPrefetchDataSource(delegate: delegate, tableViewManager: self)
         #if os(iOS)
         tableDragDelegate = DTTableViewDragDelegate(delegate: delegate, tableViewManager: self)
         tableDropDelegate = DTTableViewDropDelegate(delegate: delegate, tableViewManager: self)
@@ -421,7 +396,9 @@ internal enum EventMethodSignature: String {
     case contextMenuConfigurationForRowAtIndexPath = "tableView:contextMenuConfigurationForRowAtIndexPath:point:"
     case previewForHighlightingContextMenu = "tableView:previewForHighlightingContextMenuWithConfiguration:"
     case previewForDismissingContextMenu = "tableView:previewForDismissingContextMenuWithConfiguration:"
-    case willCommitMenuWithAnimator = "tableView:willCommitMenuWithAnimator:"
+    case selectionFollowsFocusForRowAtIndexPath = "tableView:selectionFollowsFocusForRowAtIndexPath:"
+    case canPerformPrimaryActionForRowAtIndexPath = "tableView:canPerformPrimaryActionForRowAtIndexPath:"
+    case performPrimaryActionForRowAtIndexPath = "tableView:performPrimaryActionForRowAtIndexPath:"
     
     /// UITableViewDragDelegate
     case itemsForBeginningDragSession = "tableView:itemsForBeginningDragSession:atIndexPath:"
@@ -440,4 +417,8 @@ internal enum EventMethodSignature: String {
     case dropSessionDidExit = "tableView:dropSessionDidExit:"
     case dropSessionDidEnd = "tableView:dropSessionDidEnd:"
     case dropPreviewParametersForRowAtIndexPath = "tableView:dropPreviewParametersForRowAtIndexPath:"
+    
+    /// UITableViewDataSourcePrefetching
+    case prefetchRowsAtIndexPaths = "tableView:prefetchRowsAtIndexPaths:"
+    case cancelPrefetchingForRowsAtIndexPaths = "tableView:cancelPrefetchingForRowsAtIndexPaths:"
 }

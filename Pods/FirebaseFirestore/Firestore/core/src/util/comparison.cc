@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google
+ * Copyright 2018 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,19 +26,8 @@
 namespace firebase {
 namespace firestore {
 namespace util {
-using std::isnan;
 
-/**
- * Creates a ComparisonResult from a typical integer return value, where
- * 0 means "same", less than zero means "ascending", and greater than zero
- * means "descending".
- */
-constexpr ComparisonResult ComparisonResultFromInt(int value) {
-  // TODO(c++14): convert this to an if statement.
-  return value < 0 ? ComparisonResult::Ascending
-                   : (value > 0 ? ComparisonResult::Descending
-                                : ComparisonResult::Same);
-}
+using std::isnan;
 
 ComparisonResult Comparator<absl::string_view>::Compare(
     absl::string_view left, absl::string_view right) const {

@@ -1,0 +1,12 @@
+framework module UserMessagingPlatform {
+  umbrella header "UserMessagingPlatform.h"
+
+  export *
+  module * { export * }
+
+  header "UMPConsentForm.h"
+  header "UMPDebugSettings.h"
+  header "UMPError.h"
+  header "UMPConsentInformation.h"
+  header "UMPRequestParameters.h"
+}

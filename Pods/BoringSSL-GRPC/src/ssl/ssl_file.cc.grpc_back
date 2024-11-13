@@ -108,18 +108,18 @@
  *
  */
 
-#include <openssl/ssl.h>
+#include <openssl_grpc/ssl.h>
 
 #include <errno.h>
 #include <string.h>
 
-#include <openssl/asn1.h>
-#include <openssl/bio.h>
-#include <openssl/err.h>
-#include <openssl/mem.h>
-#include <openssl/pem.h>
-#include <openssl/stack.h>
-#include <openssl/x509.h>
+#include <openssl_grpc/asn1.h>
+#include <openssl_grpc/bio.h>
+#include <openssl_grpc/err.h>
+#include <openssl_grpc/mem.h>
+#include <openssl_grpc/pem.h>
+#include <openssl_grpc/stack.h>
+#include <openssl_grpc/x509.h>
 
 #include "internal.h"
 

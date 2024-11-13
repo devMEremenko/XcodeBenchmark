@@ -25,27 +25,36 @@
 
 @implementation VKApiPhotos
 - (VKRequest *)getUploadServer:(NSInteger)albumId {
-    return [self prepareRequestWithMethodName:@"getUploadServer" parameters:@{VK_API_ALBUM_ID : @(albumId)}];
+    return [self prepareRequestWithMethodName:@"getUploadServer"
+                                   parameters:@{VK_API_ALBUM_ID : @(albumId)}];
 }
 
 - (VKRequest *)getUploadServer:(NSInteger)albumId andGroupId:(NSInteger)groupId {
-    return [self prepareRequestWithMethodName:@"getUploadServer" parameters:@{VK_API_ALBUM_ID : @(albumId), VK_API_GROUP_ID : @(groupId)}];
+    return [self prepareRequestWithMethodName:@"getUploadServer"
+                                   parameters:@{VK_API_ALBUM_ID : @(albumId),
+                                                VK_API_GROUP_ID : @(groupId)}];
 }
 
 - (VKRequest *)getWallUploadServer {
-    return [self prepareRequestWithMethodName:@"getWallUploadServer" parameters:nil];
+    return [self prepareRequestWithMethodName:@"getWallUploadServer"
+                                   parameters:nil];
 }
 
 - (VKRequest *)getWallUploadServer:(NSInteger)groupId {
-    return [self prepareRequestWithMethodName:@"getWallUploadServer" parameters:@{VK_API_GROUP_ID : @(groupId)}];
+    return [self prepareRequestWithMethodName:@"getWallUploadServer"
+                                   parameters:@{VK_API_GROUP_ID : @(groupId)}];
 }
 
 - (VKRequest *)saveWallPhoto:(NSDictionary *)params {
-    return [self prepareRequestWithMethodName:@"saveWallPhoto" parameters:params modelClass:[VKPhotoArray class]];
+    return [self prepareRequestWithMethodName:@"saveWallPhoto"
+                                   parameters:params
+                                   modelClass:[VKPhotoArray class]];
 }
 
 - (VKRequest *)save:(NSDictionary *)params {
-    return [self prepareRequestWithMethodName:@"save" parameters:params modelClass:[VKPhotoArray class]];
+    return [self prepareRequestWithMethodName:@"save"
+                                   parameters:params
+                                   modelClass:[VKPhotoArray class]];
 }
 
 @end

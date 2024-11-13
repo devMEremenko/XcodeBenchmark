@@ -117,8 +117,8 @@
 #ifndef OPENSSL_HEADER_SSL3_H
 #define OPENSSL_HEADER_SSL3_H
 
-#include <openssl/aead.h>
-#include <openssl/type_check.h>
+#include <openssl_grpc/aead.h>
+#include <openssl_grpc/type_check.h>
 
 #ifdef  __cplusplus
 extern "C" {

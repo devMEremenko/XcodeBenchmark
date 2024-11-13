@@ -104,8 +104,11 @@ bool checkreturn pb_write(pb_ostream_t *stream, const pb_byte_t *buf, size_t cou
 {
     if (count > 0 && stream->callback != NULL)
     {
-        if (stream->bytes_written + count > stream->max_size)
+        if (stream->bytes_written + count < stream->bytes_written ||
+            stream->bytes_written + count > stream->max_size)
+        {
             PB_RETURN_ERROR(stream, "stream full");
+        }
 
 #ifdef PB_BUFFER_ONLY
         if (!buf_write(stream, buf, count))
@@ -303,6 +306,12 @@ static bool pb_check_proto3_default_value(const pb_field_t *field, const void *p
             }
             return true;
         }
+    }
+
+    /* Compares pointers to NULL in case of FT_POINTER */
+    if (PB_ATYPE(type) == PB_ATYPE_POINTER && PB_LTYPE(type) > PB_LTYPE_LAST_PACKABLE)
+    {
+        return !*(const void**)((uintptr_t)pData);
     }
     
 	{
@@ -853,7 +862,7 @@ static bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *fie
     }
     
     if (PB_ATYPE(field->type) == PB_ATYPE_STATIC &&
-        PB_BYTES_ARRAY_T_ALLOCSIZE(bytes->size) > field->data_size)
+        bytes->size > field->data_size - offsetof(pb_bytes_array_t, bytes))
     {
         PB_RETURN_ERROR(stream, "bytes size exceeded");
     }

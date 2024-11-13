@@ -25,7 +25,13 @@ namespace realm {
     class ObjectSchema;
 }
 
+RLM_DIRECT_MEMBERS
 @interface RLMSchema ()
 + (instancetype)dynamicSchemaFromObjectStoreSchema:(realm::Schema const&)objectStoreSchema;
 - (realm::Schema)objectStoreCopy;
 @end
+
+// Ensure that all objectSchema in the given schema have managed accessors created.
+// This is normally done during schema discovery but may not be when using
+// dynamically created schemas.
+void RLMSchemaEnsureAccessorsCreated(RLMSchema *schema);

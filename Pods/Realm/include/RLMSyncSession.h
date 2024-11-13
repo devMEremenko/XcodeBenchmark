@@ -16,8 +16,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-#import <Foundation/Foundation.h>
-
 #import <Realm/RLMRealm.h>
 
 /**
@@ -25,12 +23,12 @@
  */
 typedef NS_ENUM(NSUInteger, RLMSyncSessionState) {
     /// The sync session is actively communicating or attempting to communicate
-    /// with the Realm Object Server. A session is considered Active even if
+    /// with Atlas App Services. A session is considered Active even if
     /// it is not currently connected. Check the connection state instead if you
     /// wish to know if the connection is currently online.
     RLMSyncSessionStateActive,
-    /// The sync session is not attempting to communicate with the Realm Object
-    /// Server, due to the user logging out or synchronization being paused.
+    /// The sync session is not attempting to communicate with MongoDB
+    /// Realm due to the user logging out or synchronization being paused.
     RLMSyncSessionStateInactive,
     /// The sync session encountered a fatal error and is permanently invalid; it should be discarded.
     RLMSyncSessionStateInvalid
@@ -45,9 +43,9 @@ typedef NS_ENUM(NSUInteger, RLMSyncConnectionState) {
     /// to connect, either because the session is inactive or because it is
     /// waiting to retry after a failed connection.
     RLMSyncConnectionStateDisconnected,
-    /// The sync session is attempting to connect to the Realm Object Server.
+    /// The sync session is attempting to connect to Atlas App Services.
     RLMSyncConnectionStateConnecting,
-    /// The sync session is currently connected to the Realm Object Server.
+    /// The sync session is currently connected to Atlas App Services.
     RLMSyncConnectionStateConnected,
 };
 
@@ -90,7 +88,7 @@ typedef NS_ENUM(NSUInteger, RLMSyncProgressMode) {
     RLMSyncProgressModeForCurrentlyOutstandingWork,
 };
 
-@class RLMSyncUser, RLMSyncConfiguration, RLMSyncErrorActionToken;
+@class RLMUser, RLMSyncConfiguration, RLMSyncErrorActionToken, RLMSyncManager;
 
 /**
  The type of a progress notification block intended for reporting a session's network
@@ -101,7 +99,7 @@ typedef NS_ENUM(NSUInteger, RLMSyncProgressMode) {
  */
 typedef void(^RLMProgressNotificationBlock)(NSUInteger transferredBytes, NSUInteger transferrableBytes);
 
-NS_ASSUME_NONNULL_BEGIN
+RLM_HEADER_AUDIT_BEGIN(nullability, sendability)
 
 /**
  A token object corresponding to a progress notification block on a session object.
@@ -109,18 +107,20 @@ NS_ASSUME_NONNULL_BEGIN
  To stop notifications manually, call `-invalidate` on it. Notifications should be stopped before
  the token goes out of scope or is destroyed.
  */
+RLM_SWIFT_SENDABLE RLM_FINAL // is internally thread-safe
 @interface RLMProgressNotificationToken : RLMNotificationToken
 @end
 
 /**
- An object encapsulating a Realm Object Server "session". Sessions represent the
+ An object encapsulating an Atlas App Services "session". Sessions represent the
  communication between the client (and a local Realm file on disk), and the server
- (and a remote Realm at a given URL stored on a Realm Object Server).
+ (and a remote Realm with a given partition value stored on Atlas App Services).
 
  Sessions are always created by the SDK and vended out through various APIs. The
  lifespans of sessions associated with Realms are managed automatically. Session
  objects can be accessed from any thread.
  */
+RLM_SWIFT_SENDABLE RLM_FINAL // is internally thread-safe
 @interface RLMSyncSession : NSObject
 
 /// The session's current state.
@@ -135,11 +135,8 @@ NS_ASSUME_NONNULL_BEGIN
 /// thread.
 @property (atomic, readonly) RLMSyncConnectionState connectionState;
 
-/// The Realm Object Server URL of the remote Realm this session corresponds to.
-@property (nullable, nonatomic, readonly) NSURL *realmURL;
-
 /// The user that owns this session.
-- (nullable RLMSyncUser *)parentUser;
+- (nullable RLMUser *)parentUser;
 
 /**
  If the session is valid, return a sync configuration that can be used to open the Realm
@@ -150,13 +147,13 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  Temporarily suspend syncronization and disconnect from the server.
 
- The session will not attempt to connect to Realm Object Server until `resume`
+ The session will not attempt to connect to Atlas App Services until `resume`
  is called or the Realm file is closed and re-opened.
  */
 - (void)suspend;
 
 /**
- Resume syncronization and reconnect to Realm Object Server after suspending.
+ Resume syncronization and reconnect to Atlas App Services after suspending.
 
  This is a no-op if the session was already active or if the session is invalid.
  Newly created sessions begin in the Active state and do not need to be resumed.
@@ -203,7 +200,7 @@ NS_REFINED_FOR_SWIFT;
  
  @see `RLMSyncErrorClientResetError`, `RLMSyncErrorPermissionDeniedError`
  */
-+ (void)immediatelyHandleError:(RLMSyncErrorActionToken *)token;
++ (void)immediatelyHandleError:(RLMSyncErrorActionToken *)token syncManager:(RLMSyncManager *)syncManager;
 
 /**
  Get the sync session for the given Realm if it is a synchronized Realm, or `nil`
@@ -223,6 +220,7 @@ NS_REFINED_FOR_SWIFT;
 
  @see `RLMSyncErrorClientResetError`, `RLMSyncErrorPermissionDeniedError`
  */
+RLM_SWIFT_SENDABLE RLM_FINAL
 @interface RLMSyncErrorActionToken : NSObject
 
 /// :nodoc:
@@ -233,46 +231,4 @@ NS_REFINED_FOR_SWIFT;
 
 @end
 
-/**
- A task object which can be used to observe or cancel an async open.
-
- When a synchronized Realm is opened asynchronously, the latest state of the
- Realm is downloaded from the server before the completion callback is invoked.
- This task object can be used to observe the state of the download or to cancel
- it. This should be used instead of trying to observe the download via the sync
- session as the sync session itself is created asynchronously, and may not exist
- yet when -[RLMRealm asyncOpenWithConfiguration:completion:] returns.
- */
-@interface RLMAsyncOpenTask : NSObject
-/**
- Register a progress notification block.
-
- Each registered progress notification block is called whenever the sync
- subsystem has new progress data to report until the task is either cancelled
- or the completion callback is called. Progress notifications are delivered on
- the main queue.
- */
-- (void)addProgressNotificationBlock:(RLMProgressNotificationBlock)block;
-
-/**
- Register a progress notification block which is called on the given queue.
-
- Each registered progress notification block is called whenever the sync
- subsystem has new progress data to report until the task is either cancelled
- or the completion callback is called. Progress notifications are delivered on
- the supplied queue.
- */
-- (void)addProgressNotificationOnQueue:(dispatch_queue_t)queue
-                                 block:(RLMProgressNotificationBlock)block;
-
-/**
- Cancel the asynchronous open.
-
- Any download in progress will be cancelled, and the completion block for this
- async open will never be called. If multiple async opens on the same Realm are
- happening concurrently, all other opens will fail with the error "operation cancelled".
- */
-- (void)cancel;
-@end
-
-NS_ASSUME_NONNULL_END
+RLM_HEADER_AUDIT_END(nullability, sendability)

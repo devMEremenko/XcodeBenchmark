@@ -54,10 +54,10 @@
  * copied and put under another distribution licence
  * [including the GNU Public Licence.] */
 
-#include <openssl/asn1.h>
+#include <openssl_grpc/asn1.h>
 
-#include <openssl/err.h>
-#include <openssl/mem.h>
+#include <openssl_grpc/err.h>
+#include <openssl_grpc/mem.h>
 
 /*
  * ASN1_ITEM version of dup: this follows the model above except we don't

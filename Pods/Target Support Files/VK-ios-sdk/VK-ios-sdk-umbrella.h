@@ -22,7 +22,6 @@
 #import "VKApiWall.h"
 #import "VKApiObject.h"
 #import "VKApiObjectArray.h"
-#import "VKAudio.h"
 #import "VKCounters.h"
 #import "VKDocs.h"
 #import "VKGroup.h"

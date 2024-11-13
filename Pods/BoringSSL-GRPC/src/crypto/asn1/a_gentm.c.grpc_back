@@ -54,15 +54,15 @@
  * copied and put under another distribution licence
  * [including the GNU Public Licence.] */
 
-#include <openssl/asn1.h>
+#include <openssl_grpc/asn1.h>
 
 #include <string.h>
 #include <time.h>
 
-#include <openssl/err.h>
-#include <openssl/mem.h>
+#include <openssl_grpc/err.h>
+#include <openssl_grpc/mem.h>
 
-#include "asn1_locl.h"
+#include "internal.h"
 
 int asn1_generalizedtime_to_tm(struct tm *tm, const ASN1_GENERALIZEDTIME *d)
 {
@@ -235,6 +235,11 @@ ASN1_GENERALIZEDTIME *ASN1_GENERALIZEDTIME_adj(ASN1_GENERALIZEDTIME *s,
     if (offset_day || offset_sec) {
         if (!OPENSSL_gmtime_adj(ts, offset_day, offset_sec))
             goto err;
+    }
+
+    if (ts->tm_year < 0 - 1900 || ts->tm_year > 9999 - 1900) {
+        OPENSSL_PUT_ERROR(ASN1, ASN1_R_ILLEGAL_TIME_VALUE);
+        goto err;
     }
 
     p = (char *)tmps->data;

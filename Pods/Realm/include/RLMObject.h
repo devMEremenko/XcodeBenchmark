@@ -16,12 +16,11 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-#import <Foundation/Foundation.h>
-
+#import <Realm/RLMConstants.h>
 #import <Realm/RLMObjectBase.h>
 #import <Realm/RLMThreadSafeReference.h>
 
-NS_ASSUME_NONNULL_BEGIN
+RLM_HEADER_AUDIT_BEGIN(nullability, sendability)
 
 @class RLMNotificationToken;
 @class RLMObjectSchema;
@@ -69,7 +68,7 @@ NS_ASSUME_NONNULL_BEGIN
 
  ### Relationships
 
- See our [Cocoa guide](https://realm.io/docs/objc/latest#relationships) for more details.
+ See our [Realm Swift Documentation](https://www.mongodb.com/docs/realm/sdk/swift/fundamentals/relationships/#relationships) for more details.
 
  ### Key-Value Observing
 
@@ -432,7 +431,6 @@ NS_ASSUME_NONNULL_BEGIN
  */
 + (NSDictionary<NSString *, RLMPropertyDescriptor *> *)linkingObjectsProperties;
 
-
 #pragma mark - Getting & Querying Objects from the Default Realm
 
 /**
@@ -540,9 +538,7 @@ NS_ASSUME_NONNULL_BEGIN
  `NO`, a `nil` error, and an array of `RLMPropertyChange` objects which
  indicate which properties of the objects were modified.
 
- If an error occurs, `deleted` will be `NO`, `changes` will be `nil`, and
- `error` will include information about the error. The block will never be
- called again after an error occurs.
+ `error` is always `nil` and will be removed in a future version.
  */
 typedef void (^RLMObjectChangeBlock)(BOOL deleted,
                                      NSArray<RLMPropertyChange *> *_Nullable changes,
@@ -623,6 +619,86 @@ typedef void (^RLMObjectChangeBlock)(BOOL deleted,
  */
 - (RLMNotificationToken *)addNotificationBlock:(RLMObjectChangeBlock)block queue:(dispatch_queue_t)queue;
 
+/**
+ Registers a block to be called each time the object changes.
+
+ The block will be asynchronously called after each write transaction which
+ deletes the object or modifies any of the managed properties of the object,
+ including self-assignments that set a property to its existing value.
+
+ For write transactions performed on different threads or in different
+ processes, the block will be called when the managing Realm is
+ (auto)refreshed to a version including the changes, while for local write
+ transactions it will be called at some point in the future after the write
+ transaction is committed.
+
+ Notifications are delivered on the given queue. If the queue is blocked and
+ notifications can't be delivered instantly, multiple notifications may be
+ coalesced into a single notification.
+
+ Unlike with `RLMArray` and `RLMResults`, there is no "initial" callback made
+ after you add a new notification block.
+
+ Only objects which are managed by a Realm can be observed in this way. You
+ must retain the returned token for as long as you want updates to be sent to
+ the block. To stop receiving updates, call `-invalidate` on the token.
+
+ It is safe to capture a strong reference to the observed object within the
+ callback block. There is no retain cycle due to that the callback is retained
+ by the returned token and not by the object itself.
+
+ @warning This method cannot be called during a write transaction, when the
+          containing Realm is read-only, or on an unmanaged object.
+ @warning The queue must be a serial queue.
+
+ @param block The block to be called whenever a change occurs.
+ @param keyPaths The block will be called for changes occurring on these keypaths. If no
+ key paths are given, notifications are delivered for every property key path.
+ @param queue The serial queue to deliver notifications to.
+ @return A token which must be held for as long as you want updates to be delivered.
+ */
+- (RLMNotificationToken *)addNotificationBlock:(RLMObjectChangeBlock)block keyPaths:(NSArray<NSString *> *)keyPaths queue:(dispatch_queue_t)queue;
+
+/**
+ Registers a block to be called each time the object changes.
+
+ The block will be asynchronously called after each write transaction which
+ deletes the object or modifies any of the managed properties of the object,
+ including self-assignments that set a property to its existing value.
+
+ For write transactions performed on different threads or in different
+ processes, the block will be called when the managing Realm is
+ (auto)refreshed to a version including the changes, while for local write
+ transactions it will be called at some point in the future after the write
+ transaction is committed.
+
+ Notifications are delivered on the given queue. If the queue is blocked and
+ notifications can't be delivered instantly, multiple notifications may be
+ coalesced into a single notification.
+
+ Unlike with `RLMArray` and `RLMResults`, there is no "initial" callback made
+ after you add a new notification block.
+
+ Only objects which are managed by a Realm can be observed in this way. You
+ must retain the returned token for as long as you want updates to be sent to
+ the block. To stop receiving updates, call `-invalidate` on the token.
+
+ It is safe to capture a strong reference to the observed object within the
+ callback block. There is no retain cycle due to that the callback is retained
+ by the returned token and not by the object itself.
+
+ @warning This method cannot be called during a write transaction, when the
+          containing Realm is read-only, or on an unmanaged object.
+ @warning The queue must be a serial queue.
+
+ @param block The block to be called whenever a change occurs.
+ @param keyPaths The block will be called for changes occurring on these keypaths. If no
+ key paths are given, notifications are delivered for every property key path.
+ @return A token which must be held for as long as you want updates to be delivered.
+ */
+- (RLMNotificationToken *)addNotificationBlock:(RLMObjectChangeBlock)block keyPaths:(NSArray<NSString *> *)keyPaths;
+
+
 #pragma mark - Other Instance Methods
 
 /**
@@ -654,6 +730,14 @@ typedef void (^RLMObjectChangeBlock)(BOOL deleted,
  - warning: This method can only be called on a managed object.
  */
 - (instancetype)freeze NS_RETURNS_RETAINED;
+
+/**
+ Returns a live (mutable) reference of this object.
+
+ This method creates a managed accessor to a live copy of the same frozen object.
+ Will return self if called on an already live object.
+ */
+- (instancetype)thaw;
 
 #pragma mark - Dynamic Accessors
 
@@ -706,7 +790,22 @@ typedef void (^RLMObjectChangeBlock)(BOOL deleted,
      @property RLMArray<ObjectType *><ObjectType> *arrayOfObjectTypes;
   */
 #define RLM_ARRAY_TYPE(RLM_OBJECT_SUBCLASS)\
+__attribute__((deprecated("RLM_ARRAY_TYPE has been deprecated. Use RLM_COLLECTION_TYPE instead."))) \
+@protocol RLM_OBJECT_SUBCLASS <NSObject>  \
+@end
+
+/**
+ Properties on `RLMObject`s of type `RLMSet`  /  `RLMArray` must have an associated type. A type is associated
+ with an `RLMSet`  /  `RLMArray` property by defining a protocol for the object type that the array should contain.
+ To define the protocol for an object, you can use the macro RLM_COLLECTION_TYPE:
+
+     RLM_COLLECTION_TYPE(ObjectType)
+     ...
+     @property RLMSet<ObjectType *><ObjectType> *setOfObjectTypes;
+     @property RLMArray<ObjectType *><ObjectType> *arrayOfObjectTypes;
+  */
+#define RLM_COLLECTION_TYPE(RLM_OBJECT_SUBCLASS)\
 @protocol RLM_OBJECT_SUBCLASS <NSObject>   \
 @end
 
-NS_ASSUME_NONNULL_END
+RLM_HEADER_AUDIT_END(nullability, sendability)
