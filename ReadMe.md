@@ -31,6 +31,7 @@ If a device you are looking for is not on the list below, check out open [issues
 | MacBook Pro 14" 2023 |      M3 Pro 11-core     | 18  | 512 | 16.1  |   15.1   |    140    |
 | MacBook Pro 14" 2024 |      M4 10-core         | 16  | 512 | 16.1  |   15.1   |    141    |
 | Mac Mini 2024        |      M4 10-core         | 16  | 256 | 16.1  |   15.1   |    141    |
+| MacBook Pro 14" 2023 |      M2 Pro 10-core     | 16  | 512 | 16.0  |   14.7.1 |    143    |
 | Mac Mini 2023        |      M2 Pro 10-core     | 16  | 1TB | 16.1  |  15.0.1  |    147    |
 | MacBook Pro 16" 2021 |      M1 Max 10-core     | 32  | 1TB | 16.1  |   15.1   |    152    |
 | MacBook Air 13" 2024 |      M3 8-core          | 8   | 256 | 16.1  |  15.0.1  |    201    |
