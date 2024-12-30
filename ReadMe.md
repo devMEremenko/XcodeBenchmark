@@ -1,21 +1,19 @@
-`XcodeBenchmark` contains a *large* codebase to measure the compilation time in Xcode.
+**XcodeBenchmark measures Mac performance in Xcode by compiling a [relatively large codebase](https://github.com/devMEremenko/XcodeBenchmark/tree/master?tab=readme-ov-file#faq).**
 
-You are probably familiar with the following question:
-> "Should I buy an i5, i7, or even i9 processor for iOS/macOS development?".
+The project has already saved thousands of dollars for developers and companies when they purchase or upgrade their Macs and I believe these results will help you make the right *cost/performance* choice.
 
-`XcodeBenchmark` is initially created for [Max Tech](https://www.youtube.com/channel/UCptwuAv0XQHo1OQUSaO6NHw) YouTube channel to compare the performance of new iMacs 2020.
 
-I believe the results will help developers to make the right *cost/performance* trade-off decision when choosing their next Mac.
-
-## Note
-PR merging will be performed on a best-effort basis.  
-If a device you are looking for is not on the list below, check out open [issues](https://github.com/devMEremenko/XcodeBenchmark/issues) and [PRs](https://github.com/devMEremenko/XcodeBenchmark/pulls).
+## Sponsorship
+<img src="https://raw.githubusercontent.com/Schweinepriester/github-profile-achievements/main/images/public-sponsor-default.png" width="16px" height="16px"> Visit the [GitHub Sponsor page](https://github.com/sponsors/devMEremenko) if you'd like to support the project. 🤗
 
 ## Xcode 16
+
+If a device you are looking for is not listed below, check out open [issues](https://github.com/devMEremenko/XcodeBenchmark/issues) and [PRs](https://github.com/devMEremenko/XcodeBenchmark/pulls).
 
 |        Device        |           CPU           | RAM | SSD | Xcode |   macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:-----:|:--------:|:---------:|
 | MacBook Pro 16" 2024 |      M4 Max 16-core     | 64  | 2TB | 16.2  |   15.2   |    77     |
+| MacBook Pro 16" 2024 |      M4 Max 16-core     | 64  | 1TB | 16.2  |   15.2   |    78     |
 | MacBook Pro 16" 2024 |      M4 Max 16-core     | 128 | 4TB | 16.1  |   15.1   |    81     |
 | Mac Pro 2023         |      M2 Ultra 24-core   | 192 | 8TB | 16.1  |   15.1   |    87     |
 | MacBook Pro 16" 2023 |      M3 Max 16-core     | 128 | 1TB | 16.1  |   15.1   |    90     |
@@ -28,13 +26,13 @@ If a device you are looking for is not on the list below, check out open [issues
 | Mac Studio 2022      |      M1 Ultra 20-core   | 64  | 2TB | 16.1  |  15.0.1  |    109    |
 | Mac Mini 2024        |      M4 Pro 12-core     | 24  | 1TB | 16.1  |   15.1   |    109    |
 | MacBook Pro 16" 2023 |      M3 Max 14-core     | 36  | 1TB | 16.1  |  14.7.1  |    110    |
-| MacBook Pro 16" 2022 |      M2 Max 12-core     | 64  | 2TB | 16.1  |   15.1   |    127    |
+| MacBook Pro 16" 2022 |      M2 Max 12-core     | 64  | 2TB | 16.2  |   15.2   |    126    |
 | MacBook Pro 14" 2023 |      M3 Pro 11-core     | 18  | 512 | 16.1  |   15.1   |    140    |
 | MacBook Pro 14" 2024 |      M4 10-core         | 16  | 512 | 16.1  |   15.1   |    141    |
 | Mac Mini 2024        |      M4 10-core         | 16  | 256 | 16.1  |   15.1   |    141    |
 | Mac Mini 2023        |      M2 Pro 10-core     | 16  | 1TB | 16.1  |  15.0.1  |    147    |
 | MacBook Pro 16" 2021 |      M1 Max 10-core     | 32  | 1TB | 16.1  |   15.1   |    152    |
-| MacBook Air 13" 2024 |      M3 8-core          | 8   | 256 | 16.1  |  15.0.1  |    201    |
+| MacBook Air 13" 2024 |      M3 8-core          | 16  | 256 | 16.2  |   14.6   |    184    |
 | MacBook Air 13" 2022 |      M2 8-core          | 16  | 512 | 16.1  |   15.1   |    202    |
 | MacBook Pro 13" 2020 |      M1 8c (8c GPU)     | 16  | 256 | 16.1  |   15.1   |    258    |
 
@@ -340,11 +338,13 @@ A framework that includes **76** popular CocoaPods libraries and their dependenc
 **Q: Will it affect my other Xcode projects?**
 - A separate build folder is created for the benchmark run that is then deleted after it finishes. The folder goes to about 2.5GB.
 
+**Q: When and why was XcodeBenchmark created?**
+`XcodeBenchmark` was initially created for [Max Tech](https://www.youtube.com/channel/UCptwuAv0XQHo1OQUSaO6NHw) YouTube channel to compare the performance of new iMacs 2020.
+
 ## YouTubers and bloggers
 
 You are free to use these results in your videos and articles as well as to run XcodeBenchmark to compare Macs.
 Please make sure to add [the link](https://github.com/devMEremenko/XcodeBenchmark/) to this repository.
-
 
 ## Contribution
 
