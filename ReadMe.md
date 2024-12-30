@@ -12,7 +12,7 @@ If a device you are looking for is not listed below, check out open [issues](htt
 
 |        Device        |           CPU           | RAM | SSD | Xcode |   macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:-----:|:--------:|:---------:|
-| MacBook Pro 16" 2024 |      M4 Max 16-core     | 128 | 4TB | 16.1  |   15.1   |    81     |
+| MacBook Pro 16" 2024 |      M4 Max 16-core     | 64 | 1TB | 16.2  |   15.2   |    78     |
 | Mac Pro 2023         |      M2 Ultra 24-core   | 192 | 8TB | 16.1  |   15.1   |    87     |
 | MacBook Pro 16" 2023 |      M3 Max 16-core     | 128 | 1TB | 16.1  |   15.1   |    90     |
 | MacBook Pro 14" 2024 |	    M4 Pro 14-core	   | 24  | 1TB | 16.1  | 	 15.1   |    95     |
