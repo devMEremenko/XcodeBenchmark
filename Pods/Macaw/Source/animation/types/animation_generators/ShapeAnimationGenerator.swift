@@ -26,7 +26,9 @@ func addShapeAnimation(_ animation: BasicAnimation, _ context: AnimationContext,
     let transactionsDisabled = CATransaction.disableActions()
     CATransaction.setDisableActions(true)
 
-    let fromShape = shapeAnimation.getVFunc()(0.0)
+    guard let fromShape = SceneUtils.copyNode(shapeAnimation.getVFunc()(0.0)) as? Shape else {
+        return
+    }
     let toShape = shapeAnimation.getVFunc()(animation.autoreverses ? 0.5 : 1.0)
     let duration = animation.autoreverses ? animation.getDuration() / 2.0 : animation.getDuration()
 
@@ -54,16 +56,28 @@ func addShapeAnimation(_ animation: BasicAnimation, _ context: AnimationContext,
         animation.progress = animation.manualStop ? 0.0 : 1.0
 
         if !animation.autoreverses && finished {
-            shape.form = toShape.form
-            shape.stroke = toShape.stroke
-            shape.fill = toShape.fill
+            if fromShape.form != toShape.form {
+                shape.form = toShape.form
+            }
+            if fromShape.stroke != toShape.stroke {
+                shape.stroke = toShape.stroke
+            }
+            if fromShape.fill != toShape.fill {
+                shape.fill = toShape.fill
+            }
         }
 
         if !finished {
             animation.progress = 0.0
-            shape.form = fromShape.form
-            shape.stroke = fromShape.stroke
-            shape.fill = fromShape.fill
+            if fromShape.form != toShape.form {
+                shape.form = toShape.form
+            }
+            if fromShape.stroke != toShape.stroke {
+                shape.stroke = toShape.stroke
+            }
+            if fromShape.fill != toShape.fill {
+                shape.fill = toShape.fill
+            }
         }
 
         renderer.freeLayer()
@@ -76,31 +90,7 @@ func addShapeAnimation(_ animation: BasicAnimation, _ context: AnimationContext,
     }
 
     layer.path = fromShape.form.toCGPath()
-
-    // Stroke
-    if let stroke = shape.stroke {
-        if let color = stroke.fill as? Color {
-            layer.strokeColor = color.toCG()
-        } else {
-            layer.strokeColor = MColor.black.cgColor
-        }
-
-        layer.lineWidth = CGFloat(stroke.width)
-        layer.lineCap = MCAShapeLayerLineCap.mapToGraphics(model: stroke.cap)
-        layer.lineJoin = MCAShapeLayerLineJoin.mapToGraphics(model: stroke.join)
-        layer.lineDashPattern = stroke.dashes.map { NSNumber(value: $0) }
-        layer.lineDashPhase = CGFloat(stroke.offset)
-    } else if shape.fill == nil {
-        layer.strokeColor = MColor.black.cgColor
-        layer.lineWidth = 1.0
-    }
-
-    // Fill
-    if let color = shape.fill as? Color {
-        layer.fillColor = color.toCG()
-    } else {
-        layer.fillColor = MColor.clear.cgColor
-    }
+    layer.setupStrokeAndFill(fromShape)
 
     let animationId = animation.ID
     layer.add(generatedAnimation, forKey: animationId)

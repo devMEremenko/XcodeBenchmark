@@ -31,15 +31,13 @@ using util::AsyncQueue;
 using util::Status;
 using util::TimerId;
 
-/** Maximum number of times a transaction can be retried before failing. */
-constexpr int kRetryCount = 5;
-
 bool IsRetryableTransactionError(const util::Status& error) {
   // In transactions, the backend will fail outdated reads with
-  // FAILED_PRECONDITION and non-matching document versions with ABORTED. These
+  // FAILED_PRECONDITION, non-matching document versions with ABORTED, and
+  // attempts to create already-existing document with ALREADY_EXISTS. These
   // errors should be retried.
   Error code = error.code();
-  return code == Error::kErrorAborted ||
+  return code == Error::kErrorAborted || code == Error::kErrorAlreadyExists ||
          code == Error::kErrorFailedPrecondition ||
          !remote::Datastore::IsPermanentError(error);
 }
@@ -48,17 +46,20 @@ bool IsRetryableTransactionError(const util::Status& error) {
 TransactionRunner::TransactionRunner(const std::shared_ptr<AsyncQueue>& queue,
                                      RemoteStore* remote_store,
                                      TransactionUpdateCallback update_callback,
-                                     TransactionResultCallback result_callback)
+                                     TransactionResultCallback result_callback,
+                                     int max_attempts)
     : queue_{queue},
       remote_store_{remote_store},
       update_callback_{std::move(update_callback)},
       result_callback_{std::move(result_callback)},
       backoff_{queue_, TimerId::RetryTransaction},
-      retries_left_{kRetryCount} {
+      attempts_remaining_{max_attempts} {
+  HARD_ASSERT(max_attempts >= 0, "invalid max_attempts: %s", max_attempts);
 }
 
 void TransactionRunner::Run() {
   queue_->VerifyIsCurrentQueue();
+  attempts_remaining_ -= 1;
 
   auto shared_this = this->shared_from_this();
   backoff_.BackoffAndRun([shared_this] {
@@ -96,9 +97,8 @@ void TransactionRunner::DispatchResult(
 
 void TransactionRunner::HandleTransactionError(
     const std::shared_ptr<Transaction>& transaction, Status status) {
-  if (retries_left_ > 0 && IsRetryableTransactionError(status) &&
+  if (attempts_remaining_ > 0 && IsRetryableTransactionError(status) &&
       !transaction->IsPermanentlyFailed()) {
-    retries_left_ -= 1;
     Run();
   } else {
     result_callback_(std::move(status));

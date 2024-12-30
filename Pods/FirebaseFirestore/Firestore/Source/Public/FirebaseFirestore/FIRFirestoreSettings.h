@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Google
+ * Copyright 2017 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,23 +18,25 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-/** Used to set on-disk cache size to unlimited. Garbage collection will not run. */
-FOUNDATION_EXTERN const int64_t kFIRFirestoreCacheSizeUnlimited
-    NS_SWIFT_NAME(FirestoreCacheSizeUnlimited);
+@protocol FIRLocalCacheSettings;
 
-/** Settings used to configure a `FIRFirestore` instance. */
+/** Used to set on-disk cache size to unlimited. Garbage collection will not run. */
+FOUNDATION_EXTERN const int64_t
+    kFIRFirestoreCacheSizeUnlimited NS_SWIFT_NAME(FirestoreCacheSizeUnlimited);
+
+/** Settings used to configure a `Firestore` instance. */
 NS_SWIFT_NAME(FirestoreSettings)
 @interface FIRFirestoreSettings : NSObject <NSCopying>
 
 /**
- * Creates and returns an empty `FIRFirestoreSettings` object.
+ * Creates and returns an empty `FirestoreSettings` object.
  *
- * @return The created `FIRFirestoreSettings` object.
+ * @return The created `FirestoreSettings` object.
  */
 - (instancetype)init NS_DESIGNATED_INITIALIZER;
 
 /** The hostname to connect to. */
-@property(nonatomic, copy) NSString *host;
+@property(nonatomic, copy) NSString* host;
 
 /** Whether to use SSL when connecting. */
 @property(nonatomic, getter=isSSLEnabled) BOOL sslEnabled;
@@ -45,37 +47,39 @@ NS_SWIFT_NAME(FirestoreSettings)
  */
 @property(nonatomic, strong) dispatch_queue_t dispatchQueue;
 
-/** Set to false to disable local persistent storage. */
-@property(nonatomic, getter=isPersistenceEnabled) BOOL persistenceEnabled;
-
 /**
- * Specifies whether to use FIRTimestamps for timestamp fields in FIRDocumentSnapshots. This is
- * now enabled by default and should not be disabled.
+ * NOTE: This field will be deprecated in a future major release. Use the `cacheSettings` field
+ * instead to specify cache type, and other cache configurations.
  *
- * Previously, Firestore returned timestamp fields as NSDate but NSDate is implemented as a double
- * which loses precision and causes unexpected behavior when using a timestamp from a snapshot as a
- * part of a subsequent query.
- *
- * So now Firestore returns FIRTimestamp values instead of NSDate, avoiding this kind of problem.
- *
- * To opt into the old behavior of returning NSDate objects, you can temporarily set
- * areTimestampsInSnapshotsEnabled to false.
- *
- * @deprecated This setting now defaults to true and will be removed in a future release. If you are
- * already setting it to true, just remove the setting. If you are setting it to false, you should
- * update your code to expect FIRTimestamp objects instead of NSDate and then remove the setting.
+ * Set to false to disable local persistent storage.
  */
-@property(nonatomic, getter=areTimestampsInSnapshotsEnabled) BOOL timestampsInSnapshotsEnabled
-    __attribute__((deprecated));
+@property(nonatomic, getter=isPersistenceEnabled) BOOL persistenceEnabled DEPRECATED_MSG_ATTRIBUTE(
+    "This field is deprecated. Use `cacheSettings` instead.");
 
 /**
+ * NOTE: This field will be deprecated in a future major release. Use the `cacheSettings` field
+ * instead to specify cache size, and other cache configurations.
+ *
  * Sets the cache size threshold above which the SDK will attempt to collect least-recently-used
  * documents. The size is not a guarantee that the cache will stay below that size, only that if
  * the cache exceeds the given size, cleanup will be attempted. Cannot be set lower than 1MB.
  *
- * Set to kFIRFirestoreCacheSizeUnlimited to disable garbage collection entirely.
+ * Set to `FirestoreCacheSizeUnlimited` to disable garbage collection entirely.
  */
-@property(nonatomic, assign) int64_t cacheSizeBytes;
+@property(nonatomic, assign) int64_t cacheSizeBytes DEPRECATED_MSG_ATTRIBUTE(
+    "This field is deprecated. Use `cacheSettings` instead.");
+
+/**
+ * Specifies the cache used by the SDK. Available options are `PersistentCacheSettings`
+ * and `MemoryCacheSettings`, each with different configuration options.
+ *
+ * When unspecified, `PersistentCacheSettings` will be used by default.
+ *
+ * NOTE: setting this field and `cacheSizeBytes` or `persistenceEnabled` at the same time will throw
+ * an exception during SDK initialization. Instead, use the configuration in
+ * the `PersistentCacheSettings` object to specify the cache size.
+ */
+@property(nonatomic, strong) id<FIRLocalCacheSettings, NSObject> cacheSettings;
 
 @end
 

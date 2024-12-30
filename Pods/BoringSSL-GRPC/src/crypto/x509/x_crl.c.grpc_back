@@ -54,18 +54,19 @@
  * copied and put under another distribution licence
  * [including the GNU Public Licence.] */
 
-#include <openssl/asn1.h>
-#include <openssl/asn1t.h>
-#include <openssl/digest.h>
-#include <openssl/err.h>
-#include <openssl/mem.h>
-#include <openssl/obj.h>
-#include <openssl/stack.h>
-#include <openssl/thread.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
+#include <openssl_grpc/asn1.h>
+#include <openssl_grpc/asn1t.h>
+#include <openssl_grpc/digest.h>
+#include <openssl_grpc/err.h>
+#include <openssl_grpc/mem.h>
+#include <openssl_grpc/obj.h>
+#include <openssl_grpc/stack.h>
+#include <openssl_grpc/thread.h>
+#include <openssl_grpc/x509.h>
+#include <openssl_grpc/x509v3.h>
 
 #include "../internal.h"
+#include "internal.h"
 
 /*
  * Method to handle CRL access. In general a CRL could be very large (several
@@ -86,7 +87,7 @@ struct x509_crl_method_st {
 };
 
 static int X509_REVOKED_cmp(const X509_REVOKED **a, const X509_REVOKED **b);
-static void setup_idp(X509_CRL *crl, ISSUING_DIST_POINT *idp);
+static int setup_idp(X509_CRL *crl, ISSUING_DIST_POINT *idp);
 
 ASN1_SEQUENCE(X509_REVOKED) = {
         ASN1_SIMPLE(X509_REVOKED,serialNumber, ASN1_INTEGER),
@@ -126,6 +127,9 @@ static int crl_inf_cb(int operation, ASN1_VALUE **pval, const ASN1_ITEM *it,
          * affect the output of X509_CRL_print().
          */
     case ASN1_OP_D2I_POST:
+        /* TODO(davidben): Check that default |versions| are never encoded and
+         * that |extensions| is only present in v2. */
+
         (void)sk_X509_REVOKED_set_cmp_func(a->revoked, X509_REVOKED_cmp);
         break;
     }
@@ -201,11 +205,12 @@ static int crl_set_issuers(X509_CRL *crl)
 
         for (k = 0; k < sk_X509_EXTENSION_num(exts); k++) {
             ext = sk_X509_EXTENSION_value(exts, k);
-            if (ext->critical > 0) {
-                if (OBJ_obj2nid(ext->object) == NID_certificate_issuer)
-                    continue;
-                crl->flags |= EXFLAG_CRITICAL;
-                break;
+            if (X509_EXTENSION_get_critical(ext)) {
+              if (OBJ_obj2nid(X509_EXTENSION_get_object(ext)) ==
+                  NID_certificate_issuer)
+                continue;
+              crl->flags |= EXFLAG_CRITICAL;
+              break;
             }
         }
 
@@ -226,6 +231,7 @@ static int crl_cb(int operation, ASN1_VALUE **pval, const ASN1_ITEM *it,
     STACK_OF(X509_EXTENSION) *exts;
     X509_EXTENSION *ext;
     size_t idx;
+    int i;
 
     switch (operation) {
     case ASN1_OP_NEW_POST:
@@ -242,26 +248,44 @@ static int crl_cb(int operation, ASN1_VALUE **pval, const ASN1_ITEM *it,
         break;
 
     case ASN1_OP_D2I_POST:
-        X509_CRL_digest(crl, EVP_sha1(), crl->sha1_hash, NULL);
+        if (!X509_CRL_digest(crl, EVP_sha1(), crl->sha1_hash, NULL)) {
+            return 0;
+        }
+
         crl->idp = X509_CRL_get_ext_d2i(crl,
-                                        NID_issuing_distribution_point, NULL,
+                                        NID_issuing_distribution_point, &i,
                                         NULL);
-        if (crl->idp)
-            setup_idp(crl, crl->idp);
+        if (crl->idp != NULL) {
+            if (!setup_idp(crl, crl->idp)) {
+                return 0;
+            }
+        } else if (i != -1) {
+            return 0;
+        }
 
         crl->akid = X509_CRL_get_ext_d2i(crl,
-                                         NID_authority_key_identifier, NULL,
+                                         NID_authority_key_identifier, &i,
                                          NULL);
+        if (crl->akid == NULL && i != -1) {
+            return 0;
+        }
 
         crl->crl_number = X509_CRL_get_ext_d2i(crl,
-                                               NID_crl_number, NULL, NULL);
+                                               NID_crl_number, &i, NULL);
+        if (crl->crl_number == NULL && i != -1) {
+            return 0;
+        }
 
-        crl->base_crl_number = X509_CRL_get_ext_d2i(crl,
-                                                    NID_delta_crl, NULL,
+        crl->base_crl_number = X509_CRL_get_ext_d2i(crl, NID_delta_crl, &i,
                                                     NULL);
+        if (crl->base_crl_number == NULL && i != -1) {
+            return 0;
+        }
         /* Delta CRLs must have CRL number */
-        if (crl->base_crl_number && !crl->crl_number)
-            crl->flags |= EXFLAG_INVALID;
+        if (crl->base_crl_number && !crl->crl_number) {
+            OPENSSL_PUT_ERROR(X509, X509_R_DELTA_CRL_WITHOUT_CRL_NUMBER);
+            return 0;
+        }
 
         /*
          * See if we have any unhandled critical CRL extensions and indicate
@@ -275,10 +299,10 @@ static int crl_cb(int operation, ASN1_VALUE **pval, const ASN1_ITEM *it,
         for (idx = 0; idx < sk_X509_EXTENSION_num(exts); idx++) {
             int nid;
             ext = sk_X509_EXTENSION_value(exts, idx);
-            nid = OBJ_obj2nid(ext->object);
+            nid = OBJ_obj2nid(X509_EXTENSION_get_object(ext));
             if (nid == NID_freshest_crl)
                 crl->flags |= EXFLAG_FRESHEST;
-            if (ext->critical > 0) {
+            if (X509_EXTENSION_get_critical(ext)) {
                 /* We handle IDP and deltas */
                 if ((nid == NID_issuing_distribution_point)
                     || (nid == NID_authority_key_identifier)
@@ -319,7 +343,7 @@ static int crl_cb(int operation, ASN1_VALUE **pval, const ASN1_ITEM *it,
 
 /* Convert IDP into a more convenient form */
 
-static void setup_idp(X509_CRL *crl, ISSUING_DIST_POINT *idp)
+static int setup_idp(X509_CRL *crl, ISSUING_DIST_POINT *idp)
 {
     int idp_only = 0;
     /* Set various flags according to IDP */
@@ -352,7 +376,7 @@ static void setup_idp(X509_CRL *crl, ISSUING_DIST_POINT *idp)
         crl->idp_reasons &= CRLDP_ALL_REASONS;
     }
 
-    DIST_POINT_set_dpname(idp->distpoint, X509_CRL_get_issuer(crl));
+    return DIST_POINT_set_dpname(idp->distpoint, X509_CRL_get_issuer(crl));
 }
 
 ASN1_SEQUENCE_ref(X509_CRL, crl_cb) = {
@@ -371,8 +395,7 @@ IMPLEMENT_ASN1_DUP_FUNCTION(X509_CRL)
 
 static int X509_REVOKED_cmp(const X509_REVOKED **a, const X509_REVOKED **b)
 {
-    return (ASN1_STRING_cmp((ASN1_STRING *)(*a)->serialNumber,
-                            (ASN1_STRING *)(*b)->serialNumber));
+    return ASN1_STRING_cmp((*a)->serialNumber, (*b)->serialNumber);
 }
 
 int X509_CRL_add0_revoked(X509_CRL *crl, X509_REVOKED *rev)
@@ -389,10 +412,10 @@ int X509_CRL_add0_revoked(X509_CRL *crl, X509_REVOKED *rev)
     return 1;
 }
 
-int X509_CRL_verify(X509_CRL *crl, EVP_PKEY *r)
+int X509_CRL_verify(X509_CRL *crl, EVP_PKEY *pkey)
 {
     if (crl->meth->crl_verify)
-        return crl->meth->crl_verify(crl, r);
+        return crl->meth->crl_verify(crl, pkey);
     return 0;
 }
 
@@ -415,6 +438,11 @@ int X509_CRL_get0_by_cert(X509_CRL *crl, X509_REVOKED **ret, X509 *x)
 
 static int def_crl_verify(X509_CRL *crl, EVP_PKEY *r)
 {
+    if (X509_ALGOR_cmp(crl->sig_alg, crl->crl->sig_alg) != 0) {
+        OPENSSL_PUT_ERROR(X509, X509_R_SIGNATURE_ALGORITHM_MISMATCH);
+        return 0;
+    }
+
     return (ASN1_item_verify(ASN1_ITEM_rptr(X509_CRL_INFO),
                              crl->sig_alg, crl->signature, crl->crl, r));
 }
@@ -535,7 +563,3 @@ void *X509_CRL_get_meth_data(X509_CRL *crl)
 {
     return crl->meth_data;
 }
-
-IMPLEMENT_ASN1_SET_OF(X509_REVOKED)
-
-IMPLEMENT_ASN1_SET_OF(X509_CRL)

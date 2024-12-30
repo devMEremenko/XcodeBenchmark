@@ -22,7 +22,7 @@
 //  THE SOFTWARE.
 //
 
-#if !(os(watchOS) || os(Linux))
+#if canImport(SystemConfiguration)
 
 import Foundation
 import SystemConfiguration
@@ -91,7 +91,7 @@ open class NetworkReachabilityManager {
     open var flags: SCNetworkReachabilityFlags? {
         var flags = SCNetworkReachabilityFlags()
 
-        return (SCNetworkReachabilityGetFlags(reachability, &flags)) ? flags : nil
+        return SCNetworkReachabilityGetFlags(reachability, &flags) ? flags : nil
     }
 
     /// The current network reachability status.
@@ -173,16 +173,34 @@ open class NetworkReachabilityManager {
             state.listener = listener
         }
 
-        var context = SCNetworkReachabilityContext(version: 0,
-                                                   info: Unmanaged.passUnretained(self).toOpaque(),
-                                                   retain: nil,
-                                                   release: nil,
-                                                   copyDescription: nil)
+        let weakManager = WeakManager(manager: self)
+
+        var context = SCNetworkReachabilityContext(
+            version: 0,
+            info: Unmanaged.passUnretained(weakManager).toOpaque(),
+            retain: { info in
+                let unmanaged = Unmanaged<WeakManager>.fromOpaque(info)
+                _ = unmanaged.retain()
+
+                return UnsafeRawPointer(unmanaged.toOpaque())
+            },
+            release: { info in
+                let unmanaged = Unmanaged<WeakManager>.fromOpaque(info)
+                unmanaged.release()
+            },
+            copyDescription: { info in
+                let unmanaged = Unmanaged<WeakManager>.fromOpaque(info)
+                let weakManager = unmanaged.takeUnretainedValue()
+                let description = weakManager.manager?.flags?.readableDescription ?? "nil"
+
+                return Unmanaged.passRetained(description as CFString)
+            }
+        )
         let callback: SCNetworkReachabilityCallBack = { _, flags, info in
             guard let info = info else { return }
 
-            let instance = Unmanaged<NetworkReachabilityManager>.fromOpaque(info).takeUnretainedValue()
-            instance.notifyListener(flags)
+            let weakManager = Unmanaged<WeakManager>.fromOpaque(info).takeUnretainedValue()
+            weakManager.manager?.notifyListener(flags)
         }
 
         let queueAdded = SCNetworkReachabilitySetDispatchQueue(reachability, reachabilityQueue)
@@ -228,6 +246,14 @@ open class NetworkReachabilityManager {
             state.listenerQueue?.async { listener?(newStatus) }
         }
     }
+
+    private final class WeakManager {
+        weak var manager: NetworkReachabilityManager?
+
+        init(manager: NetworkReachabilityManager?) {
+            self.manager = manager
+        }
+    }
 }
 
 // MARK: -
@@ -241,10 +267,18 @@ extension SCNetworkReachabilityFlags {
     var canConnectWithoutUserInteraction: Bool { canConnectAutomatically && !contains(.interventionRequired) }
     var isActuallyReachable: Bool { isReachable && (!isConnectionRequired || canConnectWithoutUserInteraction) }
     var isCellular: Bool {
+        #if swift(>=5.9)
+        #if os(iOS) || os(tvOS) || os(visionOS)
+        return contains(.isWWAN)
+        #else
+        return false
+        #endif
+        #else
         #if os(iOS) || os(tvOS)
         return contains(.isWWAN)
         #else
         return false
+        #endif
         #endif
     }
 

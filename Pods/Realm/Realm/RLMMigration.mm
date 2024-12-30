@@ -30,29 +30,12 @@
 #import "RLMSchema_Private.hpp"
 #import "RLMUtil.hpp"
 
-#import "object_store.hpp"
-#import "shared_realm.hpp"
-#import "schema.hpp"
-
+#import <realm/object-store/object_store.hpp>
+#import <realm/object-store/shared_realm.hpp>
+#import <realm/object-store/schema.hpp>
 #import <realm/table.hpp>
 
 using namespace realm;
-
-// The source realm for a migration has to use a SharedGroup to be able to share
-// the file with the destination realm, but we don't want to let the user call
-// beginWriteTransaction on it as that would make no sense.
-@interface RLMMigrationRealm : RLMRealm
-@end
-
-@implementation RLMMigrationRealm
-- (BOOL)readonly {
-    return YES;
-}
-
-- (void)beginWriteTransaction {
-    @throw RLMException(@"Cannot modify the source Realm in a migration");
-}
-@end
 
 @implementation RLMMigration {
     realm::Schema *_schema;
@@ -64,7 +47,6 @@ using namespace realm;
         _realm = realm;
         _oldRealm = oldRealm;
         _schema = &schema;
-        object_setClass(_oldRealm, RLMMigrationRealm.class);
     }
     return self;
 }
@@ -93,7 +75,18 @@ using namespace realm;
         }
         return;
     }
-
+    
+    // If a table will be deleted it can still be enumerated during the migration
+    // so that data can be saved or transfered to other tables if necessary.
+    if (!objects && oldObjects) {
+        for (RLMObject *oldObject in oldObjects) {
+            @autoreleasepool {
+                block(oldObject, nil);
+            }
+        }
+        return;
+    }
+    
     if (oldObjects.count == 0 || objects.count == 0) {
         return;
     }
@@ -105,7 +98,7 @@ using namespace realm;
             try {
                 newObj = info.table()->get_object(oldObject->_row.get_key());
             }
-            catch (InvalidKey const&) {
+            catch (KeyNotFound const&) {
                 continue;
             }
             block(oldObject, (id)RLMCreateObjectAccessor(info, std::move(newObj)));
@@ -113,15 +106,18 @@ using namespace realm;
     }
 }
 
-- (void)execute:(RLMMigrationBlock)block {
+- (void)execute:(RLMMigrationBlock)block objectClass:(Class)dynamicObjectClass {
+    if (!dynamicObjectClass) {
+        dynamicObjectClass = RLMDynamicObject.class;
+    }
     @autoreleasepool {
         // disable all primary keys for migration and use DynamicObject for all types
         for (RLMObjectSchema *objectSchema in _realm.schema.objectSchema) {
-            objectSchema.accessorClass = RLMDynamicObject.class;
+            objectSchema.accessorClass = dynamicObjectClass;
             objectSchema.primaryKeyProperty.isPrimary = NO;
         }
         for (RLMObjectSchema *objectSchema in _oldRealm.schema.objectSchema) {
-            objectSchema.accessorClass = RLMDynamicObject.class;
+            objectSchema.accessorClass = dynamicObjectClass;
         }
 
         block(self, _oldRealm->_realm->schema_version());

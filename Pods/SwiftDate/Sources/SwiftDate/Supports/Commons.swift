@@ -1,11 +1,40 @@
 //
-//  DateFormatter.swift
 //  SwiftDate
+//  Parse, validate, manipulate, and display dates, time and timezones in Swift
 //
-//  Created by Daniele Margutti on 06/06/2018.
-//  Copyright © 2018 SwiftDate. All rights reserved.
+//  Created by Daniele Margutti
+//   - Web: https://www.danielemargutti.com
+//   - Twitter: https://twitter.com/danielemargutti
+//   - Mail: hello@danielemargutti.com
 //
+//  Copyright © 2019 Daniele Margutti. Licensed under MIT License.
+//
+
 import Foundation
+
+// MARK: - Atomic Variable Support
+
+@propertyWrapper
+internal struct Atomic<Value> {
+    private let queue = DispatchQueue(label: "com.vadimbulavin.atomic")
+    private var value: Value
+
+    init(wrappedValue: Value) {
+        self.value = wrappedValue
+    }
+    
+    var wrappedValue: Value {
+        get {
+            return queue.sync { value }
+        }
+        set {
+            queue.sync { value = newValue }
+        }
+    }
+    
+}
+
+// MARK: - DateFormatter
 
 public extension DateFormatter {
 
@@ -15,7 +44,7 @@ public extension DateFormatter {
 	///   - region: region used to pre-configure the cell.
 	///   - format: optional format used to set the `dateFormat` property.
 	/// - Returns: date formatter instance
-	public static func sharedFormatter(forRegion region: Region?, format: String? = nil) -> DateFormatter {
+	static func sharedFormatter(forRegion region: Region?, format: String? = nil) -> DateFormatter {
 		let name = "SwiftDate_\(NSStringFromClass(DateFormatter.self))"
 		let formatter: DateFormatter = threadSharedObject(key: name, create: { return DateFormatter() })
 		if let region = region {
@@ -32,13 +61,12 @@ public extension DateFormatter {
 	/// - Parameter locale: locale to set
 	/// - Returns: number formatter instance
 	@available(iOS 9.0, macOS 10.11, *)
-	public static func sharedOrdinalNumberFormatter(locale: LocaleConvertible) -> NumberFormatter {
-		var formatter: NumberFormatter?
+	static func sharedOrdinalNumberFormatter(locale: LocaleConvertible) -> NumberFormatter {
 		let name = "SwiftDate_\(NSStringFromClass(NumberFormatter.self))"
-		formatter = threadSharedObject(key: name, create: { return NumberFormatter() })
-		formatter!.numberStyle = .ordinal
-		formatter!.locale = locale.toLocale()
-		return formatter!
+		let formatter = threadSharedObject(key: name, create: { return NumberFormatter() })
+		formatter.numberStyle = .ordinal
+		formatter.locale = locale.toLocale()
+		return formatter
 	}
 
 }
@@ -85,8 +113,8 @@ public struct DateFormats {
 	/// This is the built-in list of all supported formats for auto-parsing of a string to a date.
 	internal static let builtInAutoFormat: [String] =  [
 		DateFormats.iso8601,
-		"yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'",
-		"yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'SSS'Z'",
+		"yyyy'-'MM'-'dd'T'HH':'mm':'ssZ",
+		"yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'SSSZ",
 		"yyyy-MM-dd'T'HH:mm:ss.SSSZ",
 		"yyyy-MM-dd HH:mm:ss",
 		"yyyy-MM-dd HH:mm",
@@ -99,8 +127,11 @@ public struct DateFormats {
 		"dddd, MMMM D, yyyy LT",
 		"yyyyyy-MM-dd",
 		"yyyy-MM-dd",
-		"GGGG-[W]WW-E",
-		"GGGG-[W]WW",
+		"yyyy-'W'ww-E",
+		"GGGG-'['W']'ww-E",
+		"yyyy-'W'ww",
+		"GGGG-'['W']'ww",
+		"yyyy'W'ww",
 		"yyyy-ddd",
 		"HH:mm:ss.SSSS",
 		"HH:mm:ss",
@@ -125,8 +156,8 @@ public struct DateFormats {
 	/// The RSS formatted date "EEE, d MMM yyyy HH:mm:ss ZZZ" i.e. "Fri, 09 Sep 2011 15:26:08 +0200"
 	public static let rss: String = "EEE, d MMM yyyy HH:mm:ss ZZZ"
 
-	/// The http header formatted date "EEE, dd MM yyyy HH:mm:ss ZZZ" i.e. "Tue, 15 Nov 1994 12:45:26 GMT"
-	public static let httpHeader: String = "EEE, dd MM yyyy HH:mm:ss ZZZ"
+	/// The http header formatted date "EEE, dd MMM yyyy HH:mm:ss zzz" i.e. "Tue, 15 Nov 1994 12:45:26 GMT"
+	public static let httpHeader: String = "EEE, dd MMM yyyy HH:mm:ss zzz"
 
 	/// A generic standard format date i.e. "EEE MMM dd HH:mm:ss Z yyyy"
 	public static let standard: String = "EEE MMM dd HH:mm:ss Z yyyy"
@@ -196,6 +227,8 @@ public extension Calendar.Component {
 		case .nanosecond: return NSCalendar.Unit.nanosecond
 		case .calendar: return NSCalendar.Unit.calendar
 		case .timeZone: return NSCalendar.Unit.timeZone
+		@unknown default:
+			fatalError("Unsupported type \(self)")
 		}
 	}
 }
@@ -229,8 +262,8 @@ public enum DateRelatedType {
 	case tomorrowAtStart
 	case yesterday
 	case yesterdayAtStart
-	case nearestMinute(minute:Int)
-	case nearestHour(hour:Int)
+	case nearestMinute(minute: Int)
+	case nearestHour(hour :Int)
 	case nextWeekday(_: WeekDay)
 	case nextDSTDate
 	case prevMonth
@@ -274,3 +307,37 @@ public struct TimeCalculationOptions {
 		}
 	}
 #endif
+
+// MARK: - Foundation Bundle
+
+private class BundleFinder {}
+
+extension Foundation.Bundle {
+    
+    /// Returns the resource bundle associated with the current Swift module.
+    /// This is used instead of `module` to allows compatibility outside the SwiftPM environment (ie. CocoaPods).
+    static var appModule: Bundle? = {
+        let bundleName = "SwiftDate_SwiftDate"
+
+        let candidates = [
+            // Bundle should be present here when the package is linked into an App.
+            Bundle.main.resourceURL,
+
+            // Bundle should be present here when the package is linked into a framework.
+            Bundle(for: BundleFinder.self).resourceURL,
+
+            // For command-line tools.
+            Bundle.main.bundleURL,
+        ]
+
+        for candidate in candidates {
+            let bundlePath = candidate?.appendingPathComponent(bundleName + ".bundle")
+            if let bundle = bundlePath.flatMap(Bundle.init(url:)) {
+                return bundle
+            }
+        }
+        
+        return nil
+    }()
+    
+}

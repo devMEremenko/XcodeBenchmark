@@ -41,7 +41,7 @@
  *
  * @return The KERN_BOOTTIME property from sysctl, in nanoseconds.
  */
-static int64_t KernelBootTimeInNanoseconds() {
+static int64_t KernelBootTimeInNanoseconds(void) {
   // Caching the result is not possible because clock drift would not be accounted for.
   struct timeval boottime;
   int mib[2] = {CTL_KERN, KERN_BOOTTIME};
@@ -59,7 +59,7 @@ static int64_t KernelBootTimeInNanoseconds() {
  *
  * @return The value of gettimeofday, in nanoseconds.
  */
-static int64_t UptimeInNanoseconds() {
+static int64_t UptimeInNanoseconds(void) {
   int64_t before_now_nsec;
   int64_t after_now_nsec;
   struct timeval now;
@@ -84,9 +84,7 @@ static int64_t UptimeInNanoseconds() {
     _uptimeNanoseconds = UptimeInNanoseconds();
     _timeMillis =
         (int64_t)((CFAbsoluteTimeGetCurrent() + kCFAbsoluteTimeIntervalSince1970) * NSEC_PER_USEC);
-    CFTimeZoneRef timeZoneRef = CFTimeZoneCopySystem();
-    _timezoneOffsetSeconds = CFTimeZoneGetSecondsFromGMT(timeZoneRef, 0);
-    CFRelease(timeZoneRef);
+    _timezoneOffsetSeconds = [[NSTimeZone systemTimeZone] secondsFromGMT];
   }
   return self;
 }

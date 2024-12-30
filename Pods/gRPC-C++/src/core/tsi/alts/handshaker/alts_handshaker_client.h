@@ -25,11 +25,10 @@
 #include <grpc/byte_buffer_reader.h>
 #include <grpc/grpc.h>
 
-#include "src/core/tsi/alts/handshaker/alts_tsi_handshaker.h"
-#include "src/core/tsi/transport_security_interface.h"
-
 #include "src/core/lib/iomgr/closure.h"
 #include "src/core/lib/iomgr/pollset_set.h"
+#include "src/core/tsi/alts/handshaker/alts_tsi_handshaker.h"
+#include "src/core/tsi/transport_security_interface.h"
 
 #define ALTS_SERVICE_METHOD "/grpc.gcp.HandshakerService/DoHandshake"
 #define ALTS_APPLICATION_PROTOCOL "grpc"
@@ -117,7 +116,7 @@ void alts_handshaker_client_destroy(alts_handshaker_client* client);
  * This method creates an ALTS handshaker client.
  *
  * - handshaker: ALTS TSI handshaker to which the created handshaker client
- * belongs to.
+ *   belongs to.
  * - channel: grpc channel to ALTS handshaker service.
  * - handshaker_service_url: address of ALTS handshaker service in the format of
  *   "host:port".
@@ -132,8 +131,12 @@ void alts_handshaker_client_destroy(alts_handshaker_client* client);
  * - vtable_for_testing: ALTS handshaker client vtable instance used for
  *   testing purpose.
  * - is_client: a boolean value indicating if the created handshaker client is
- * used at the client (is_client = true) or server (is_client = false) side. It
- * returns the created ALTS handshaker client on success, and NULL on failure.
+ *   used at the client (is_client = true) or server (is_client = false) side.
+ * - max_frame_size: Maximum frame size used by frame protector (User specified
+ *   maximum frame size if present or default max frame size).
+ *
+ * It returns the created ALTS handshaker client on success, and NULL
+ * on failure.
  */
 alts_handshaker_client* alts_grpc_handshaker_client_create(
     alts_tsi_handshaker* handshaker, grpc_channel* channel,
@@ -141,7 +144,7 @@ alts_handshaker_client* alts_grpc_handshaker_client_create(
     grpc_alts_credentials_options* options, const grpc_slice& target_name,
     grpc_iomgr_cb_func grpc_cb, tsi_handshaker_on_next_done_cb cb,
     void* user_data, alts_handshaker_client_vtable* vtable_for_testing,
-    bool is_client);
+    bool is_client, size_t max_frame_size, std::string* error);
 
 /**
  * This method handles handshaker response returned from ALTS handshaker

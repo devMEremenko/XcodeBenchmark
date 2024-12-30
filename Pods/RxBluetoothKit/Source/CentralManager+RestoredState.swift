@@ -15,8 +15,9 @@ extension CentralManager {
     @available(*, deprecated, renamed: "CentralManager.init(queue:options:onWillRestoreCentralManagerState:)")
     public convenience init(queue: DispatchQueue = .main,
                             options: [String: AnyObject]? = nil,
+                            cbCentralManager: CBCentralManager? = nil,
                             onWillRestoreState: OnWillRestoreState? = nil) {
-        self.init(queue: queue, options: options)
+        self.init(queue: queue, options: options, cbCentralManager: cbCentralManager)
         if let onWillRestoreState = onWillRestoreState {
             listenOnWillRestoreState(onWillRestoreState)
         }
@@ -29,13 +30,16 @@ extension CentralManager {
     /// and all operations and events are executed and received on main thread.
     /// - parameter options: An optional dictionary containing initialization options for a central manager.
     /// For more info about it please refer to [Central Manager initialization options](https://developer.apple.com/library/ios/documentation/CoreBluetooth/Reference/CBCentralManager_Class/index.html)
+    /// - parameter cbCentralManager: Optional instance of `CBCentralManager` to be used as a `manager`.
+    /// If you skip this parameter, there will be created an instance of `CBCentralManager` using given queue and options.
     /// - parameter onWillRestoreCentralManagerState: Closure called when state has been restored.
     ///
     /// - seealso: `OnWillRestoreCentralManagerState`
     public convenience init(queue: DispatchQueue = .main,
                             options: [String: AnyObject]? = nil,
+                            cbCentralManager: CBCentralManager? = nil,
                             onWillRestoreCentralManagerState: OnWillRestoreCentralManagerState? = nil) {
-        self.init(queue: queue, options: options)
+        self.init(queue: queue, options: options, cbCentralManager: cbCentralManager)
         if let onWillRestoreCentralManagerState = onWillRestoreCentralManagerState {
             listenOnWillRestoreState(onWillRestoreCentralManagerState)
         }

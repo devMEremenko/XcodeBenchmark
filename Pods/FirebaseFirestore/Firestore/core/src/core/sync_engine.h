@@ -26,12 +26,16 @@
 #include <utility>
 #include <vector>
 
+#include "Firestore/core/src/api/load_bundle_task.h"
+#include "Firestore/core/src/bundle/bundle_loader.h"
+#include "Firestore/core/src/bundle/bundle_reader.h"
 #include "Firestore/core/src/core/query.h"
 #include "Firestore/core/src/core/target_id_generator.h"
 #include "Firestore/core/src/core/view.h"
 #include "Firestore/core/src/local/reference_set.h"
 #include "Firestore/core/src/model/model_fwd.h"
 #include "Firestore/core/src/remote/remote_store.h"
+#include "Firestore/core/src/util/random_access_queue.h"
 #include "Firestore/core/src/util/status.h"
 #include "absl/strings/string_view.h"
 
@@ -42,6 +46,10 @@ namespace local {
 class LocalStore;
 class TargetData;
 }  // namespace local
+
+namespace model {
+class AggregateField;
+}  // namespace model
 
 namespace core {
 
@@ -92,7 +100,7 @@ class SyncEngine : public remote::RemoteStoreCallback, public QueryEventSource {
  public:
   SyncEngine(local::LocalStore* local_store,
              remote::RemoteStore* remote_store,
-             const auth::User& initial_user,
+             const credentials::User& initial_user,
              size_t max_concurrent_limbo_resolutions);
 
   // Implements `QueryEventSource`.
@@ -122,30 +130,39 @@ class SyncEngine : public remote::RemoteStoreCallback, public QueryEventSource {
    * Runs the given transaction block up to retries times and then calls
    * completion.
    *
-   * @param retries The number of times to try before giving up.
+   * @param max_attempts The maximum number of times to try before giving up.
    * @param worker_queue The queue to dispatch sync engine calls to.
    * @param update_callback The callback to call to execute the user's
    * transaction.
    * @param result_callback The callback to call when the transaction is
    * finished or failed.
    */
-  void Transaction(int retries,
+  void Transaction(int max_attempts,
                    const std::shared_ptr<util::AsyncQueue>& worker_queue,
                    core::TransactionUpdateCallback update_callback,
                    core::TransactionResultCallback result_callback);
 
-  void HandleCredentialChange(const auth::User& user);
+  /**
+   * Executes an aggregation query.
+   */
+  void RunAggregateQuery(const core::Query& query,
+                         const std::vector<model::AggregateField>& aggregates,
+                         api::AggregateQueryCallback&& result_callback);
+
+  void HandleCredentialChange(const credentials::User& user);
 
   // Implements `RemoteStoreCallback`
   void ApplyRemoteEvent(const remote::RemoteEvent& remote_event) override;
   void HandleRejectedListen(model::TargetId target_id,
                             util::Status error) override;
-  void HandleSuccessfulWrite(
-      const model::MutationBatchResult& batch_result) override;
+  void HandleSuccessfulWrite(model::MutationBatchResult batch_result) override;
   void HandleRejectedWrite(model::BatchId batch_id,
                            util::Status error) override;
   void HandleOnlineStateChange(model::OnlineState online_state) override;
   model::DocumentKeySet GetRemoteKeys(model::TargetId target_id) const override;
+
+  void LoadBundle(std::shared_ptr<bundle::BundleReader> reader,
+                  std::shared_ptr<api::LoadBundleTask> result_task);
 
   // For tests only
   std::map<model::DocumentKey, model::TargetId>
@@ -155,9 +172,8 @@ class SyncEngine : public remote::RemoteStoreCallback, public QueryEventSource {
   }
 
   // For tests only
-  std::deque<model::DocumentKey> GetEnqueuedLimboDocumentResolutions() const {
-    // Return defensive copy
-    return enqueued_limbo_resolutions_;
+  std::vector<model::DocumentKey> GetEnqueuedLimboDocumentResolutions() const {
+    return enqueued_limbo_resolutions_.elements();
   }
 
  private:
@@ -222,15 +238,17 @@ class SyncEngine : public remote::RemoteStoreCallback, public QueryEventSource {
 
   void AssertCallbackExists(absl::string_view source);
 
-  ViewSnapshot InitializeViewAndComputeSnapshot(const Query& query,
-                                                model::TargetId target_id);
+  ViewSnapshot InitializeViewAndComputeSnapshot(
+      const Query& query,
+      model::TargetId target_id,
+      nanopb::ByteString resume_token);
 
   void RemoveAndCleanupTarget(model::TargetId target_id, util::Status status);
 
   void RemoveLimboTarget(const model::DocumentKey& key);
 
   void EmitNewSnapshotsAndNotifyLocalStore(
-      const model::MaybeDocumentMap& changes,
+      const model::DocumentMap& changes,
       const absl::optional<remote::RemoteEvent>& maybe_remote_event);
 
   /** Updates the limbo document state for the given target_id. */
@@ -262,13 +280,18 @@ class SyncEngine : public remote::RemoteStoreCallback, public QueryEventSource {
   void TriggerPendingWriteCallbacks(model::BatchId batch_id);
   void FailOutstandingPendingWriteCallbacks(const std::string& message);
 
+  absl::optional<bundle::BundleLoader> ReadIntoLoader(
+      const bundle::BundleMetadata& metadata,
+      bundle::BundleReader& reader,
+      api::LoadBundleTask& result_task);
+
   /** The local store, used to persist mutations and cached documents. */
   local::LocalStore* local_store_ = nullptr;
 
   /** The remote store for sending writes, watches, etc. to the backend. */
   remote::RemoteStore* remote_store_ = nullptr;
 
-  auth::User current_user_;
+  credentials::User current_user_;
   SyncEngineCallback* sync_engine_callback_ = nullptr;
 
   /**
@@ -278,9 +301,9 @@ class SyncEngine : public remote::RemoteStoreCallback, public QueryEventSource {
   TargetIdGenerator target_id_generator_;
 
   /** Stores user completion blocks, indexed by User and BatchId. */
-  std::unordered_map<auth::User,
+  std::unordered_map<credentials::User,
                      std::unordered_map<model::BatchId, util::StatusCallback>,
-                     auth::HashUser>
+                     credentials::HashUser>
       mutation_callbacks_;
 
   /** Stores user callbacks waiting for pending writes to be acknowledged. */
@@ -301,7 +324,8 @@ class SyncEngine : public remote::RemoteStoreCallback, public QueryEventSource {
    * The keys of documents that are in limbo for which we haven't yet started a
    * limbo resolution query.
    */
-  std::deque<model::DocumentKey> enqueued_limbo_resolutions_;
+  util::RandomAccessQueue<model::DocumentKey, model::DocumentKeyHash>
+      enqueued_limbo_resolutions_;
 
   /**
    * Keeps track of the target ID for each document that is in limbo with an

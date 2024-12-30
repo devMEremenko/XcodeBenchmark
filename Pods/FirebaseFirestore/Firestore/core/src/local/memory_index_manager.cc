@@ -21,6 +21,9 @@
 #include <unordered_map>
 #include <vector>
 
+#include "Firestore/core/src/core/target.h"
+#include "Firestore/core/src/model/field_index.h"
+#include "Firestore/core/src/model/model_fwd.h"
 #include "Firestore/core/src/model/resource_path.h"
 #include "Firestore/core/src/util/hard_assert.h"
 
@@ -60,6 +63,67 @@ void MemoryIndexManager::AddToCollectionParentIndex(
 std::vector<ResourcePath> MemoryIndexManager::GetCollectionParents(
     const std::string& collection_id) {
   return collection_parents_index_.GetEntries(collection_id);
+}
+
+// Below methods are only stubs because field indices are not supported with
+// memory persistence.
+
+void MemoryIndexManager::Start() {
+}
+
+void MemoryIndexManager::AddFieldIndex(const model::FieldIndex& index) {
+  (void)index;
+}
+
+void MemoryIndexManager::DeleteFieldIndex(const model::FieldIndex& index) {
+  (void)index;
+}
+
+std::vector<model::FieldIndex> MemoryIndexManager::GetFieldIndexes(
+    const std::string& collection_group) const {
+  (void)collection_group;
+  return {};
+}
+
+std::vector<model::FieldIndex> MemoryIndexManager::GetFieldIndexes() const {
+  return {};
+}
+
+void MemoryIndexManager::DeleteAllFieldIndexes() {
+}
+
+void MemoryIndexManager::CreateTargetIndexes(const core::Target&) {
+}
+
+model::IndexOffset MemoryIndexManager::GetMinOffset(const core::Target&) {
+  return model::IndexOffset::None();
+}
+
+model::IndexOffset MemoryIndexManager::GetMinOffset(const std::string&) const {
+  return model::IndexOffset::None();
+}
+
+IndexManager::IndexType MemoryIndexManager::GetIndexType(const core::Target&) {
+  return IndexManager::IndexType::NONE;
+}
+
+absl::optional<std::vector<model::DocumentKey>>
+MemoryIndexManager::GetDocumentsMatchingTarget(const core::Target&) {
+  // Field indices are not supported with memory persistence.
+  return absl::nullopt;
+}
+
+absl::optional<std::string> MemoryIndexManager::GetNextCollectionGroupToUpdate()
+    const {
+  return absl::nullopt;
+}
+
+void MemoryIndexManager::UpdateCollectionGroup(const std::string&,
+                                               model::IndexOffset) {
+  // Field indices are not supported with memory persistence.
+}
+
+void MemoryIndexManager::UpdateIndexEntries(const model::DocumentMap&) {
 }
 
 }  // namespace local

@@ -19,14 +19,26 @@
 #import <Realm/RLMArray.h>
 #import <Realm/RLMConstants.h>
 
-NS_ASSUME_NONNULL_BEGIN
+@class RLMObjectBase, RLMProperty;
+
+RLM_HEADER_AUDIT_BEGIN(nullability, sendability)
 
 @interface RLMArray ()
 - (instancetype)initWithObjectClassName:(NSString *)objectClassName;
 - (instancetype)initWithObjectType:(RLMPropertyType)type optional:(BOOL)optional;
 - (NSString *)descriptionWithMaxDepth:(NSUInteger)depth;
+- (void)setParent:(RLMObjectBase *)parentObject property:(RLMProperty *)property;
+- (void)replaceAllObjectsWithObjects:(NSArray *)objects;
+// YES if the property is declared with old property syntax.
+@property (nonatomic, readonly) BOOL isLegacyProperty;
+// The name of the property which this collection represents
+@property (nonatomic, readonly) NSString *propertyKey;
+@end
+
+@interface RLMManagedArray : RLMArray
+- (instancetype)initWithParent:(RLMObjectBase *)parentObject property:(RLMProperty *)property;
 @end
 
 void RLMArrayValidateMatchingObjectType(RLMArray *array, id value);
 
-NS_ASSUME_NONNULL_END
+RLM_HEADER_AUDIT_END(nullability, sendability)

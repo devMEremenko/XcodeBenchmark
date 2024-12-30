@@ -20,22 +20,16 @@
 
 #include "src/core/lib/security/credentials/credentials.h"
 
-#include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 
-#include "src/core/lib/channel/channel_args.h"
-#include "src/core/lib/gpr/string.h"
-#include "src/core/lib/http/httpcli.h"
-#include "src/core/lib/http/parser.h"
-#include "src/core/lib/iomgr/executor.h"
-#include "src/core/lib/json/json.h"
-#include "src/core/lib/surface/api_trace.h"
-
-#include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
-#include <grpc/support/string_util.h>
-#include <grpc/support/sync.h>
-#include <grpc/support/time.h>
+
+#include "src/core/lib/channel/channel_args.h"
+#include "src/core/lib/debug/trace.h"
+#include "src/core/lib/gpr/useful.h"
+#include "src/core/lib/iomgr/exec_ctx.h"
+#include "src/core/lib/surface/api_trace.h"
 
 /* -- Common. -- */
 
@@ -43,90 +37,6 @@ void grpc_channel_credentials_release(grpc_channel_credentials* creds) {
   GRPC_API_TRACE("grpc_channel_credentials_release(creds=%p)", 1, (creds));
   grpc_core::ExecCtx exec_ctx;
   if (creds) creds->Unref();
-}
-
-static std::map<grpc_core::UniquePtr<char>,
-                grpc_core::RefCountedPtr<grpc_channel_credentials>,
-                grpc_core::StringLess>* g_grpc_control_plane_creds;
-static gpr_mu g_control_plane_creds_mu;
-
-static void do_control_plane_creds_init() {
-  gpr_mu_init(&g_control_plane_creds_mu);
-  GPR_ASSERT(g_grpc_control_plane_creds == nullptr);
-  g_grpc_control_plane_creds =
-      new std::map<grpc_core::UniquePtr<char>,
-                   grpc_core::RefCountedPtr<grpc_channel_credentials>,
-                   grpc_core::StringLess>();
-}
-
-void grpc_control_plane_credentials_init() {
-  static gpr_once once_init_control_plane_creds = GPR_ONCE_INIT;
-  gpr_once_init(&once_init_control_plane_creds, do_control_plane_creds_init);
-}
-
-void grpc_test_only_control_plane_credentials_destroy() {
-  delete g_grpc_control_plane_creds;
-  g_grpc_control_plane_creds = nullptr;
-  gpr_mu_destroy(&g_control_plane_creds_mu);
-}
-
-void grpc_test_only_control_plane_credentials_force_init() {
-  if (g_grpc_control_plane_creds == nullptr) {
-    do_control_plane_creds_init();
-  }
-}
-
-bool grpc_channel_credentials_attach_credentials(
-    grpc_channel_credentials* credentials, const char* authority,
-    grpc_channel_credentials* control_plane_creds) {
-  grpc_core::ExecCtx exec_ctx;
-  return credentials->attach_credentials(authority, control_plane_creds->Ref());
-}
-
-bool grpc_control_plane_credentials_register(
-    const char* authority, grpc_channel_credentials* control_plane_creds) {
-  grpc_core::ExecCtx exec_ctx;
-  {
-    grpc_core::MutexLock lock(&g_control_plane_creds_mu);
-    auto key = grpc_core::UniquePtr<char>(gpr_strdup(authority));
-    if (g_grpc_control_plane_creds->find(key) !=
-        g_grpc_control_plane_creds->end()) {
-      return false;
-    }
-    (*g_grpc_control_plane_creds)[std::move(key)] = control_plane_creds->Ref();
-  }
-  return true;
-}
-
-bool grpc_channel_credentials::attach_credentials(
-    const char* authority,
-    grpc_core::RefCountedPtr<grpc_channel_credentials> control_plane_creds) {
-  auto key = grpc_core::UniquePtr<char>(gpr_strdup(authority));
-  if (local_control_plane_creds_.find(key) !=
-      local_control_plane_creds_.end()) {
-    return false;
-  }
-  local_control_plane_creds_[std::move(key)] = std::move(control_plane_creds);
-  return true;
-}
-
-grpc_core::RefCountedPtr<grpc_channel_credentials>
-grpc_channel_credentials::get_control_plane_credentials(const char* authority) {
-  {
-    auto key = grpc_core::UniquePtr<char>(gpr_strdup(authority));
-    auto local_lookup = local_control_plane_creds_.find(key);
-    if (local_lookup != local_control_plane_creds_.end()) {
-      return local_lookup->second;
-    }
-    {
-      grpc_core::MutexLock lock(&g_control_plane_creds_mu);
-      auto global_lookup = g_grpc_control_plane_creds->find(key);
-      if (global_lookup != g_grpc_control_plane_creds->end()) {
-        return global_lookup->second;
-      }
-    }
-  }
-  return duplicate_without_call_credentials();
 }
 
 void grpc_call_credentials_release(grpc_call_credentials* creds) {
@@ -143,7 +53,10 @@ static void* credentials_pointer_arg_copy(void* p) {
   return static_cast<grpc_channel_credentials*>(p)->Ref().release();
 }
 
-static int credentials_pointer_cmp(void* a, void* b) { return GPR_ICMP(a, b); }
+static int credentials_pointer_cmp(void* a, void* b) {
+  return static_cast<const grpc_channel_credentials*>(a)->cmp(
+      static_cast<const grpc_channel_credentials*>(b));
+}
 
 static const grpc_arg_pointer_vtable credentials_pointer_vtable = {
     credentials_pointer_arg_copy, credentials_pointer_arg_destroy,
@@ -151,14 +64,14 @@ static const grpc_arg_pointer_vtable credentials_pointer_vtable = {
 
 grpc_arg grpc_channel_credentials_to_arg(
     grpc_channel_credentials* credentials) {
-  return grpc_channel_arg_pointer_create((char*)GRPC_ARG_CHANNEL_CREDENTIALS,
-                                         credentials,
-                                         &credentials_pointer_vtable);
+  return grpc_channel_arg_pointer_create(
+      const_cast<char*>(GRPC_ARG_CHANNEL_CREDENTIALS), credentials,
+      &credentials_pointer_vtable);
 }
 
 grpc_channel_credentials* grpc_channel_credentials_from_arg(
     const grpc_arg* arg) {
-  if (strcmp(arg->key, GRPC_ARG_CHANNEL_CREDENTIALS)) return nullptr;
+  if (strcmp(arg->key, GRPC_ARG_CHANNEL_CREDENTIALS) != 0) return nullptr;
   if (arg->type != GRPC_ARG_POINTER) {
     gpr_log(GPR_ERROR, "Invalid type %d for arg %s", arg->type,
             GRPC_ARG_CHANNEL_CREDENTIALS);
@@ -211,16 +124,16 @@ static void* server_credentials_pointer_arg_copy(void* p) {
 }
 
 static int server_credentials_pointer_cmp(void* a, void* b) {
-  return GPR_ICMP(a, b);
+  return grpc_core::QsortCompare(a, b);
 }
 
 static const grpc_arg_pointer_vtable cred_ptr_vtable = {
     server_credentials_pointer_arg_copy, server_credentials_pointer_arg_destroy,
     server_credentials_pointer_cmp};
 
-grpc_arg grpc_server_credentials_to_arg(grpc_server_credentials* p) {
-  return grpc_channel_arg_pointer_create((char*)GRPC_SERVER_CREDENTIALS_ARG, p,
-                                         &cred_ptr_vtable);
+grpc_arg grpc_server_credentials_to_arg(grpc_server_credentials* c) {
+  return grpc_channel_arg_pointer_create(
+      const_cast<char*>(GRPC_SERVER_CREDENTIALS_ARG), c, &cred_ptr_vtable);
 }
 
 grpc_server_credentials* grpc_server_credentials_from_arg(const grpc_arg* arg) {

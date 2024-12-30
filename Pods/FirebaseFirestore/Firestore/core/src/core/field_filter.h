@@ -19,10 +19,12 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
+#include "Firestore/Protos/nanopb/google/firestore/v1/document.nanopb.h"
 #include "Firestore/core/src/core/filter.h"
 #include "Firestore/core/src/model/field_path.h"
-#include "Firestore/core/src/model/field_value.h"
+#include "Firestore/core/src/nanopb/message.h"
 
 namespace firebase {
 namespace firestore {
@@ -40,13 +42,32 @@ namespace core {
 class FieldFilter : public Filter {
  public:
   /**
-   * Creates a Filter instance for the provided path, operator, and value.
+   * Operator is a value relation operator that can be used to filter documents.
+   * It is similar to NSPredicateOperatorType, but only has operators supported
+   * by Firestore.
    */
-  static FieldFilter Create(model::FieldPath path,
-                            Operator op,
-                            model::FieldValue value_rhs);
+  enum class Operator {
+    LessThan,
+    LessThanOrEqual,
+    Equal,
+    NotEqual,
+    GreaterThanOrEqual,
+    GreaterThan,
+    ArrayContains,
+    In,
+    ArrayContainsAny,
+    NotIn,
+  };
 
-  explicit FieldFilter(const Filter& filter);
+  /**
+   * Creates a FieldFilter instance for the provided path, operator, and value.
+   */
+  static FieldFilter Create(
+      const model::FieldPath& path,
+      Operator op,
+      nanopb::SharedMessage<google_firestore_v1_Value> value_rhs);
+
+  explicit FieldFilter(const Filter& other);
 
   const model::FieldPath& field() const {
     return field_filter_rep().field_;
@@ -56,8 +77,8 @@ class FieldFilter : public Filter {
     return field_filter_rep().op_;
   }
 
-  const model::FieldValue& value() const {
-    return field_filter_rep().value_rhs_;
+  const google_firestore_v1_Value& value() const {
+    return *(field_filter_rep().value_rhs_);
   }
 
  protected:
@@ -73,7 +94,8 @@ class FieldFilter : public Filter {
 
     bool IsInequality() const override;
 
-    const model::FieldPath& field() const override {
+    /** Returns the field the Filter operates over. */
+    const model::FieldPath& field() const {
       return field_;
     }
 
@@ -81,8 +103,8 @@ class FieldFilter : public Filter {
       return op_;
     }
 
-    const model::FieldValue& value() const {
-      return value_rhs_;
+    const google_firestore_v1_Value& value() const {
+      return *value_rhs_;
     }
 
     bool Matches(const model::Document& doc) const override;
@@ -91,12 +113,20 @@ class FieldFilter : public Filter {
 
     std::string ToString() const override;
 
-    size_t Hash() const override;
+    bool IsEmpty() const override {
+      return false;
+    }
+
+    const std::vector<FieldFilter>& GetFlattenedFilters() const override;
+
+    std::vector<Filter> GetFilters() const override;
 
    protected:
     /**
      * Creates a new filter that compares fields and values. Only intended to be
      * called from Filter::Create().
+     *
+     * The FieldFilter takes ownership of `value_rhs`.
      *
      * @param field A path to a field in the document to filter on. The LHS of
      * the expression.
@@ -104,16 +134,16 @@ class FieldFilter : public Filter {
      * @param value_rhs A constant value to compare `field` to. The RHS of the
      *     expression.
      */
-    Rep(model::FieldPath field, Operator op, model::FieldValue value_rhs);
+    Rep(model::FieldPath field,
+        Operator op,
+        nanopb::SharedMessage<google_firestore_v1_Value> value_rhs);
 
-    bool MatchesComparison(util::ComparisonResult result) const;
+    bool MatchesComparison(util::ComparisonResult comparison) const;
 
    private:
     friend class FieldFilter;
 
     bool Equals(const Filter::Rep& other) const override;
-
-    bool MatchesValue(const model::FieldValue& lhs) const;
 
     /** The left hand side of the relation. A path into a document field. */
     model::FieldPath field_;
@@ -122,7 +152,7 @@ class FieldFilter : public Filter {
     Operator op_;
 
     /** The right hand side of the relation. A constant value to compare to. */
-    model::FieldValue value_rhs_;
+    nanopb::SharedMessage<google_firestore_v1_Value> value_rhs_;
   };
 
   explicit FieldFilter(std::shared_ptr<const Filter::Rep> rep);

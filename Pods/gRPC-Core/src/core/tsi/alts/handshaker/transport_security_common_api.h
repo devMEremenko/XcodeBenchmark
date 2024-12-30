@@ -26,11 +26,7 @@
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
 
-#if COCOAPODS==1
-  #include  "src/core/ext/upb-generated/src/proto/grpc/gcp/transport_security_common.upb.h"
-#else
-  #include  "src/proto/grpc/gcp/transport_security_common.upb.h"
-#endif
+#include "src/proto/grpc/gcp/transport_security_common.upb.h"
 
 // C struct coresponding to protobuf message RpcProtocolVersions.Version
 typedef struct _grpc_gcp_RpcProtocolVersions_Version {
@@ -95,7 +91,7 @@ bool grpc_gcp_rpc_protocol_versions_encode(
  * The method returns true on success and false otherwise.
  */
 bool grpc_gcp_rpc_protocol_versions_encode(
-    const grpc_gcp_RpcProtocolVersions* versions, upb_arena* arena,
+    const grpc_gcp_RpcProtocolVersions* versions, upb_Arena* arena,
     grpc_slice* slice);
 
 /**
@@ -123,7 +119,7 @@ void grpc_gcp_rpc_protocol_versions_assign_from_upb(
  * RpcProtocolVersions.
  */
 void grpc_gcp_RpcProtocolVersions_assign_from_struct(
-    grpc_gcp_RpcProtocolVersions* versions, upb_arena* arena,
+    grpc_gcp_RpcProtocolVersions* versions, upb_Arena* arena,
     const grpc_gcp_rpc_protocol_versions* value);
 
 /**

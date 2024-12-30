@@ -20,13 +20,11 @@
 #define GRPC_INTERNAL_CPP_THREAD_MANAGER_H
 
 #include <list>
-#include <memory>
-
-#include <grpcpp/support/config.h>
 
 #include "src/core/lib/gprpp/sync.h"
 #include "src/core/lib/gprpp/thd.h"
-#include "src/core/lib/iomgr/resource_quota.h"
+#include "src/core/lib/resource_quota/api.h"
+#include "src/core/lib/resource_quota/thread_quota.h"
 
 namespace grpc {
 
@@ -119,7 +117,7 @@ class ThreadManager {
   // not be called (and the need for this WorkerThread class is eliminated)
   class WorkerThread {
    public:
-    WorkerThread(ThreadManager* thd_mgr);
+    explicit WorkerThread(ThreadManager* thd_mgr);
     ~WorkerThread();
 
     bool created() const { return created_; }
@@ -154,7 +152,7 @@ class ThreadManager {
   // object (that contains the actual max thread quota) and a grpc_resource_user
   // object through which quota is requested whenever new threads need to be
   // created
-  grpc_resource_user* resource_user_;
+  grpc_core::ThreadQuotaPtr thread_quota_;
 
   // Number of threads doing polling
   int num_pollers_;
