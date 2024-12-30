@@ -1,17 +1,14 @@
-`XcodeBenchmark` contains a *large* codebase to measure the compilation time in Xcode.
+**XcodeBenchmark measures Mac performance in Xcode by compiling a [relatively large codebase](https://github.com/devMEremenko/XcodeBenchmark/tree/master?tab=readme-ov-file#faq).**
 
-You are probably familiar with the following question:
-> "Should I buy an i5, i7, or even i9 processor for iOS/macOS development?".
+The project has already saved thousands of dollars for developers and companies when they purchase or upgrade their Macs and I believe these results will help you make the right *cost/performance* choice.
 
-`XcodeBenchmark` is initially created for [Max Tech](https://www.youtube.com/channel/UCptwuAv0XQHo1OQUSaO6NHw) YouTube channel to compare the performance of new iMacs 2020.
 
-I believe the results will help developers to make the right *cost/performance* trade-off decision when choosing their next Mac.
-
-## Note
-PR merging will be performed on a best-effort basis.  
-If a device you are looking for is not on the list below, check out open [issues](https://github.com/devMEremenko/XcodeBenchmark/issues) and [PRs](https://github.com/devMEremenko/XcodeBenchmark/pulls).
+## Sponsorship
+<img src="https://raw.githubusercontent.com/Schweinepriester/github-profile-achievements/main/images/public-sponsor-default.png" width="16px" height="16px"> Visit the [GitHub Sponsor page](https://github.com/sponsors/devMEremenko) if you'd like to support the project. 🤗
 
 ## Xcode 16
+
+If a device you are looking for is not listed below, check out open [issues](https://github.com/devMEremenko/XcodeBenchmark/issues) and [PRs](https://github.com/devMEremenko/XcodeBenchmark/pulls).
 
 |        Device        |           CPU           | RAM | SSD | Xcode |   macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:-----:|:--------:|:---------:|
@@ -339,11 +336,13 @@ A framework that includes **76** popular CocoaPods libraries and their dependenc
 **Q: Will it affect my other Xcode projects?**
 - A separate build folder is created for the benchmark run that is then deleted after it finishes. The folder goes to about 2.5GB.
 
+**Q: When and why was XcodeBenchmark created?**
+`XcodeBenchmark` was initially created for [Max Tech](https://www.youtube.com/channel/UCptwuAv0XQHo1OQUSaO6NHw) YouTube channel to compare the performance of new iMacs 2020.
+
 ## YouTubers and bloggers
 
 You are free to use these results in your videos and articles as well as to run XcodeBenchmark to compare Macs.
 Please make sure to add [the link](https://github.com/devMEremenko/XcodeBenchmark/) to this repository.
-
 
 ## Contribution
 
