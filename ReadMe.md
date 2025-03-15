@@ -12,6 +12,7 @@ If a device you are looking for is not listed below, check out open [issues](htt
 
 |        Device        |           CPU           | RAM | SSD | Xcode |   macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:-----:|:--------:|:---------:|
+| Mac Studio 2025      |      M4 Max 16-core     | 64  | 2TB | 16.2  |   15.3   |    57     |
 | MacBook Pro 16" 2024 |      M4 Max 16-core     | 64  | 2TB | 16.2  |   15.2   |    77     |
 | MacBook Pro 16" 2024 |      M4 Max 16-core     | 64  | 1TB | 16.2  |   15.2   |    78     |
 | MacBook Pro 16" 2024 |      M4 Max 16-core     | 128 | 4TB | 16.1  |   15.1   |    81     |
