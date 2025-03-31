@@ -34,6 +34,7 @@ If a device you are looking for is not listed below, check out open [issues](htt
 | Mac Mini 2024        |      M4 Pro 14-core     | 24  | 512 | 16.1  |   15.1   |    96     |
 | Mac Mini 2024        |      M4 Pro 14-core     | 64  | 1TB | 16.1  |   15.1   |    96     |
 | MacBook Pro 14" 2024 |      M4 Pro 14-core     | 48  | 512 | 16.1  |   15.1   |    97     |
+| MacBook Pro 14" 2023 |      M3 Max 14-core     | 36  | 1TB | 16.2  |   15.3.2 |    100    |
 | Mac Mini 2024        |      M4 Pro 12-core     | 24  | 512 | 16.1  |   15.1   |    103    |
 | MacBook Pro 14" 2024 |	  M4 Pro 12-core	 | 48  | 512 | 16.1  | 	 15.1   |    106    |
 | Mac Studio 2022      |      M1 Ultra 20-core   | 64  | 2TB | 16.1  |   15.0.1 |    109    |
