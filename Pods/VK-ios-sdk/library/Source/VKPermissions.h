@@ -25,7 +25,6 @@
 extern NSString *const VK_PER_NOTIFY;
 extern NSString *const VK_PER_FRIENDS;
 extern NSString *const VK_PER_PHOTOS;
-extern NSString *const VK_PER_AUDIO;
 extern NSString *const VK_PER_VIDEO;
 extern NSString *const VK_PER_DOCS;
 extern NSString *const VK_PER_NOTES;

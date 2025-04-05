@@ -12,10 +12,12 @@
  * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. */
 
-#include <openssl/crypto.h>
+#include <openssl_grpc/crypto.h>
 
-#include <openssl/cpu.h>
+#include <openssl_grpc/cpu.h>
 
+#include "fipsmodule/rand/fork_detect.h"
+#include "fipsmodule/rand/internal.h"
 #include "internal.h"
 
 
@@ -82,7 +84,7 @@ HIDDEN unsigned long OPENSSL_ppc64le_hwcap2 = 0;
 
 #elif defined(OPENSSL_ARM) || defined(OPENSSL_AARCH64)
 
-#include <openssl/arm_arch.h>
+#include <openssl_grpc/arm_arch.h>
 
 #if defined(OPENSSL_STATIC_ARMCAP)
 
@@ -172,6 +174,15 @@ int CRYPTO_has_asm(void) {
 #else
   return 1;
 #endif
+}
+
+void CRYPTO_pre_sandbox_init(void) {
+  // Read from /proc/cpuinfo if needed.
+  CRYPTO_library_init();
+  // Open /dev/urandom if needed.
+  CRYPTO_init_sysrand();
+  // Set up MADV_WIPEONFORK state if needed.
+  CRYPTO_get_fork_generation();
 }
 
 const char *SSLeay_version(int which) { return OpenSSL_version(which); }

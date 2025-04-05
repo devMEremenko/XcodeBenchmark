@@ -15,6 +15,8 @@
 
 #import "GooglePlacesDemos/DemoData.h"
 
+#import <GooglePlaces/GooglePlaces.h>
+#import "GooglePlacesDemos/Samples/Autocomplete/AutocompleteBaseViewController.h"
 #import "GooglePlacesDemos/Samples/Autocomplete/AutocompleteModalViewController.h"
 #import "GooglePlacesDemos/Samples/Autocomplete/AutocompletePushViewController.h"
 #import "GooglePlacesDemos/Samples/Autocomplete/AutocompleteWithCustomColors.h"
@@ -48,7 +50,6 @@
     controller.autocompleteFilter = autocompleteFilter;
     controller.placeFields = placeFields;
   }
-
   return demoViewController;
 }
 
@@ -89,7 +90,7 @@
       [[DemoSection alloc]
           initWithTitle:NSLocalizedString(@"Demo.Section.Title.FindPlaceLikelihood",
                                           @"Title of the findPlaceLikelihood demo section")
-                  demos:findPlaceLikelihoodDemos]
+                  demos:findPlaceLikelihoodDemos],
     ];
   }
   return self;

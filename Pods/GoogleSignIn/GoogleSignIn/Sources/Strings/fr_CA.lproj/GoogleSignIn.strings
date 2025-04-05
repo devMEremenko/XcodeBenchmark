@@ -1,0 +1,32 @@
+/* Sign-in button text */
+"Sign in" = "Se connecter";
+
+/* Long form sign-in button text */
+"Sign in with Google" = "Se connecter à Google";
+
+/* The text for the button for user to acknowledge and dismiss a dialog. */
+"OK" = "OK";
+
+/* The text for the button for user to dismiss a dialog without taking any action. */
+"Cancel" = "Annuler";
+
+/* The name of the iOS native "Settings" app. */
+"SettingsAppName" = "Paramètres";
+
+/* The title for the error dialog for unable to sign in because of EMM policy. */
+"EmmErrorTitle" = "Impossible de se connecter au compte";
+
+/* The text in the error dialog asking user to set up a passcode for the device due to EMM policy. */
+"EmmPasscodeRequired" = "Pour que votre administrateur puisse accéder à ce compte, vous devez définir un mot de passe sur cet appareil. Veuillez définir un mot de passe et réessayer.";
+
+/* The text in the error dialog informing user that EMM policy prevented sign-in on the device. */
+"EmmGeneralError" = "L'appareil n'est pas conforme à la politique de sécurité définie par votre administrateur.";
+
+/* The title in the error dialog informing user that connecting with Device Policy app is required. */
+"EmmConnectTitle" = "Connexion avec l'application Device Policy?";
+
+/* The text in the error dialog informing user that connecting with Device Policy app is required. */
+"EmmConnectText" = "Pour protéger les données de votre organisation, vous devez vous connecter à l'application Device Policy avant de vous connecter.";
+
+/* The action button label in the error dialog informing user that connecting with Device Policy app is required. */
+"EmmConnectLabel" = "Connexion";

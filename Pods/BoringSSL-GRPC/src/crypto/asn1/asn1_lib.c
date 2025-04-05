@@ -64,6 +64,7 @@
 #include <openssl_grpc/mem.h>
 
 #include "../internal.h"
+#include "internal.h"
 
 
 /* Cross-module errors from crypto/x509/i2d_pr.c. */
@@ -103,8 +104,7 @@ OPENSSL_DECLARE_ERROR_REASON(ASN1, UNKNOWN_FORMAT)
 OPENSSL_DECLARE_ERROR_REASON(ASN1, UNKNOWN_TAG)
 OPENSSL_DECLARE_ERROR_REASON(ASN1, UNSUPPORTED_TYPE)
 
-static int asn1_get_length(const unsigned char **pp, int *inf, long *rl,
-                           long max);
+static int asn1_get_length(const unsigned char **pp, long *rl, long max);
 static void asn1_put_length(unsigned char **pp, int length);
 
 int ASN1_get_object(const unsigned char **pp, long *plength, int *ptag,
@@ -113,7 +113,7 @@ int ASN1_get_object(const unsigned char **pp, long *plength, int *ptag,
     int i, ret;
     long l;
     const unsigned char *p = *pp;
-    int tag, xclass, inf;
+    int tag, xclass;
     long max = omax;
 
     if (!max)
@@ -152,58 +152,43 @@ int ASN1_get_object(const unsigned char **pp, long *plength, int *ptag,
 
     *ptag = tag;
     *pclass = xclass;
-    if (!asn1_get_length(&p, &inf, plength, max))
+    if (!asn1_get_length(&p, plength, max))
         goto err;
 
-    if (inf && !(ret & V_ASN1_CONSTRUCTED))
-        goto err;
-
-#if 0
-    fprintf(stderr, "p=%d + *plength=%ld > omax=%ld + *pp=%d  (%d > %d)\n",
-            (int)p, *plength, omax, (int)*pp, (int)(p + *plength),
-            (int)(omax + *pp));
-
-#endif
     if (*plength > (omax - (p - *pp))) {
         OPENSSL_PUT_ERROR(ASN1, ASN1_R_TOO_LONG);
-        /*
-         * Set this so that even if things are not long enough the values are
-         * set correctly
-         */
-        ret |= 0x80;
+        return 0x80;
     }
     *pp = p;
-    return (ret | inf);
+    return ret;
  err:
     OPENSSL_PUT_ERROR(ASN1, ASN1_R_HEADER_TOO_LONG);
-    return (0x80);
+    return 0x80;
 }
 
-static int asn1_get_length(const unsigned char **pp, int *inf, long *rl,
-                           long max)
+static int asn1_get_length(const unsigned char **pp, long *rl, long max)
 {
     const unsigned char *p = *pp;
     unsigned long ret = 0;
     unsigned long i;
 
-    if (max-- < 1)
+    if (max-- < 1) {
         return 0;
+    }
     if (*p == 0x80) {
-        *inf = 1;
-        ret = 0;
-        p++;
+        /* We do not support BER indefinite-length encoding. */
+        return 0;
+    }
+    i = *p & 0x7f;
+    if (*(p++) & 0x80) {
+        if (i > sizeof(ret) || max < (long)i)
+            return 0;
+        while (i-- > 0) {
+            ret <<= 8L;
+            ret |= *(p++);
+        }
     } else {
-        *inf = 0;
-        i = *p & 0x7f;
-        if (*(p++) & 0x80) {
-            if (i > sizeof(ret) || max < (long)i)
-                return 0;
-            while (i-- > 0) {
-                ret <<= 8L;
-                ret |= *(p++);
-            }
-        } else
-            ret = i;
+        ret = i;
     }
     /*
      * Bound the length to comfortably fit in an int. Lengths in this module
@@ -251,6 +236,8 @@ void ASN1_put_object(unsigned char **pp, int constructed, int length, int tag,
 
 int ASN1_put_eoc(unsigned char **pp)
 {
+    /* This function is no longer used in the library, but some external code
+     * uses it. */
     unsigned char *p = *pp;
     *p++ = 0;
     *p++ = 0;
@@ -311,9 +298,9 @@ int ASN1_STRING_copy(ASN1_STRING *dst, const ASN1_STRING *str)
 {
     if (str == NULL)
         return 0;
-    dst->type = str->type;
     if (!ASN1_STRING_set(dst, str->data, str->length))
         return 0;
+    dst->type = str->type;
     dst->flags = str->flags;
     return 1;
 }
@@ -368,8 +355,7 @@ int ASN1_STRING_set(ASN1_STRING *str, const void *_data, int len)
 
 void ASN1_STRING_set0(ASN1_STRING *str, void *data, int len)
 {
-    if (str->data)
-        OPENSSL_free(str->data);
+    OPENSSL_free(str->data);
     str->data = data;
     str->length = len;
 }
@@ -395,52 +381,72 @@ ASN1_STRING *ASN1_STRING_type_new(int type)
     return (ret);
 }
 
-void ASN1_STRING_free(ASN1_STRING *a)
+void ASN1_STRING_free(ASN1_STRING *str)
 {
-    if (a == NULL)
+    if (str == NULL)
         return;
-    if (a->data && !(a->flags & ASN1_STRING_FLAG_NDEF))
-        OPENSSL_free(a->data);
-    OPENSSL_free(a);
+    OPENSSL_free(str->data);
+    OPENSSL_free(str);
 }
 
 int ASN1_STRING_cmp(const ASN1_STRING *a, const ASN1_STRING *b)
 {
-    int i;
+    /* Capture padding bits and implicit truncation in BIT STRINGs. */
+    int a_length = a->length, b_length = b->length;
+    uint8_t a_padding = 0, b_padding = 0;
+    if (a->type == V_ASN1_BIT_STRING) {
+        a_length = asn1_bit_string_length(a, &a_padding);
+    }
+    if (b->type == V_ASN1_BIT_STRING) {
+        b_length = asn1_bit_string_length(b, &b_padding);
+    }
 
-    i = (a->length - b->length);
-    if (i == 0) {
-        i = OPENSSL_memcmp(a->data, b->data, a->length);
-        if (i == 0)
-            return (a->type - b->type);
-        else
-            return (i);
-    } else
-        return (i);
+    if (a_length < b_length) {
+        return -1;
+    }
+    if (a_length > b_length) {
+        return 1;
+    }
+    /* In a BIT STRING, the number of bits is 8 * length - padding. Invert this
+     * comparison so we compare by lengths. */
+    if (a_padding > b_padding) {
+        return -1;
+    }
+    if (a_padding < b_padding) {
+        return 1;
+    }
+
+    int ret = OPENSSL_memcmp(a->data, b->data, a_length);
+    if (ret != 0) {
+        return ret;
+    }
+
+    /* Comparing the type first is more natural, but this matches OpenSSL. */
+    if (a->type < b->type) {
+        return -1;
+    }
+    if (a->type > b->type) {
+        return 1;
+    }
+    return 0;
 }
 
-int ASN1_STRING_length(const ASN1_STRING *x)
+int ASN1_STRING_length(const ASN1_STRING *str)
 {
-    return M_ASN1_STRING_length(x);
+    return str->length;
 }
 
-void ASN1_STRING_length_set(ASN1_STRING *x, int len)
+int ASN1_STRING_type(const ASN1_STRING *str)
 {
-    M_ASN1_STRING_length_set(x, len);
-    return;
+    return str->type;
 }
 
-int ASN1_STRING_type(ASN1_STRING *x)
+unsigned char *ASN1_STRING_data(ASN1_STRING *str)
 {
-    return M_ASN1_STRING_type(x);
+    return str->data;
 }
 
-unsigned char *ASN1_STRING_data(ASN1_STRING *x)
+const unsigned char *ASN1_STRING_get0_data(const ASN1_STRING *str)
 {
-    return M_ASN1_STRING_data(x);
-}
-
-const unsigned char *ASN1_STRING_get0_data(const ASN1_STRING *x)
-{
-    return x->data;
+    return str->data;
 }

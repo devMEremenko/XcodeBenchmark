@@ -1,124 +1,108 @@
-/*
- *
- * Copyright 2018 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+//
+// Copyright 2018 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 
 #ifndef GRPC_CORE_EXT_FILTERS_CLIENT_CHANNEL_RESOLVER_RESULT_PARSING_H
 #define GRPC_CORE_EXT_FILTERS_CLIENT_CHANNEL_RESOLVER_RESULT_PARSING_H
 
 #include <grpc/support/port_platform.h>
 
-#include "src/core/ext/filters/client_channel/lb_policy.h"
-#include "src/core/ext/filters/client_channel/lb_policy_factory.h"
-#include "src/core/ext/filters/client_channel/resolver.h"
-#include "src/core/ext/filters/client_channel/retry_throttle.h"
-#include "src/core/ext/filters/client_channel/service_config.h"
-#include "src/core/lib/channel/status_util.h"
-#include "src/core/lib/gprpp/optional.h"
-#include "src/core/lib/gprpp/ref_counted.h"
+#include <stddef.h>
+
+#include <memory>
+#include <string>
+#include <utility>
+
+#include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
+
+#include "src/core/lib/channel/channel_args.h"
+#include "src/core/lib/config/core_configuration.h"
 #include "src/core/lib/gprpp/ref_counted_ptr.h"
-#include "src/core/lib/iomgr/exec_ctx.h"  // for grpc_millis
+#include "src/core/lib/gprpp/time.h"
 #include "src/core/lib/json/json.h"
-#include "src/core/lib/slice/slice_hash_table.h"
+#include "src/core/lib/load_balancing/lb_policy.h"
+#include "src/core/lib/service_config/service_config_parser.h"
 
 namespace grpc_core {
 namespace internal {
 
-class ClientChannelGlobalParsedConfig : public ServiceConfig::ParsedConfig {
+class ClientChannelGlobalParsedConfig
+    : public ServiceConfigParser::ParsedConfig {
  public:
-  struct RetryThrottling {
-    intptr_t max_milli_tokens = 0;
-    intptr_t milli_token_ratio = 0;
-  };
-
   ClientChannelGlobalParsedConfig(
       RefCountedPtr<LoadBalancingPolicy::Config> parsed_lb_config,
-      grpc_core::UniquePtr<char> parsed_deprecated_lb_policy,
-      const Optional<RetryThrottling>& retry_throttling,
-      const char* health_check_service_name)
+      std::string parsed_deprecated_lb_policy,
+      absl::optional<std::string> health_check_service_name)
       : parsed_lb_config_(std::move(parsed_lb_config)),
         parsed_deprecated_lb_policy_(std::move(parsed_deprecated_lb_policy)),
-        retry_throttling_(retry_throttling),
-        health_check_service_name_(health_check_service_name) {}
-
-  Optional<RetryThrottling> retry_throttling() const {
-    return retry_throttling_;
-  }
+        health_check_service_name_(std::move(health_check_service_name)) {}
 
   RefCountedPtr<LoadBalancingPolicy::Config> parsed_lb_config() const {
     return parsed_lb_config_;
   }
 
-  const char* parsed_deprecated_lb_policy() const {
-    return parsed_deprecated_lb_policy_.get();
+  const std::string& parsed_deprecated_lb_policy() const {
+    return parsed_deprecated_lb_policy_;
   }
 
-  const char* health_check_service_name() const {
+  const absl::optional<std::string>& health_check_service_name() const {
     return health_check_service_name_;
   }
 
  private:
   RefCountedPtr<LoadBalancingPolicy::Config> parsed_lb_config_;
-  grpc_core::UniquePtr<char> parsed_deprecated_lb_policy_;
-  Optional<RetryThrottling> retry_throttling_;
-  const char* health_check_service_name_;
+  std::string parsed_deprecated_lb_policy_;
+  absl::optional<std::string> health_check_service_name_;
 };
 
-class ClientChannelMethodParsedConfig : public ServiceConfig::ParsedConfig {
+class ClientChannelMethodParsedConfig
+    : public ServiceConfigParser::ParsedConfig {
  public:
-  struct RetryPolicy {
-    int max_attempts = 0;
-    grpc_millis initial_backoff = 0;
-    grpc_millis max_backoff = 0;
-    float backoff_multiplier = 0;
-    StatusCodeSet retryable_status_codes;
-  };
+  ClientChannelMethodParsedConfig(Duration timeout,
+                                  const absl::optional<bool>& wait_for_ready)
+      : timeout_(timeout), wait_for_ready_(wait_for_ready) {}
 
-  ClientChannelMethodParsedConfig(grpc_millis timeout,
-                                  const Optional<bool>& wait_for_ready,
-                                  std::unique_ptr<RetryPolicy> retry_policy)
-      : timeout_(timeout),
-        wait_for_ready_(wait_for_ready),
-        retry_policy_(std::move(retry_policy)) {}
+  Duration timeout() const { return timeout_; }
 
-  grpc_millis timeout() const { return timeout_; }
-
-  Optional<bool> wait_for_ready() const { return wait_for_ready_; }
-
-  const RetryPolicy* retry_policy() const { return retry_policy_.get(); }
+  absl::optional<bool> wait_for_ready() const { return wait_for_ready_; }
 
  private:
-  grpc_millis timeout_ = 0;
-  Optional<bool> wait_for_ready_;
-  std::unique_ptr<RetryPolicy> retry_policy_;
+  Duration timeout_;
+  absl::optional<bool> wait_for_ready_;
 };
 
-class ClientChannelServiceConfigParser : public ServiceConfig::Parser {
+class ClientChannelServiceConfigParser : public ServiceConfigParser::Parser {
  public:
-  std::unique_ptr<ServiceConfig::ParsedConfig> ParseGlobalParams(
-      const Json& json, grpc_error** error) override;
+  absl::string_view name() const override { return parser_name(); }
 
-  std::unique_ptr<ServiceConfig::ParsedConfig> ParsePerMethodParams(
-      const Json& json, grpc_error** error) override;
+  absl::StatusOr<std::unique_ptr<ServiceConfigParser::ParsedConfig>>
+  ParseGlobalParams(const ChannelArgs& /*args*/, const Json& json) override;
+
+  absl::StatusOr<std::unique_ptr<ServiceConfigParser::ParsedConfig>>
+  ParsePerMethodParams(const ChannelArgs& /*args*/, const Json& json) override;
 
   static size_t ParserIndex();
-  static void Register();
+  static void Register(CoreConfiguration::Builder* builder);
+
+ private:
+  static absl::string_view parser_name() { return "client_channel"; }
 };
 
 }  // namespace internal
 }  // namespace grpc_core
 
-#endif /* GRPC_CORE_EXT_FILTERS_CLIENT_CHANNEL_RESOLVER_RESULT_PARSING_H */
+#endif  // GRPC_CORE_EXT_FILTERS_CLIENT_CHANNEL_RESOLVER_RESULT_PARSING_H

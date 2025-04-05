@@ -54,12 +54,12 @@
  * copied and put under another distribution licence
  * [including the GNU Public Licence.] */
 
-#include <openssl/buf.h>
+#include <openssl_grpc/buf.h>
 
 #include <string.h>
 
-#include <openssl/mem.h>
-#include <openssl/err.h>
+#include <openssl_grpc/mem.h>
+#include <openssl_grpc/err.h>
 
 #include "../internal.h"
 

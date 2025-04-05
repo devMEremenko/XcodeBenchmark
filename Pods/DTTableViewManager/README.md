@@ -16,12 +16,13 @@ DTTableViewManager
 - [x] Views created from code, XIB, or storyboard, automatic registration and dequeue
 - [x] Can be used with UITableViewController, or UIViewController with UITableView
 - [x] Unified syntax with [DTCollectionViewManager](https://github.com/DenTelezhkin/DTCollectionViewManager)
+- [x] Support for SwiftUI - backed cells in iOS 13+ / tvOS 13+ / macCatalyst 13+
 - [x] [Complete documentation](Documentation)
 - [x] [API Reference](https://dentelezhkin.github.io/DTTableViewManager/)
 
 ## Requirements
 
-* Xcode 12+
+* Xcode 13+
 * iOS 11.0+ / tvOS 11.0+ / macCatalyst 13.0+
 * Swift 5.3+
 
@@ -35,7 +36,7 @@ Add package into Xcode Project settings -> Swift Packages
 
 ### [CocoaPods](http://www.cocoapods.org):
 
-    pod 'DTTableViewManager', '~> 8.0.0'
+    pod 'DTTableViewManager', '~> 11.0.0-beta.1'
 
 ## Quick start
 
@@ -80,6 +81,7 @@ Of course, cool stuff does not stop there, framework supports all datasource and
 
 * **[Why do I need this library?](Documentation/Why.md)**
 * [How data models are mapped to cells?](Documentation/Mapping.md)
+* [Can I show SwiftUI views in UITableViewCells?](Documentation/SwiftUI.md)
 * [Can I use unsubclassed UITableViewCell or UITableViewHeaderFooterView?](Documentation/Mapping.md#without-modeltransfer)
 * [How can I register views to dequeue from code/xib/storyboard?](Documentation/Registration.md)
 * [How can I use the same cells differently in different places?](Documentation/Conditional%20mappings.md)
@@ -88,6 +90,7 @@ Of course, cool stuff does not stop there, framework supports all datasource and
 
 ###### Advanced
 
+* [SwiftUI-backed cells](Documentation/SwiftUI.md)
 * [Can I implement delegate methods instead of using DTTableViewManager event closures?](Documentation/Events.md#can-i-still-use-delegate-methods)
 * [How can I react to and customize UITableView updates?](Documentation/TableViewUpdater.md)
 * [What can be additionally configured when using DTTableViewManager with UITableView?](Documentation/TableViewConfiguration)

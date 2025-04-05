@@ -106,16 +106,16 @@
  * (eay@cryptsoft.com).  This product includes software written by Tim
  * Hudson (tjh@cryptsoft.com). */
 
-#include <openssl/ex_data.h>
+#include <openssl_grpc/ex_data.h>
 
 #include <assert.h>
 #include <string.h>
 
-#include <openssl/crypto.h>
-#include <openssl/err.h>
-#include <openssl/mem.h>
-#include <openssl/stack.h>
-#include <openssl/thread.h>
+#include <openssl_grpc/crypto.h>
+#include <openssl_grpc/err.h>
+#include <openssl_grpc/mem.h>
+#include <openssl_grpc/stack.h>
+#include <openssl_grpc/thread.h>
 
 #include "internal.h"
 

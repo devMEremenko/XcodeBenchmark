@@ -18,11 +18,11 @@
 
 #import <objc/runtime.h>
 
+#import <GoogleUtilities/GULAppDelegateSwizzler.h>
 #import "FirebaseMessaging/Sources/FIRMessagingConstants.h"
 #import "FirebaseMessaging/Sources/FIRMessagingLogger.h"
 #import "FirebaseMessaging/Sources/FIRMessagingUtilities.h"
 #import "FirebaseMessaging/Sources/FIRMessaging_Private.h"
-#import "GoogleUtilities/AppDelegateSwizzler/Private/GULAppDelegateSwizzler.h"
 
 static void *UserNotificationObserverContext = &UserNotificationObserverContext;
 
@@ -339,7 +339,7 @@ static NSString *kUserNotificationDidReceiveResponseSelectorString =
   } else {
     // This class originally did not have an implementation for this selector.
 
-    // We can't actually remove methods in Objective C 2.0, but we could set
+    // We can't actually remove methods in Objective-C 2.0, but we could set
     // its method to something non-existent. This should give us the same
     // behavior as if the method was not implemented.
     // See: http://stackoverflow.com/a/8276527/9849
@@ -397,6 +397,7 @@ id FIRMessagingPropertyNameFromObject(id object, NSString *propertyName, Class k
     didReceiveRemoteNotification:(NSDictionary *)userInfo
           fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler {
   [[FIRMessaging messaging] appDidReceiveMessage:userInfo];
+  completionHandler(UIBackgroundFetchResultNoData);
 }
 
 - (void)application:(UIApplication *)application

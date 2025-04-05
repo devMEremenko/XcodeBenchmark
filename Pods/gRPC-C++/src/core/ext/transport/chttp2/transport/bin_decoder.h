@@ -21,8 +21,10 @@
 
 #include <grpc/support/port_platform.h>
 
+#include <stddef.h>
+#include <stdint.h>
+
 #include <grpc/slice.h>
-#include <stdbool.h>
 
 struct grpc_base64_decode_context {
   /* input/output: */

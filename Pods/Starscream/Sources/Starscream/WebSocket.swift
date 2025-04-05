@@ -41,7 +41,7 @@ public struct WSError: Error {
     }
 }
 
-public protocol WebSocketClient: class {
+public protocol WebSocketClient: AnyObject {
     func connect()
     func disconnect(closeCode: UInt16)
     func write(string: String, completion: (() -> ())?)
@@ -85,10 +85,11 @@ public enum WebSocketEvent {
     case viabilityChanged(Bool)
     case reconnectSuggested(Bool)
     case cancelled
+    case peerClosed
 }
 
-public protocol WebSocketDelegate: class {
-    func didReceive(event: WebSocketEvent, client: WebSocket)
+public protocol WebSocketDelegate: AnyObject {
+    func didReceive(event: WebSocketEvent, client: WebSocketClient)
 }
 
 open class WebSocket: WebSocketClient, EngineDelegate {
@@ -109,11 +110,6 @@ open class WebSocket: WebSocketClient, EngineDelegate {
             return e.respondToPingWithPong
         }
     }
-    
-    // serial write queue to ensure writes happen in order
-    private let writeQueue = DispatchQueue(label: "com.vluxe.starscream.writequeue")
-    private var canSend = false
-    private let mutex = DispatchSemaphore(value: 1)
     
     public init(request: URLRequest, engine: Engine) {
         self.request = request

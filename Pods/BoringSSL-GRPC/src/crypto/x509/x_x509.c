@@ -69,6 +69,7 @@
 #include <openssl_grpc/x509v3.h>
 
 #include "../internal.h"
+#include "internal.h"
 
 static CRYPTO_EX_DATA_CLASS g_ex_data_class = CRYPTO_EX_DATA_CLASS_INIT;
 
@@ -98,7 +99,6 @@ static int x509_cb(int operation, ASN1_VALUE **pval, const ASN1_ITEM *it,
     switch (operation) {
 
     case ASN1_OP_NEW_POST:
-        ret->name = NULL;
         ret->ex_flags = 0;
         ret->ex_pathlen = -1;
         ret->skid = NULL;
@@ -115,11 +115,35 @@ static int x509_cb(int operation, ASN1_VALUE **pval, const ASN1_ITEM *it,
         ret->buf = NULL;
         break;
 
-    case ASN1_OP_D2I_POST:
-        if (ret->name != NULL)
-            OPENSSL_free(ret->name);
-        ret->name = X509_NAME_oneline(ret->cert_info->subject, NULL, 0);
+    case ASN1_OP_D2I_POST: {
+        /* The version must be one of v1(0), v2(1), or v3(2). */
+        long version = 0;
+        if (ret->cert_info->version != NULL) {
+            version = ASN1_INTEGER_get(ret->cert_info->version);
+            /* TODO(https://crbug.com/boringssl/364): |version| = 0 should also
+             * be rejected. This means an explicitly-encoded X.509v1 version.
+             * v1 is DEFAULT, so DER requires it be omitted. */
+            if (version < 0 || version > 2) {
+                OPENSSL_PUT_ERROR(X509, X509_R_INVALID_VERSION);
+                return 0;
+            }
+        }
+
+        /* Per RFC 5280, section 4.1.2.8, these fields require v2 or v3. */
+        if (version == 0 && (ret->cert_info->issuerUID != NULL ||
+                             ret->cert_info->subjectUID != NULL)) {
+            OPENSSL_PUT_ERROR(X509, X509_R_INVALID_FIELD_FOR_VERSION);
+            return 0;
+        }
+
+        /* Per RFC 5280, section 4.1.2.9, extensions require v3. */
+        if (version != 2 && ret->cert_info->extensions != NULL) {
+            OPENSSL_PUT_ERROR(X509, X509_R_INVALID_FIELD_FOR_VERSION);
+            return 0;
+        }
+
         break;
+    }
 
     case ASN1_OP_FREE_POST:
         CRYPTO_MUTEX_cleanup(&ret->lock);
@@ -132,7 +156,6 @@ static int x509_cb(int operation, ASN1_VALUE **pval, const ASN1_ITEM *it,
         GENERAL_NAMES_free(ret->altname);
         NAME_CONSTRAINTS_free(ret->nc);
         CRYPTO_BUFFER_free(ret->buf);
-        OPENSSL_free(ret->name);
         break;
 
     }
@@ -266,13 +289,15 @@ static int i2d_x509_aux_internal(X509 *a, unsigned char **pp)
         return length;
     }
 
-    tmplen = i2d_X509_CERT_AUX(a->aux, pp);
-    if (tmplen < 0) {
-        if (start != NULL)
-            *pp = start;
-        return tmplen;
+    if (a->aux != NULL) {
+        tmplen = i2d_X509_CERT_AUX(a->aux, pp);
+        if (tmplen < 0) {
+            if (start != NULL)
+                *pp = start;
+            return tmplen;
+        }
+        length += tmplen;
     }
-    length += tmplen;
 
     return length;
 }
@@ -313,10 +338,45 @@ int i2d_X509_AUX(X509 *a, unsigned char **pp)
     return length;
 }
 
-int i2d_re_X509_tbs(X509 *x, unsigned char **pp)
+int i2d_re_X509_tbs(X509 *x509, unsigned char **outp)
 {
-    x->cert_info->enc.modified = 1;
-    return i2d_X509_CINF(x->cert_info, pp);
+    x509->cert_info->enc.modified = 1;
+    return i2d_X509_CINF(x509->cert_info, outp);
+}
+
+int i2d_X509_tbs(X509 *x509, unsigned char **outp)
+{
+    return i2d_X509_CINF(x509->cert_info, outp);
+}
+
+int X509_set1_signature_algo(X509 *x509, const X509_ALGOR *algo)
+{
+    /* TODO(davidben): Const-correct generated ASN.1 dup functions.
+     * Alternatively, when the types are hidden and we can embed required fields
+     * directly in structs, import |X509_ALGOR_copy| from upstream. */
+    X509_ALGOR *copy1 = X509_ALGOR_dup((X509_ALGOR *)algo);
+    X509_ALGOR *copy2 = X509_ALGOR_dup((X509_ALGOR *)algo);
+    if (copy1 == NULL || copy2 == NULL) {
+        X509_ALGOR_free(copy1);
+        X509_ALGOR_free(copy2);
+        return 0;
+    }
+
+    X509_ALGOR_free(x509->sig_alg);
+    x509->sig_alg = copy1;
+    X509_ALGOR_free(x509->cert_info->signature);
+    x509->cert_info->signature = copy2;
+    return 1;
+}
+
+int X509_set1_signature_value(X509 *x509, const uint8_t *sig, size_t sig_len)
+{
+    if (!ASN1_STRING_set(x509->signature, sig, sig_len)) {
+      return 0;
+    }
+    x509->signature->flags &= ~(ASN1_STRING_FLAG_BITS_LEFT | 0x07);
+    x509->signature->flags |= ASN1_STRING_FLAG_BITS_LEFT;
+    return 1;
 }
 
 void X509_get0_signature(const ASN1_BIT_STRING **psig, const X509_ALGOR **palg,
