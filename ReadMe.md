@@ -54,6 +54,7 @@ If a device you are looking for is not listed below, check out open [issues](htt
 | MacBook Air 13" 2022 |      M2 8-core          | 16  | 512 | 16.1  |   15.1   |    202    |
 | MacBook Air 13" 2020 |      M1 8c (7c GPU)     |  8  | 256 | 16.2  |   15.3.2 |    242    |
 | MacBook Pro 13" 2020 |      M1 8c (8c GPU)     | 16  | 256 | 16.1  |   15.1   |    258    |
+| iMac19,2 21.5" 2019  |      i7 3.2 GHz         | 16  | 512 | 16.2  |   14.7.5 |    349    |
 | Mac Mini 2018        |      i7 3.2 GHz         | 64  | 512 | 16.1  |   15.1   |    490    |
 
 ## Xcode 15
