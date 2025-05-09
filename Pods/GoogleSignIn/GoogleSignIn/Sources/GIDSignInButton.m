@@ -230,10 +230,15 @@ static UIColor *colorForStyleState(GIDSignInButtonColorScheme style,
 }
 
 - (void)encodeWithCoder:(NSCoder *)aCoder {
-  [super encodeWithCoder:aCoder];
   [aCoder encodeInteger:_style forKey:kStyleKey];
   [aCoder encodeInteger:_colorScheme forKey:kColorSchemeKey];
   [aCoder encodeInteger:_buttonState forKey:kButtonState];
+}
+
+#pragma mark - NSSecureCoding
+
++ (BOOL)supportsSecureCoding {
+  return YES;
 }
 
 #pragma mark - UI

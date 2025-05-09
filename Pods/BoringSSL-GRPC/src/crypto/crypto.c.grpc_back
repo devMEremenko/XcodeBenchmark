@@ -14,32 +14,15 @@
 
 #include <openssl_grpc/crypto.h>
 
-#include <openssl_grpc/cpu.h>
+#include <assert.h>
 
-#include "fipsmodule/rand/fork_detect.h"
 #include "fipsmodule/rand/internal.h"
+#include "bcm_support.h"
 #include "internal.h"
 
 
-#if !defined(OPENSSL_NO_ASM) && !defined(OPENSSL_STATIC_ARMCAP) && \
-    (defined(OPENSSL_X86) || defined(OPENSSL_X86_64) || \
-     defined(OPENSSL_ARM) || defined(OPENSSL_AARCH64) || \
-     defined(OPENSSL_PPC64LE))
-// x86, x86_64, the ARMs and ppc64le need to record the result of a
-// cpuid/getauxval call for the asm to work correctly, unless compiled without
-// asm code.
-#define NEED_CPUID
-
-#else
-
-// Otherwise, don't emit a static initialiser.
-
-#if !defined(BORINGSSL_NO_STATIC_INITIALIZER)
-#define BORINGSSL_NO_STATIC_INITIALIZER
-#endif
-
-#endif  // !NO_ASM && !STATIC_ARMCAP &&
-        // (X86 || X86_64 || ARM || AARCH64 || PPC64LE)
+static_assert(sizeof(ossl_ssize_t) == sizeof(size_t),
+              "ossl_ssize_t should be the same size as size_t");
 
 
 // Our assembly does not use the GOT to reference symbols, which means
@@ -78,9 +61,10 @@ HIDDEN uint8_t BORINGSSL_function_hit[7] = {0};
 // This value must be explicitly initialized to zero. See similar comment above.
 HIDDEN uint32_t OPENSSL_ia32cap_P[4] = {0};
 
-#elif defined(OPENSSL_PPC64LE)
-
-HIDDEN unsigned long OPENSSL_ppc64le_hwcap2 = 0;
+uint32_t OPENSSL_get_ia32cap(int idx) {
+  OPENSSL_init_cpuid();
+  return OPENSSL_ia32cap_P[idx];
+}
 
 #elif defined(OPENSSL_ARM) || defined(OPENSSL_AARCH64)
 
@@ -88,22 +72,31 @@ HIDDEN unsigned long OPENSSL_ppc64le_hwcap2 = 0;
 
 #if defined(OPENSSL_STATIC_ARMCAP)
 
+// See ARM ACLE for the definitions of these macros. Note |__ARM_FEATURE_AES|
+// covers both AES and PMULL and |__ARM_FEATURE_SHA2| covers SHA-1 and SHA-256.
+// https://developer.arm.com/architectures/system-architectures/software-standards/acle
+// https://github.com/ARM-software/acle/issues/152
+//
+// TODO(davidben): Do we still need |OPENSSL_STATIC_ARMCAP_*| or are the
+// standard flags and -march sufficient?
 HIDDEN uint32_t OPENSSL_armcap_P =
-#if defined(OPENSSL_STATIC_ARMCAP_NEON) || \
-    (defined(__ARM_NEON__) || defined(__ARM_NEON))
+#if defined(OPENSSL_STATIC_ARMCAP_NEON) || defined(__ARM_NEON)
     ARMV7_NEON |
 #endif
-#if defined(OPENSSL_STATIC_ARMCAP_AES) || defined(__ARM_FEATURE_CRYPTO)
+#if defined(OPENSSL_STATIC_ARMCAP_AES) || defined(__ARM_FEATURE_AES)
     ARMV8_AES |
 #endif
-#if defined(OPENSSL_STATIC_ARMCAP_SHA1) || defined(__ARM_FEATURE_CRYPTO)
+#if defined(OPENSSL_STATIC_ARMCAP_PMULL) || defined(__ARM_FEATURE_AES)
+    ARMV8_PMULL |
+#endif
+#if defined(OPENSSL_STATIC_ARMCAP_SHA1) || defined(__ARM_FEATURE_SHA2)
     ARMV8_SHA1 |
 #endif
-#if defined(OPENSSL_STATIC_ARMCAP_SHA256) || defined(__ARM_FEATURE_CRYPTO)
+#if defined(OPENSSL_STATIC_ARMCAP_SHA256) || defined(__ARM_FEATURE_SHA2)
     ARMV8_SHA256 |
 #endif
-#if defined(OPENSSL_STATIC_ARMCAP_PMULL) || defined(__ARM_FEATURE_CRYPTO)
-    ARMV8_PMULL |
+#if defined(__ARM_FEATURE_SHA512)
+    ARMV8_SHA512 |
 #endif
     0;
 
@@ -111,54 +104,24 @@ HIDDEN uint32_t OPENSSL_armcap_P =
 HIDDEN uint32_t OPENSSL_armcap_P = 0;
 
 uint32_t *OPENSSL_get_armcap_pointer_for_test(void) {
+  OPENSSL_init_cpuid();
   return &OPENSSL_armcap_P;
 }
 #endif
 
+uint32_t OPENSSL_get_armcap(void) {
+  OPENSSL_init_cpuid();
+  return OPENSSL_armcap_P;
+}
+
 #endif
 
-#if defined(BORINGSSL_FIPS)
-// In FIPS mode, the power-on self-test function calls |CRYPTO_library_init|
-// because we have to ensure that CPUID detection occurs first.
-#define BORINGSSL_NO_STATIC_INITIALIZER
-#endif
-
-#if defined(OPENSSL_WINDOWS) && !defined(BORINGSSL_NO_STATIC_INITIALIZER)
-#define OPENSSL_CDECL __cdecl
-#else
-#define OPENSSL_CDECL
-#endif
-
-#if defined(BORINGSSL_NO_STATIC_INITIALIZER)
-static CRYPTO_once_t once = CRYPTO_ONCE_INIT;
-#elif defined(_MSC_VER)
-#pragma section(".CRT$XCU", read)
-static void __cdecl do_library_init(void);
-__declspec(allocate(".CRT$XCU")) void(*library_init_constructor)(void) =
-    do_library_init;
-#else
-static void do_library_init(void) __attribute__ ((constructor));
-#endif
-
-// do_library_init is the actual initialization function. If
-// BORINGSSL_NO_STATIC_INITIALIZER isn't defined, this is set as a static
-// initializer. Otherwise, it is called by CRYPTO_library_init.
-static void OPENSSL_CDECL do_library_init(void) {
- // WARNING: this function may only configure the capability variables. See the
- // note above about the linker bug.
 #if defined(NEED_CPUID)
-  OPENSSL_cpuid_setup();
+static CRYPTO_once_t once = CRYPTO_ONCE_INIT;
+void OPENSSL_init_cpuid(void) { CRYPTO_once(&once, OPENSSL_cpuid_setup); }
 #endif
-}
 
-void CRYPTO_library_init(void) {
-  // TODO(davidben): It would be tidier if this build knob could be replaced
-  // with an internal lazy-init mechanism that would handle things correctly
-  // in-library. https://crbug.com/542879
-#if defined(BORINGSSL_NO_STATIC_INITIALIZER)
-  CRYPTO_once(&once, do_library_init);
-#endif
-}
+void CRYPTO_library_init(void) {}
 
 int CRYPTO_is_confidential_build(void) {
 #if defined(BORINGSSL_CONFIDENTIAL)
@@ -178,7 +141,7 @@ int CRYPTO_has_asm(void) {
 
 void CRYPTO_pre_sandbox_init(void) {
   // Read from /proc/cpuinfo if needed.
-  CRYPTO_library_init();
+  OPENSSL_init_cpuid();
   // Open /dev/urandom if needed.
   CRYPTO_init_sysrand();
   // Set up MADV_WIPEONFORK state if needed.
@@ -219,7 +182,6 @@ int ENGINE_register_all_complete(void) { return 1; }
 void OPENSSL_load_builtin_modules(void) {}
 
 int OPENSSL_init_crypto(uint64_t opts, const OPENSSL_INIT_SETTINGS *settings) {
-  CRYPTO_library_init();
   return 1;
 }
 

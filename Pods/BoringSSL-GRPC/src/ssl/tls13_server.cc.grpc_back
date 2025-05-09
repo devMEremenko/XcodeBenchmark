@@ -17,6 +17,7 @@
 #include <assert.h>
 #include <string.h>
 
+#include <algorithm>
 #include <tuple>
 
 #include <openssl_grpc/aead.h>
@@ -66,25 +67,25 @@ static bool resolve_ecdhe_secret(SSL_HANDSHAKE *hs,
   SSL_HANDSHAKE_HINTS *const hints = hs->hints.get();
   if (hints && !hs->hints_requested && hints->key_share_group_id == group_id &&
       !hints->key_share_secret.empty()) {
-    // Copy DH secret from hints.
-    if (!hs->ecdh_public_key.CopyFrom(hints->key_share_public_key) ||
+    // Copy the key_share secret from hints.
+    if (!hs->key_share_ciphertext.CopyFrom(hints->key_share_ciphertext) ||
         !secret.CopyFrom(hints->key_share_secret)) {
       ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_INTERNAL_ERROR);
       return false;
     }
   } else {
-    ScopedCBB public_key;
+    ScopedCBB ciphertext;
     UniquePtr<SSLKeyShare> key_share = SSLKeyShare::Create(group_id);
     if (!key_share ||  //
-        !CBB_init(public_key.get(), 32) ||
-        !key_share->Accept(public_key.get(), &secret, &alert, peer_key) ||
-        !CBBFinishArray(public_key.get(), &hs->ecdh_public_key)) {
+        !CBB_init(ciphertext.get(), 32) ||
+        !key_share->Encap(ciphertext.get(), &secret, &alert, peer_key) ||
+        !CBBFinishArray(ciphertext.get(), &hs->key_share_ciphertext)) {
       ssl_send_alert(ssl, SSL3_AL_FATAL, alert);
       return false;
     }
     if (hints && hs->hints_requested) {
       hints->key_share_group_id = group_id;
-      if (!hints->key_share_public_key.CopyFrom(hs->ecdh_public_key) ||
+      if (!hints->key_share_ciphertext.CopyFrom(hs->key_share_ciphertext) ||
           !hints->key_share_secret.CopyFrom(secret)) {
         ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_INTERNAL_ERROR);
         return false;
@@ -109,14 +110,18 @@ static int ssl_ext_supported_versions_add_serverhello(SSL_HANDSHAKE *hs,
 }
 
 static const SSL_CIPHER *choose_tls13_cipher(
-    const SSL *ssl, const SSL_CLIENT_HELLO *client_hello, uint16_t group_id) {
+    const SSL *ssl, const SSL_CLIENT_HELLO *client_hello) {
   CBS cipher_suites;
   CBS_init(&cipher_suites, client_hello->cipher_suites,
            client_hello->cipher_suites_len);
 
   const uint16_t version = ssl_protocol_version(ssl);
 
-  return ssl_choose_tls13_cipher(cipher_suites, version, group_id);
+  return ssl_choose_tls13_cipher(cipher_suites,
+                                 ssl->config->aes_hw_override
+                                     ? ssl->config->aes_hw_override_value
+                                     : EVP_has_aes_hardware(),
+                                 version, ssl->config->tls13_cipher_policy);
 }
 
 static bool add_new_session_tickets(SSL_HANDSHAKE *hs, bool *out_sent_tickets) {
@@ -131,15 +136,12 @@ static bool add_new_session_tickets(SSL_HANDSHAKE *hs, bool *out_sent_tickets) {
     return true;
   }
 
-  // TLS 1.3 recommends single-use tickets, so issue multiple tickets in case
-  // the client makes several connections before getting a renewal.
-  static const int kNumTickets = 2;
-
   // Rebase the session timestamp so that it is measured from ticket
   // issuance.
   ssl_session_rebase_time(ssl, hs->new_session.get());
 
-  for (int i = 0; i < kNumTickets; i++) {
+  assert(ssl->session_ctx->num_tickets <= kMaxTickets);
+  for (size_t i = 0; i < ssl->session_ctx->num_tickets; i++) {
     UniquePtr<SSL_SESSION> session(
         SSL_SESSION_dup(hs->new_session.get(), SSL_SESSION_INCLUDE_NONAUTH));
     if (!session) {
@@ -160,7 +162,8 @@ static bool add_new_session_tickets(SSL_HANDSHAKE *hs, bool *out_sent_tickets) {
           ssl->quic_method != nullptr ? 0xffffffff : kMaxEarlyDataAccepted;
     }
 
-    static_assert(kNumTickets < 256, "Too many tickets");
+    static_assert(kMaxTickets < 256, "Too many tickets");
+    assert(i < 256);
     uint8_t nonce[] = {static_cast<uint8_t>(i)};
 
     ScopedCBB cbb;
@@ -172,7 +175,7 @@ static bool add_new_session_tickets(SSL_HANDSHAKE *hs, bool *out_sent_tickets) {
         !CBB_add_u8_length_prefixed(&body, &nonce_cbb) ||
         !CBB_add_bytes(&nonce_cbb, nonce, sizeof(nonce)) ||
         !CBB_add_u16_length_prefixed(&body, &ticket) ||
-        !tls13_derive_session_psk(session.get(), nonce) ||
+        !tls13_derive_session_psk(session.get(), nonce, SSL_is_dtls(ssl)) ||
         !ssl_encrypt_ticket(hs, &ticket, session.get()) ||
         !CBB_add_u16_length_prefixed(&body, &extensions)) {
       return false;
@@ -204,6 +207,28 @@ static bool add_new_session_tickets(SSL_HANDSHAKE *hs, bool *out_sent_tickets) {
   return true;
 }
 
+static bool check_credential(SSL_HANDSHAKE *hs, const SSL_CREDENTIAL *cred,
+                             uint16_t *out_sigalg) {
+  switch (cred->type) {
+    case SSLCredentialType::kX509:
+      break;
+    case SSLCredentialType::kDelegated:
+      // Check that the peer supports the signature over the delegated
+      // credential.
+      if (std::find(hs->peer_sigalgs.begin(), hs->peer_sigalgs.end(),
+                    cred->dc_algorithm) == hs->peer_sigalgs.end()) {
+        OPENSSL_PUT_ERROR(SSL, SSL_R_NO_COMMON_SIGNATURE_ALGORITHMS);
+        return false;
+      }
+      break;
+  }
+
+  // All currently supported credentials require a signature. If |cred| is a
+  // delegated credential, this also checks that the peer supports delegated
+  // credentials and matched |dc_cert_verify_algorithm|.
+  return tls1_choose_signature_algorithm(hs, cred, out_sigalg);
+}
+
 static enum ssl_hs_wait_t do_select_parameters(SSL_HANDSHAKE *hs) {
   // At this point, most ClientHello extensions have already been processed by
   // the common handshake logic. Resolve the remaining non-PSK parameters.
@@ -219,19 +244,44 @@ static enum ssl_hs_wait_t do_select_parameters(SSL_HANDSHAKE *hs) {
     ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_ILLEGAL_PARAMETER);
     return ssl_hs_error;
   }
-  OPENSSL_memcpy(hs->session_id, client_hello.session_id,
-                 client_hello.session_id_len);
-  hs->session_id_len = client_hello.session_id_len;
+  // DTLS 1.3 disables compatibility mode, and even if the client advertised a
+  // session ID (for resumption in DTLS 1.2), the server "MUST NOT echo the
+  // 'legacy_session_id' value from the client" (RFC 9147, section 5) as it
+  // would in a TLS 1.3 handshake.
+  if (!SSL_is_dtls(ssl)) {
+    OPENSSL_memcpy(hs->session_id, client_hello.session_id,
+                   client_hello.session_id_len);
+    hs->session_id_len = client_hello.session_id_len;
+  }
 
-  uint16_t group_id;
-  if (!tls1_get_shared_group(hs, &group_id)) {
-    OPENSSL_PUT_ERROR(SSL, SSL_R_NO_SHARED_GROUP);
+  Array<SSL_CREDENTIAL *> creds;
+  if (!ssl_get_credential_list(hs, &creds)) {
+    return ssl_hs_error;
+  }
+  if (creds.empty()) {
+    OPENSSL_PUT_ERROR(SSL, SSL_R_NO_CERTIFICATE_SET);
+    ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_INTERNAL_ERROR);
+    return ssl_hs_error;
+  }
+
+  // Select the credential to use.
+  for (SSL_CREDENTIAL *cred : creds) {
+    ERR_clear_error();
+    uint16_t sigalg;
+    if (check_credential(hs, cred, &sigalg)) {
+      hs->credential = UpRef(cred);
+      hs->signature_algorithm = sigalg;
+      break;
+    }
+  }
+  if (hs->credential == nullptr) {
+    // The error from the last attempt is in the error queue.
     ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_HANDSHAKE_FAILURE);
     return ssl_hs_error;
   }
 
   // Negotiate the cipher suite.
-  hs->new_cipher = choose_tls13_cipher(ssl, &client_hello, group_id);
+  hs->new_cipher = choose_tls13_cipher(ssl, &client_hello);
   if (hs->new_cipher == NULL) {
     OPENSSL_PUT_ERROR(SSL, SSL_R_NO_SHARED_CIPHER);
     ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_HANDSHAKE_FAILURE);
@@ -555,7 +605,6 @@ static enum ssl_hs_wait_t do_send_hello_retry_request(SSL_HANDSHAKE *hs) {
 
   ScopedCBB cbb;
   CBB body, session_id, extensions;
-  uint16_t group_id;
   if (!ssl->method->init_message(ssl, cbb.get(), &body, SSL3_MT_SERVER_HELLO) ||
       !CBB_add_u16(&body, TLS1_2_VERSION) ||
       !CBB_add_bytes(&body, kHelloRetryRequest, SSL3_RANDOM_SIZE) ||
@@ -563,14 +612,13 @@ static enum ssl_hs_wait_t do_send_hello_retry_request(SSL_HANDSHAKE *hs) {
       !CBB_add_bytes(&session_id, hs->session_id, hs->session_id_len) ||
       !CBB_add_u16(&body, SSL_CIPHER_get_protocol_id(hs->new_cipher)) ||
       !CBB_add_u8(&body, 0 /* no compression */) ||
-      !tls1_get_shared_group(hs, &group_id) ||
       !CBB_add_u16_length_prefixed(&body, &extensions) ||
       !CBB_add_u16(&extensions, TLSEXT_TYPE_supported_versions) ||
       !CBB_add_u16(&extensions, 2 /* length */) ||
       !CBB_add_u16(&extensions, ssl->version) ||
       !CBB_add_u16(&extensions, TLSEXT_TYPE_key_share) ||
       !CBB_add_u16(&extensions, 2 /* length */) ||
-      !CBB_add_u16(&extensions, group_id)) {
+      !CBB_add_u16(&extensions, hs->new_session->group_id)) {
     return ssl_hs_error;
   }
   if (hs->ech_is_inner) {
@@ -658,28 +706,16 @@ static enum ssl_hs_wait_t do_read_second_client_hello(SSL_HANDSHAKE *hs) {
     }
 
     // Decrypt the payload with the HPKE context from the first ClientHello.
-    Array<uint8_t> encoded_client_hello_inner;
+    uint8_t alert = SSL_AD_DECODE_ERROR;
     bool unused;
-    if (!ssl_client_hello_decrypt(hs->ech_hpke_ctx.get(),
-                                  &encoded_client_hello_inner, &unused,
-                                  &client_hello, payload)) {
+    if (!ssl_client_hello_decrypt(hs, &alert, &unused,
+                                  &hs->ech_client_hello_buf, &client_hello,
+                                  payload)) {
       // Decryption failure is fatal in the second ClientHello.
       OPENSSL_PUT_ERROR(SSL, SSL_R_DECRYPTION_FAILED);
-      ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_DECRYPT_ERROR);
-      return ssl_hs_error;
-    }
-
-    // Recover the ClientHelloInner from the EncodedClientHelloInner.
-    uint8_t alert = SSL_AD_DECODE_ERROR;
-    bssl::Array<uint8_t> client_hello_inner;
-    if (!ssl_decode_client_hello_inner(ssl, &alert, &client_hello_inner,
-                                       encoded_client_hello_inner,
-                                       &client_hello)) {
-      OPENSSL_PUT_ERROR(SSL, SSL_R_DECODE_ERROR);
       ssl_send_alert(ssl, SSL3_AL_FATAL, alert);
       return ssl_hs_error;
     }
-    hs->ech_client_hello_buf = std::move(client_hello_inner);
 
     // Reparse |client_hello| from the buffer owned by |hs|.
     if (!hs->GetClientHello(&msg, &client_hello)) {
@@ -751,21 +787,26 @@ static enum ssl_hs_wait_t do_send_server_hello(SSL_HANDSHAKE *hs) {
 
   SSL_HANDSHAKE_HINTS *const hints = hs->hints.get();
   if (hints && !hs->hints_requested &&
-      hints->server_random.size() == random.size()) {
-    OPENSSL_memcpy(random.data(), hints->server_random.data(), random.size());
+      hints->server_random_tls13.size() == random.size()) {
+    OPENSSL_memcpy(random.data(), hints->server_random_tls13.data(),
+                   random.size());
   } else {
     RAND_bytes(random.data(), random.size());
     if (hints && hs->hints_requested &&
-        !hints->server_random.CopyFrom(random)) {
+        !hints->server_random_tls13.CopyFrom(random)) {
       return ssl_hs_error;
     }
   }
 
+  uint16_t server_hello_version = TLS1_2_VERSION;
+  if (SSL_is_dtls(ssl)) {
+    server_hello_version = DTLS1_2_VERSION;
+  }
   Array<uint8_t> server_hello;
   ScopedCBB cbb;
   CBB body, extensions, session_id;
   if (!ssl->method->init_message(ssl, cbb.get(), &body, SSL3_MT_SERVER_HELLO) ||
-      !CBB_add_u16(&body, TLS1_2_VERSION) ||
+      !CBB_add_u16(&body, server_hello_version) ||
       !CBB_add_bytes(&body, ssl->s3->server_random,
                      sizeof(ssl->s3->server_random)) ||
       !CBB_add_u8_length_prefixed(&body, &session_id) ||
@@ -802,7 +843,7 @@ static enum ssl_hs_wait_t do_send_server_hello(SSL_HANDSHAKE *hs) {
     return ssl_hs_error;
   }
 
-  hs->ecdh_public_key.Reset();  // No longer needed.
+  hs->key_share_ciphertext.Reset();  // No longer needed.
   if (!ssl->s3->used_hello_retry_request &&
       !ssl->method->add_change_cipher_spec(ssl)) {
     return ssl_hs_error;
@@ -869,11 +910,6 @@ static enum ssl_hs_wait_t do_send_server_hello(SSL_HANDSHAKE *hs) {
 
   // Send the server Certificate message, if necessary.
   if (!ssl->s3->session_reused) {
-    if (!ssl_has_certificate(hs)) {
-      OPENSSL_PUT_ERROR(SSL, SSL_R_NO_CERTIFICATE_SET);
-      return ssl_hs_error;
-    }
-
     if (!tls13_add_certificate(hs)) {
       return ssl_hs_error;
     }
@@ -1060,7 +1096,11 @@ static enum ssl_hs_wait_t do_read_client_encrypted_extensions(
       return ssl_hs_error;
     }
 
-    SSLExtension application_settings(TLSEXT_TYPE_application_settings);
+    uint16_t extension_type = TLSEXT_TYPE_application_settings_old;
+    if (hs->config->alps_use_new_codepoint) {
+      extension_type = TLSEXT_TYPE_application_settings;
+    }
+    SSLExtension application_settings(extension_type);
     uint8_t alert = SSL_AD_DECODE_ERROR;
     if (!ssl_parse_extensions(&extensions, &alert, {&application_settings},
                               /*ignore_unknown=*/false)) {

@@ -106,11 +106,15 @@
  * (eay@cryptsoft.com).  This product includes software written by Tim
  * Hudson (tjh@cryptsoft.com). */
 
+// Ensure we can't call OPENSSL_malloc circularly.
+#define _BORINGSSL_PROHIBIT_OPENSSL_MALLOC
 #include <openssl_grpc/err.h>
 
 #include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <limits.h>
+#include <stdarg.h>
 #include <string.h>
 
 #if defined(OPENSSL_WINDOWS)
@@ -129,8 +133,8 @@ OPENSSL_MSVC_PRAGMA(warning(pop))
 struct err_error_st {
   // file contains the filename where the error occurred.
   const char *file;
-  // data contains a NUL-terminated string with optional data. It must be freed
-  // with |OPENSSL_free|.
+  // data contains a NUL-terminated string with optional data. It is allocated
+  // with system |malloc| and must be freed with |free| (not |OPENSSL_free|)
   char *data;
   // packed contains the error library and reason, as packed by ERR_PACK.
   uint32_t packed;
@@ -142,13 +146,13 @@ struct err_error_st {
 
 // ERR_STATE contains the per-thread, error queue.
 typedef struct err_state_st {
-  // errors contains the ERR_NUM_ERRORS most recent errors, organised as a ring
-  // buffer.
+  // errors contains up to ERR_NUM_ERRORS - 1 most recent errors, organised as a
+  // ring buffer.
   struct err_error_st errors[ERR_NUM_ERRORS];
-  // top contains the index one past the most recent error. If |top| equals
-  // |bottom| then the queue is empty.
+  // top contains the index of the most recent error. If |top| equals |bottom|
+  // then the queue is empty.
   unsigned top;
-  // bottom contains the index of the last error in the queue.
+  // bottom contains the index before the least recent error in the queue.
   unsigned bottom;
 
   // to_free, if not NULL, contains a pointer owned by this structure that was
@@ -160,9 +164,20 @@ extern const uint32_t kOpenSSLReasonValues[];
 extern const size_t kOpenSSLReasonValuesLen;
 extern const char kOpenSSLReasonStringData[];
 
+static char *strdup_libc_malloc(const char *str) {
+  // |strdup| is not in C until C23, so MSVC triggers deprecation warnings, and
+  // glibc and musl gate it on a feature macro. Reimplementing it is easier.
+  size_t len = strlen(str);
+  char *ret = malloc(len + 1);
+  if (ret != NULL) {
+    memcpy(ret, str, len + 1);
+  }
+  return ret;
+}
+
 // err_clear clears the given queued error.
 static void err_clear(struct err_error_st *error) {
-  OPENSSL_free(error->data);
+  free(error->data);
   OPENSSL_memset(error, 0, sizeof(struct err_error_st));
 }
 
@@ -170,19 +185,21 @@ static void err_copy(struct err_error_st *dst, const struct err_error_st *src) {
   err_clear(dst);
   dst->file = src->file;
   if (src->data != NULL) {
-    dst->data = OPENSSL_strdup(src->data);
+    // We can't use OPENSSL_strdup because we don't want to call OPENSSL_malloc,
+    // which can affect the error stack.
+    dst->data = strdup_libc_malloc(src->data);
   }
   dst->packed = src->packed;
   dst->line = src->line;
 }
+
 
 // global_next_library contains the next custom library value to return.
 static int global_next_library = ERR_NUM_LIBS;
 
 // global_next_library_mutex protects |global_next_library| from concurrent
 // updates.
-static struct CRYPTO_STATIC_MUTEX global_next_library_mutex =
-    CRYPTO_STATIC_MUTEX_INIT;
+static CRYPTO_MUTEX global_next_library_mutex = CRYPTO_MUTEX_INIT;
 
 static void err_state_free(void *statep) {
   ERR_STATE *state = statep;
@@ -194,15 +211,15 @@ static void err_state_free(void *statep) {
   for (unsigned i = 0; i < ERR_NUM_ERRORS; i++) {
     err_clear(&state->errors[i]);
   }
-  OPENSSL_free(state->to_free);
-  OPENSSL_free(state);
+  free(state->to_free);
+  free(state);
 }
 
 // err_get_state gets the ERR_STATE object for the current thread.
 static ERR_STATE *err_get_state(void) {
   ERR_STATE *state = CRYPTO_get_thread_local(OPENSSL_THREAD_LOCAL_ERR);
   if (state == NULL) {
-    state = OPENSSL_malloc(sizeof(ERR_STATE));
+    state = malloc(sizeof(ERR_STATE));
     if (state == NULL) {
       return NULL;
     }
@@ -258,7 +275,10 @@ static uint32_t get_error_values(int inc, int top, const char **file, int *line,
     } else {
       *data = error->data;
       if (flags != NULL) {
-        *flags = ERR_FLAG_STRING;
+        // Without |ERR_FLAG_MALLOCED|, rust-openssl assumes the string has a
+        // static lifetime. In both cases, we retain ownership of the string,
+        // and the caller is not expected to free it.
+        *flags = ERR_FLAG_STRING | ERR_FLAG_MALLOCED;
       }
       // If this error is being removed, take ownership of data from
       // the error. The semantics are such that the caller doesn't
@@ -267,7 +287,7 @@ static uint32_t get_error_values(int inc, int top, const char **file, int *line,
       // error queue.
       if (inc) {
         if (error->data != NULL) {
-          OPENSSL_free(state->to_free);
+          free(state->to_free);
           state->to_free = error->data;
         }
         error->data = NULL;
@@ -335,7 +355,7 @@ void ERR_clear_error(void) {
   for (i = 0; i < ERR_NUM_ERRORS; i++) {
     err_clear(&state->errors[i]);
   }
-  OPENSSL_free(state->to_free);
+  free(state->to_free);
   state->to_free = NULL;
 
   state->top = state->bottom = 0;
@@ -353,9 +373,9 @@ void ERR_remove_thread_state(const CRYPTO_THREADID *tid) {
 int ERR_get_next_error_library(void) {
   int ret;
 
-  CRYPTO_STATIC_MUTEX_lock_write(&global_next_library_mutex);
+  CRYPTO_MUTEX_lock_write(&global_next_library_mutex);
   ret = global_next_library++;
-  CRYPTO_STATIC_MUTEX_unlock_write(&global_next_library_mutex);
+  CRYPTO_MUTEX_unlock_write(&global_next_library_mutex);
 
   return ret;
 }
@@ -415,50 +435,52 @@ static const char *err_string_lookup(uint32_t lib, uint32_t key,
   return &string_data[(*result) & 0x7fff];
 }
 
-static const char *const kLibraryNames[ERR_NUM_LIBS] = {
-    "invalid library (0)",
-    "unknown library",              // ERR_LIB_NONE
-    "system library",               // ERR_LIB_SYS
-    "bignum routines",              // ERR_LIB_BN
-    "RSA routines",                 // ERR_LIB_RSA
-    "Diffie-Hellman routines",      // ERR_LIB_DH
-    "public key routines",          // ERR_LIB_EVP
-    "memory buffer routines",       // ERR_LIB_BUF
-    "object identifier routines",   // ERR_LIB_OBJ
-    "PEM routines",                 // ERR_LIB_PEM
-    "DSA routines",                 // ERR_LIB_DSA
-    "X.509 certificate routines",   // ERR_LIB_X509
-    "ASN.1 encoding routines",      // ERR_LIB_ASN1
-    "configuration file routines",  // ERR_LIB_CONF
-    "common libcrypto routines",    // ERR_LIB_CRYPTO
-    "elliptic curve routines",      // ERR_LIB_EC
-    "SSL routines",                 // ERR_LIB_SSL
-    "BIO routines",                 // ERR_LIB_BIO
-    "PKCS7 routines",               // ERR_LIB_PKCS7
-    "PKCS8 routines",               // ERR_LIB_PKCS8
-    "X509 V3 routines",             // ERR_LIB_X509V3
-    "random number generator",      // ERR_LIB_RAND
-    "ENGINE routines",              // ERR_LIB_ENGINE
-    "OCSP routines",                // ERR_LIB_OCSP
-    "UI routines",                  // ERR_LIB_UI
-    "COMP routines",                // ERR_LIB_COMP
-    "ECDSA routines",               // ERR_LIB_ECDSA
-    "ECDH routines",                // ERR_LIB_ECDH
-    "HMAC routines",                // ERR_LIB_HMAC
-    "Digest functions",             // ERR_LIB_DIGEST
-    "Cipher functions",             // ERR_LIB_CIPHER
-    "HKDF functions",               // ERR_LIB_HKDF
-    "Trust Token functions",        // ERR_LIB_TRUST_TOKEN
-    "User defined functions",       // ERR_LIB_USER
+typedef struct library_name_st {
+  const char *str;
+  const char *symbol;
+  const char *reason_symbol;
+} LIBRARY_NAME;
+
+static const LIBRARY_NAME kLibraryNames[ERR_NUM_LIBS] = {
+    {"invalid library (0)", NULL, NULL},
+    {"unknown library", "NONE", "NONE_LIB"},
+    {"system library", "SYS", "SYS_LIB"},
+    {"bignum routines", "BN", "BN_LIB"},
+    {"RSA routines", "RSA", "RSA_LIB"},
+    {"Diffie-Hellman routines", "DH", "DH_LIB"},
+    {"public key routines", "EVP", "EVP_LIB"},
+    {"memory buffer routines", "BUF", "BUF_LIB"},
+    {"object identifier routines", "OBJ", "OBJ_LIB"},
+    {"PEM routines", "PEM", "PEM_LIB"},
+    {"DSA routines", "DSA", "DSA_LIB"},
+    {"X.509 certificate routines", "X509", "X509_LIB"},
+    {"ASN.1 encoding routines", "ASN1", "ASN1_LIB"},
+    {"configuration file routines", "CONF", "CONF_LIB"},
+    {"common libcrypto routines", "CRYPTO", "CRYPTO_LIB"},
+    {"elliptic curve routines", "EC", "EC_LIB"},
+    {"SSL routines", "SSL", "SSL_LIB"},
+    {"BIO routines", "BIO", "BIO_LIB"},
+    {"PKCS7 routines", "PKCS7", "PKCS7_LIB"},
+    {"PKCS8 routines", "PKCS8", "PKCS8_LIB"},
+    {"X509 V3 routines", "X509V3", "X509V3_LIB"},
+    {"random number generator", "RAND", "RAND_LIB"},
+    {"ENGINE routines", "ENGINE", "ENGINE_LIB"},
+    {"OCSP routines", "OCSP", "OCSP_LIB"},
+    {"UI routines", "UI", "UI_LIB"},
+    {"COMP routines", "COMP", "COMP_LIB"},
+    {"ECDSA routines", "ECDSA", "ECDSA_LIB"},
+    {"ECDH routines", "ECDH", "ECDH_LIB"},
+    {"HMAC routines", "HMAC", "HMAC_LIB"},
+    {"Digest functions", "DIGEST", "DIGEST_LIB"},
+    {"Cipher functions", "CIPHER", "CIPHER_LIB"},
+    {"HKDF functions", "HKDF", "HKDF_LIB"},
+    {"Trust Token functions", "TRUST_TOKEN", "TRUST_TOKEN_LIB"},
+    {"User defined functions", "USER", "USER_LIB"},
 };
 
 static const char *err_lib_error_string(uint32_t packed_error) {
   const uint32_t lib = ERR_GET_LIB(packed_error);
-
-  if (lib >= ERR_NUM_LIBS) {
-    return NULL;
-  }
-  return kLibraryNames[lib];
+  return lib >= ERR_NUM_LIBS ? NULL : kLibraryNames[lib].str;
 }
 
 const char *ERR_lib_error_string(uint32_t packed_error) {
@@ -466,49 +488,65 @@ const char *ERR_lib_error_string(uint32_t packed_error) {
   return ret == NULL ? "unknown library" : ret;
 }
 
+const char *ERR_lib_symbol_name(uint32_t packed_error) {
+  const uint32_t lib = ERR_GET_LIB(packed_error);
+  return lib >= ERR_NUM_LIBS ? NULL : kLibraryNames[lib].symbol;
+}
+
 const char *ERR_func_error_string(uint32_t packed_error) {
   return "OPENSSL_internal";
 }
 
-static const char *err_reason_error_string(uint32_t packed_error) {
+static const char *err_reason_error_string(uint32_t packed_error, int symbol) {
   const uint32_t lib = ERR_GET_LIB(packed_error);
   const uint32_t reason = ERR_GET_REASON(packed_error);
 
   if (lib == ERR_LIB_SYS) {
-    if (reason < 127) {
+    if (!symbol && reason < 127) {
       return strerror(reason);
     }
     return NULL;
   }
 
   if (reason < ERR_NUM_LIBS) {
-    return kLibraryNames[reason];
+    return symbol ? kLibraryNames[reason].reason_symbol
+                  : kLibraryNames[reason].str;
   }
 
   if (reason < 100) {
+    // TODO(davidben): All our other reason strings match the symbol name. Only
+    // the common ones differ. Should we just consistently return the symbol
+    // name?
     switch (reason) {
       case ERR_R_MALLOC_FAILURE:
-        return "malloc failure";
+        return symbol ? "MALLOC_FAILURE" : "malloc failure";
       case ERR_R_SHOULD_NOT_HAVE_BEEN_CALLED:
-        return "function should not have been called";
+        return symbol ? "SHOULD_NOT_HAVE_BEEN_CALLED"
+                      : "function should not have been called";
       case ERR_R_PASSED_NULL_PARAMETER:
-        return "passed a null parameter";
+        return symbol ? "PASSED_NULL_PARAMETER" : "passed a null parameter";
       case ERR_R_INTERNAL_ERROR:
-        return "internal error";
+        return symbol ? "INTERNAL_ERROR" : "internal error";
       case ERR_R_OVERFLOW:
-        return "overflow";
+        return symbol ? "OVERFLOW" : "overflow";
       default:
         return NULL;
     }
   }
 
+  // Unlike OpenSSL, BoringSSL's reason strings already match symbol name, so we
+  // do not need to check |symbol|.
   return err_string_lookup(lib, reason, kOpenSSLReasonValues,
                            kOpenSSLReasonValuesLen, kOpenSSLReasonStringData);
 }
 
 const char *ERR_reason_error_string(uint32_t packed_error) {
-  const char *ret = err_reason_error_string(packed_error);
+  const char *ret = err_reason_error_string(packed_error, /*symbol=*/0);
   return ret == NULL ? "unknown error" : ret;
+}
+
+const char *ERR_reason_symbol_name(uint32_t packed_error) {
+  return err_reason_error_string(packed_error, /*symbol=*/1);
 }
 
 char *ERR_error_string(uint32_t packed_error, char *ret) {
@@ -537,24 +575,23 @@ char *ERR_error_string_n(uint32_t packed_error, char *buf, size_t len) {
   unsigned reason = ERR_GET_REASON(packed_error);
 
   const char *lib_str = err_lib_error_string(packed_error);
-  const char *reason_str = err_reason_error_string(packed_error);
+  const char *reason_str = err_reason_error_string(packed_error, /*symbol=*/0);
 
-  char lib_buf[64], reason_buf[64];
+  char lib_buf[32], reason_buf[32];
   if (lib_str == NULL) {
-    BIO_snprintf(lib_buf, sizeof(lib_buf), "lib(%u)", lib);
+    snprintf(lib_buf, sizeof(lib_buf), "lib(%u)", lib);
     lib_str = lib_buf;
   }
 
- if (reason_str == NULL) {
-    BIO_snprintf(reason_buf, sizeof(reason_buf), "reason(%u)", reason);
+  if (reason_str == NULL) {
+    snprintf(reason_buf, sizeof(reason_buf), "reason(%u)", reason);
     reason_str = reason_buf;
   }
 
-  BIO_snprintf(buf, len, "error:%08" PRIx32 ":%s:OPENSSL_internal:%s",
-               packed_error, lib_str, reason_str);
-
-  if (strlen(buf) == len - 1) {
-    // output may be truncated; make sure we always have 5 colon-separated
+  int ret = snprintf(buf, len, "error:%08" PRIx32 ":%s:OPENSSL_internal:%s",
+                     packed_error, lib_str, reason_str);
+  if (ret >= 0 && (size_t)ret >= len) {
+    // The output was truncated; make sure we always have 5 colon-separated
     // fields, i.e. 4 colons.
     static const unsigned num_colons = 4;
     unsigned i;
@@ -604,8 +641,8 @@ void ERR_print_errors_cb(ERR_print_errors_callback_t callback, void *ctx) {
     }
 
     ERR_error_string_n(packed_error, buf, sizeof(buf));
-    BIO_snprintf(buf2, sizeof(buf2), "%lu:%s:%s:%d:%s\n", thread_hash, buf,
-                 file, line, (flags & ERR_FLAG_STRING) ? data : "");
+    snprintf(buf2, sizeof(buf2), "%lu:%s:%s:%d:%s\n", thread_hash, buf, file,
+             line, (flags & ERR_FLAG_STRING) ? data : "");
     if (callback(buf2, strlen(buf2), ctx) <= 0) {
       break;
     }
@@ -629,13 +666,13 @@ static void err_set_error_data(char *data) {
   struct err_error_st *error;
 
   if (state == NULL || state->top == state->bottom) {
-    OPENSSL_free(data);
+    free(data);
     return;
   }
 
   error = &state->errors[state->top];
 
-  OPENSSL_free(error->data);
+  free(error->data);
   error->data = data;
 }
 
@@ -672,48 +709,42 @@ void ERR_put_error(int library, int unused, int reason, const char *file,
 // concatenates them and sets the result as the data on the most recent
 // error.
 static void err_add_error_vdata(unsigned num, va_list args) {
-  size_t alloced, new_len, len = 0, substr_len;
-  char *buf;
+  size_t total_size = 0;
   const char *substr;
-  unsigned i;
+  char *buf;
 
-  alloced = 80;
-  buf = OPENSSL_malloc(alloced + 1);
-  if (buf == NULL) {
+  va_list args_copy;
+  va_copy(args_copy, args);
+  for (size_t i = 0; i < num; i++) {
+    substr = va_arg(args_copy, const char *);
+    if (substr == NULL) {
+      continue;
+    }
+    size_t substr_len = strlen(substr);
+    if (SIZE_MAX - total_size < substr_len) {
+      return; // Would overflow.
+    }
+    total_size += substr_len;
+  }
+  va_end(args_copy);
+  if (total_size == SIZE_MAX) {
+      return; // Would overflow.
+  }
+  total_size += 1; // NUL terminator.
+  if ((buf = malloc(total_size)) == NULL) {
     return;
   }
-
-  for (i = 0; i < num; i++) {
+  buf[0] = '\0';
+  for (size_t i = 0; i < num; i++) {
     substr = va_arg(args, const char *);
     if (substr == NULL) {
       continue;
     }
-
-    substr_len = strlen(substr);
-    new_len = len + substr_len;
-    if (new_len > alloced) {
-      char *new_buf;
-
-      if (alloced + 20 + 1 < alloced) {
-        // overflow.
-        OPENSSL_free(buf);
-        return;
-      }
-
-      alloced = new_len + 20;
-      new_buf = OPENSSL_realloc(buf, alloced + 1);
-      if (new_buf == NULL) {
-        OPENSSL_free(buf);
-        return;
-      }
-      buf = new_buf;
+    if (OPENSSL_strlcat(buf, substr, total_size) >= total_size) {
+      assert(0); // should not be possible.
     }
-
-    OPENSSL_memcpy(buf + len, substr, substr_len);
-    len = new_len;
   }
-
-  buf[len] = 0;
+  va_end(args);
   err_set_error_data(buf);
 }
 
@@ -725,24 +756,35 @@ void ERR_add_error_data(unsigned count, ...) {
 }
 
 void ERR_add_error_dataf(const char *format, ...) {
+  char *buf = NULL;
   va_list ap;
-  char *buf;
-  static const unsigned buf_len = 256;
-
-  // A fixed-size buffer is used because va_copy (which would be needed in
-  // order to call vsnprintf twice and measure the buffer) wasn't defined until
-  // C99.
-  buf = OPENSSL_malloc(buf_len + 1);
-  if (buf == NULL) {
-    return;
-  }
 
   va_start(ap, format);
-  BIO_vsnprintf(buf, buf_len, format, ap);
-  buf[buf_len] = 0;
+  if (OPENSSL_vasprintf_internal(&buf, format, ap, /*system_malloc=*/1) == -1) {
+    return;
+  }
   va_end(ap);
 
   err_set_error_data(buf);
+}
+
+void ERR_set_error_data(char *data, int flags) {
+  if (!(flags & ERR_FLAG_STRING)) {
+    // We do not support non-string error data.
+    assert(0);
+    return;
+  }
+  // We can not use OPENSSL_strdup because we don't want to call OPENSSL_malloc,
+  // which can affect the error stack.
+  char *copy = strdup_libc_malloc(data);
+  if (copy != NULL) {
+    err_set_error_data(copy);
+  }
+  if (flags & ERR_FLAG_MALLOCED) {
+    // We can not take ownership of |data| directly because it is allocated with
+    // |OPENSSL_malloc| and we will free it with system |free| later.
+    OPENSSL_free(data);
+  }
 }
 
 int ERR_set_mark(void) {
@@ -803,8 +845,8 @@ void ERR_SAVE_STATE_free(ERR_SAVE_STATE *state) {
   for (size_t i = 0; i < state->num_errors; i++) {
     err_clear(&state->errors[i]);
   }
-  OPENSSL_free(state->errors);
-  OPENSSL_free(state);
+  free(state->errors);
+  free(state);
 }
 
 ERR_SAVE_STATE *ERR_save_state(void) {
@@ -813,7 +855,7 @@ ERR_SAVE_STATE *ERR_save_state(void) {
     return NULL;
   }
 
-  ERR_SAVE_STATE *ret = OPENSSL_malloc(sizeof(ERR_SAVE_STATE));
+  ERR_SAVE_STATE *ret = malloc(sizeof(ERR_SAVE_STATE));
   if (ret == NULL) {
     return NULL;
   }
@@ -823,9 +865,9 @@ ERR_SAVE_STATE *ERR_save_state(void) {
                           ? state->top - state->bottom
                           : ERR_NUM_ERRORS + state->top - state->bottom;
   assert(num_errors < ERR_NUM_ERRORS);
-  ret->errors = OPENSSL_malloc(num_errors * sizeof(struct err_error_st));
+  ret->errors = malloc(num_errors * sizeof(struct err_error_st));
   if (ret->errors == NULL) {
-    OPENSSL_free(ret);
+    free(ret);
     return NULL;
   }
   OPENSSL_memset(ret->errors, 0, num_errors * sizeof(struct err_error_st));
@@ -844,6 +886,10 @@ void ERR_restore_state(const ERR_SAVE_STATE *state) {
     return;
   }
 
+  if (state->num_errors >= ERR_NUM_ERRORS) {
+    abort();
+  }
+
   ERR_STATE *const dst = err_get_state();
   if (dst == NULL) {
     return;
@@ -852,6 +898,6 @@ void ERR_restore_state(const ERR_SAVE_STATE *state) {
   for (size_t i = 0; i < state->num_errors; i++) {
     err_copy(&dst->errors[i], &state->errors[i]);
   }
-  dst->top = state->num_errors - 1;
+  dst->top = (unsigned)(state->num_errors - 1);
   dst->bottom = ERR_NUM_ERRORS - 1;
 }

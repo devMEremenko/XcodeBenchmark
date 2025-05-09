@@ -22,6 +22,23 @@ API_UNAVAILABLE(macCatalyst, macos, tvos, watchos)
 + (void)initiateOnDeviceConversionMeasurementWithPhoneNumber:(NSString *)phoneNumber
     NS_SWIFT_NAME(initiateOnDeviceConversionMeasurement(phoneNumber:));
 
+/// Initiates on-device conversion measurement given a sha256-hashed user email address. Requires
+/// dependency GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is a no-op.
+/// @param hashedEmailAddress User email address as a UTF8-encoded string normalized and hashed
+///   according to the instructions at
+///   https://firebase.google.com/docs/tutorials/ads-ios-on-device-measurement/step-3.
++ (void)initiateOnDeviceConversionMeasurementWithHashedEmailAddress:(NSData *)hashedEmailAddress
+    NS_SWIFT_NAME(initiateOnDeviceConversionMeasurement(hashedEmailAddress:));
+
+/// Initiates on-device conversion measurement given a sha256-hashed phone number in E.164 format.
+/// Requires dependency GoogleAppMeasurementOnDeviceConversion to be linked in, otherwise it is a
+/// no-op.
+/// @param hashedPhoneNumber UTF8-encoded user phone number in E.164 format and then hashed
+///   according to the instructions at
+///   https://firebase.google.com/docs/tutorials/ads-ios-on-device-measurement/step-3.
++ (void)initiateOnDeviceConversionMeasurementWithHashedPhoneNumber:(NSData *)hashedPhoneNumber
+    NS_SWIFT_NAME(initiateOnDeviceConversionMeasurement(hashedPhoneNumber:));
+
 @end
 
 NS_ASSUME_NONNULL_END

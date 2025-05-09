@@ -155,3 +155,7 @@
 }
 
 @end
+
+/// Stub used to force the linker to include the categories in this file.
+void GDTCORInclude_GDTCORLogSourceMetrics_Internal_Category(void) {
+}

@@ -134,7 +134,6 @@ SSL_HANDSHAKE::SSL_HANDSHAKE(SSL *ssl_arg)
       cert_request(false),
       certificate_status_expected(false),
       ocsp_stapling_requested(false),
-      delegated_credential_requested(false),
       should_ack_sni(false),
       in_false_start(false),
       in_early_data(false),
@@ -528,20 +527,20 @@ bool ssl_send_finished(SSL_HANDSHAKE *hs) {
   size_t finished_len;
   if (!hs->transcript.GetFinishedMAC(finished, &finished_len, session,
                                      ssl->server)) {
-    return 0;
+    return false;
   }
 
   // Log the master secret, if logging is enabled.
   if (!ssl_log_secret(ssl, "CLIENT_RANDOM",
                       MakeConstSpan(session->secret, session->secret_length))) {
-    return 0;
+    return false;
   }
 
   // Copy the Finished so we can use it for renegotiation checks.
   if (finished_len > sizeof(ssl->s3->previous_client_finished) ||
       finished_len > sizeof(ssl->s3->previous_server_finished)) {
     OPENSSL_PUT_ERROR(SSL, ERR_R_INTERNAL_ERROR);
-    return 0;
+    return false;
   }
 
   if (ssl->server) {
@@ -558,24 +557,35 @@ bool ssl_send_finished(SSL_HANDSHAKE *hs) {
       !CBB_add_bytes(&body, finished, finished_len) ||
       !ssl_add_message_cbb(ssl, cbb.get())) {
     OPENSSL_PUT_ERROR(SSL, ERR_R_INTERNAL_ERROR);
-    return 0;
-  }
-
-  return 1;
-}
-
-bool ssl_output_cert_chain(SSL_HANDSHAKE *hs) {
-  ScopedCBB cbb;
-  CBB body;
-  if (!hs->ssl->method->init_message(hs->ssl, cbb.get(), &body,
-                                     SSL3_MT_CERTIFICATE) ||
-      !ssl_add_cert_chain(hs, &body) ||
-      !ssl_add_message_cbb(hs->ssl, cbb.get())) {
-    OPENSSL_PUT_ERROR(SSL, ERR_R_INTERNAL_ERROR);
     return false;
   }
 
   return true;
+}
+
+bool ssl_send_tls12_certificate(SSL_HANDSHAKE *hs) {
+  ScopedCBB cbb;
+  CBB body, certs, cert;
+  if (!hs->ssl->method->init_message(hs->ssl, cbb.get(), &body,
+                                     SSL3_MT_CERTIFICATE) ||
+      !CBB_add_u24_length_prefixed(&body, &certs)) {
+    return false;
+  }
+
+  if (hs->credential != nullptr) {
+    assert(hs->credential->type == SSLCredentialType::kX509);
+    STACK_OF(CRYPTO_BUFFER) *chain = hs->credential->chain.get();
+    for (size_t i = 0; i < sk_CRYPTO_BUFFER_num(chain); i++) {
+      CRYPTO_BUFFER *buffer = sk_CRYPTO_BUFFER_value(chain, i);
+      if (!CBB_add_u24_length_prefixed(&certs, &cert) ||
+          !CBB_add_bytes(&cert, CRYPTO_BUFFER_data(buffer),
+                         CRYPTO_BUFFER_len(buffer))) {
+        return false;
+      }
+    }
+  }
+
+  return ssl_add_message_cbb(hs->ssl, cbb.get());
 }
 
 const SSL_SESSION *ssl_handshake_session(const SSL_HANDSHAKE *hs) {

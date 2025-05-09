@@ -36,7 +36,8 @@
 
 #pragma mark Publisher Provided
 
-/// Scene object. Used in multiscene apps to request ads of the appropriate size.
+/// Scene object. Used in multiscene apps to request ads of the appropriate size. If this is nil,
+/// uses the application's key window scene.
 @property(nonatomic, nullable, weak) UIWindowScene *scene API_AVAILABLE(ios(13.0));
 
 #pragma mark Contextual Information
@@ -61,5 +62,10 @@
 /// For example, a third party ad network called "CoolAds network" that is mediating requests to the
 /// Mobile Ads SDK should set this property as "CoolAds".
 @property(nonatomic, copy, nullable) NSString *requestAgent;
+
+#pragma mark Optional Targeting Information
+
+/// Key-value pairs used for custom targeting.
+@property(nonatomic, copy, nullable) NSDictionary<NSString *, NSString *> *customTargeting;
 
 @end

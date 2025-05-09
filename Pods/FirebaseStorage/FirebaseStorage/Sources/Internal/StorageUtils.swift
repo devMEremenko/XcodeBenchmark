@@ -13,32 +13,23 @@
 // limitations under the License.
 
 import Foundation
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
   import MobileCoreServices
 #elseif os(macOS) || os(watchOS)
   import CoreServices
 #endif // os(iOS) || os(tvOS)
 
-// swift(>=5.9) implies Xcode 15+
-// Need to have this Swift version check to use os(visionOS) macro, VisionOS support.
-// TODO: Remove this check and add `os(visionOS)` to the `os(iOS) || os(tvOS)` conditional above
-// when Xcode 15 is the minimum supported by Firebase.
-#if swift(>=5.9)
-  #if os(visionOS)
-    import MobileCoreServices
-  #endif // os(visionOS)
-#endif // swift(>=5.9)
-
+@available(iOS 13, tvOS 13, macOS 10.15, macCatalyst 13, watchOS 7, *)
 class StorageUtils {
-  internal class func defaultRequestForReference(reference: StorageReference,
-                                                 queryParams: [String: String]? = nil)
+  class func defaultRequestForReference(reference: StorageReference,
+                                        queryParams: [String: String]? = nil)
     -> URLRequest {
     var components = URLComponents()
     components.scheme = reference.storage.scheme
     components.host = reference.storage.host
     components.port = reference.storage.port
 
-    if let queryParams = queryParams {
+    if let queryParams {
       var queryItems = [URLQueryItem]()
       for (key, value) in queryParams {
         queryItems.append(URLQueryItem(name: key, value: value))
@@ -60,7 +51,7 @@ class StorageUtils {
     return URLRequest(url: url)
   }
 
-  internal class func encodedURL(for path: StoragePath) -> String {
+  class func encodedURL(for path: StoragePath) -> String {
     let bucketString = "/b/\(GCSEscapedString(path.bucket))"
     var objectString: String
     if let objectName = path.object {
@@ -71,7 +62,7 @@ class StorageUtils {
     return "/v0\(bucketString)\(objectString)"
   }
 
-  internal class func GCSEscapedString(_ string: String) -> String {
+  class func GCSEscapedString(_ string: String) -> String {
     // This is the list at https://cloud.google.com/storage/docs/json_api/ without &, ; and +.
     let allowedSet =
       CharacterSet(
@@ -80,7 +71,7 @@ class StorageUtils {
     return string.addingPercentEncoding(withAllowedCharacters: allowedSet)!
   }
 
-  internal class func MIMETypeForExtension(_ fileExtension: String?) -> String {
+  class func MIMETypeForExtension(_ fileExtension: String?) -> String {
     guard let fileExtension = fileExtension else {
       return "application/octet-stream"
     }

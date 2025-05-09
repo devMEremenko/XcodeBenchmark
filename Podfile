@@ -8,21 +8,13 @@ target 'XcodeBenchmark' do
   inhibit_all_warnings!
   
   # Firebase
-  pod 'FirebaseCore', :git => 'https://github.com/firebase/firebase-ios-sdk.git', :branch => 'master'
-  pod 'FirebaseFirestore', :git => 'https://github.com/firebase/firebase-ios-sdk.git', :branch => 'master'
-  pod 'FirebaseAuth'
-  pod 'FirebaseAnalytics'
-  pod 'FirebaseRemoteConfig'
-  pod 'FirebaseStorage'
-  pod 'FirebaseMessaging'
-
-#  pod 'Firebase'
-#  pod 'Firebase/Database'
-#  pod 'Firebase/RemoteConfig'
-#  pod 'Firebase/Analytics'
-#  pod 'Firebase/Messaging'
-#  pod 'FirebaseFirestoreSwift'
-#  pod 'Firebase/Storage'
+  pod 'FirebaseCore', '~> 11.0'
+  pod 'FirebaseFirestore', '~> 11.0'
+  pod 'FirebaseAuth', '~> 11.0'
+  pod 'FirebaseAnalytics', '~> 11.0'
+  pod 'FirebaseRemoteConfig', '~> 11.0'
+  pod 'FirebaseStorage', '~> 11.0'
+  pod 'FirebaseMessaging', '~> 11.0'
 
   pod 'lottie-ios'
 
@@ -65,8 +57,8 @@ target 'XcodeBenchmark' do
   # Google
   pod 'GoogleMaps'
   pod 'GooglePlaces'
-  pod 'Google-Mobile-Ads-SDK'
-  pod 'GoogleSignIn'
+  pod 'Google-Mobile-Ads-SDK', '~> 11.0'
+  pod 'GoogleSignIn', '~> 8.0'
 
   # Social
   pod 'VK-ios-sdk'

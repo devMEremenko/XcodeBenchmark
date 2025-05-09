@@ -16,6 +16,8 @@
 
 #import <Foundation/Foundation.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 /// A mutable dictionary that provides atomic accessor and mutators.
 @interface GULMutableDictionary : NSObject
 
@@ -44,3 +46,5 @@
 - (NSDictionary *)dictionary;
 
 @end
+
+NS_ASSUME_NONNULL_END

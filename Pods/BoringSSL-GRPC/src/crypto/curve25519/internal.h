@@ -15,14 +15,13 @@
 #ifndef OPENSSL_HEADER_CURVE25519_INTERNAL_H
 #define OPENSSL_HEADER_CURVE25519_INTERNAL_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
-#include <openssl_grpc/base.h>
+#include <openssl_grpc/curve25519.h>
 
 #include "../internal.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #if defined(OPENSSL_ARM) && !defined(OPENSSL_NO_ASM) && !defined(OPENSSL_APPLE)
 #define BORINGSSL_X25519_NEON
@@ -32,11 +31,28 @@ void x25519_NEON(uint8_t out[32], const uint8_t scalar[32],
                  const uint8_t point[32]);
 #endif
 
-#if defined(BORINGSSL_HAS_UINT128)
-#define BORINGSSL_CURVE25519_64BIT
+#if !defined(OPENSSL_NO_ASM) && !defined(OPENSSL_SMALL) && \
+    defined(__GNUC__) && defined(__x86_64__) && !defined(OPENSSL_WINDOWS)
+#define BORINGSSL_FE25519_ADX
+
+// fiat_curve25519_adx_mul is defined in
+// third_party/fiat/asm/fiat_curve25519_adx_mul.S
+void __attribute__((sysv_abi))
+fiat_curve25519_adx_mul(uint64_t out[4], const uint64_t in1[4],
+                        const uint64_t in2[4]);
+
+// fiat_curve25519_adx_square is defined in
+// third_party/fiat/asm/fiat_curve25519_adx_square.S
+void __attribute__((sysv_abi))
+fiat_curve25519_adx_square(uint64_t out[4], const uint64_t in[4]);
+
+// x25519_scalar_mult_adx is defined in third_party/fiat/curve25519_64_adx.h
+void x25519_scalar_mult_adx(uint8_t out[32], const uint8_t scalar[32],
+                            const uint8_t point[32]);
+void x25519_ge_scalarmult_base_adx(uint8_t h[4][32], const uint8_t a[32]);
 #endif
 
-#if defined(BORINGSSL_CURVE25519_64BIT)
+#if defined(OPENSSL_64_BIT)
 // fe means field element. Here the field is \Z/(2^255-19). An element t,
 // entries t[0]...t[4], represents the integer t[0]+2^51 t[1]+2^102 t[2]+2^153
 // t[3]+2^204 t[4].
@@ -138,6 +154,8 @@ struct spake2_ctx_st {
   char disable_password_scalar_hack;
 };
 
+
+extern const uint8_t k25519Precomp[32][8][3][32];
 
 #if defined(__cplusplus)
 }  // extern C
