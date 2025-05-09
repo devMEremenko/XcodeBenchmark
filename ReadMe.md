@@ -21,6 +21,14 @@ If a device you are looking for is not listed below, check out open [issues](htt
 
 |        Device        |           CPU           | RAM | SSD | Xcode |   macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:-----:|:--------:|:---------:|
+
+
+## Previous Xcode 16 results
+
+_XcodeBenchmark has been updated to support Xcode 16.3, and new submissions must not be compared with previous ones._
+
+|        Device        |           CPU           | RAM | SSD | Xcode |   macOS  | Time(sec) |
+|:--------------------:|:-----------------------:|:---:|:---:|:-----:|:--------:|:---------:|
 | Mac Studio 2025      |      M3 Ultra 32-core   | 512 | 1TB | 16.2  |   15.3   |    66     |
 | Mac Studio 2025      |      M3 Ultra 28-core   | 96  | 1TB | 16.2  |   15.3.2 |    69     |
 | Mac Studio 2025      |      M4 Max 16-core     | 64  | 2TB | 16.2  |   15.3   |    77     |
