@@ -23,7 +23,7 @@
 import Foundation
 
 public enum HTTPUpgradeError: Error {
-    case notAnUpgrade(Int)
+    case notAnUpgrade(Int, [String: String])
     case invalidData
 }
 
@@ -67,12 +67,14 @@ public struct HTTPWSHeader {
         req.setValue(HTTPWSHeader.versionValue, forHTTPHeaderField: HTTPWSHeader.versionName)
         req.setValue(secKeyValue, forHTTPHeaderField: HTTPWSHeader.keyName)
         
-        if let cookies = HTTPCookieStorage.shared.cookies(for: url), !cookies.isEmpty {
-            let headers = HTTPCookie.requestHeaderFields(with: cookies)
-            for (key, val) in headers {
-                req.setValue(val, forHTTPHeaderField: key)
+		if req.allHTTPHeaderFields?["Cookie"] == nil {
+            if let cookies = HTTPCookieStorage.shared.cookies(for: url), !cookies.isEmpty {
+                let headers = HTTPCookie.requestHeaderFields(with: cookies)
+                for (key, val) in headers {
+                    req.setValue(val, forHTTPHeaderField: key)
+                }
             }
-        }
+	     }
         
         if supportsCompression {
             let val = "permessage-deflate; client_max_window_bits; server_max_window_bits=15"
@@ -94,7 +96,7 @@ public enum HTTPEvent {
     case failure(Error)
 }
 
-public protocol HTTPHandlerDelegate: class {
+public protocol HTTPHandlerDelegate: AnyObject {
     func didReceiveHTTP(event: HTTPEvent)
 }
 
@@ -104,7 +106,7 @@ public protocol HTTPHandler {
     func parse(data: Data) -> Int
 }
 
-public protocol HTTPServerDelegate: class {
+public protocol HTTPServerDelegate: AnyObject {
     func didReceive(event: HTTPEvent)
 }
 

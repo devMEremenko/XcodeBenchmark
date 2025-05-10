@@ -6,32 +6,6 @@
 
 namespace leveldb {
 
-void EncodeFixed32(char* dst, uint32_t value) {
-  if (port::kLittleEndian) {
-    memcpy(dst, &value, sizeof(value));
-  } else {
-    dst[0] = value & 0xff;
-    dst[1] = (value >> 8) & 0xff;
-    dst[2] = (value >> 16) & 0xff;
-    dst[3] = (value >> 24) & 0xff;
-  }
-}
-
-void EncodeFixed64(char* dst, uint64_t value) {
-  if (port::kLittleEndian) {
-    memcpy(dst, &value, sizeof(value));
-  } else {
-    dst[0] = value & 0xff;
-    dst[1] = (value >> 8) & 0xff;
-    dst[2] = (value >> 16) & 0xff;
-    dst[3] = (value >> 24) & 0xff;
-    dst[4] = (value >> 32) & 0xff;
-    dst[5] = (value >> 40) & 0xff;
-    dst[6] = (value >> 48) & 0xff;
-    dst[7] = (value >> 56) & 0xff;
-  }
-}
-
 void PutFixed32(std::string* dst, uint32_t value) {
   char buf[sizeof(value)];
   EncodeFixed32(buf, value);
@@ -46,7 +20,7 @@ void PutFixed64(std::string* dst, uint64_t value) {
 
 char* EncodeVarint32(char* dst, uint32_t v) {
   // Operate on characters as unsigneds
-  unsigned char* ptr = reinterpret_cast<unsigned char*>(dst);
+  uint8_t* ptr = reinterpret_cast<uint8_t*>(dst);
   static const int B = 128;
   if (v < (1 << 7)) {
     *(ptr++) = v;
@@ -80,12 +54,12 @@ void PutVarint32(std::string* dst, uint32_t v) {
 
 char* EncodeVarint64(char* dst, uint64_t v) {
   static const int B = 128;
-  unsigned char* ptr = reinterpret_cast<unsigned char*>(dst);
+  uint8_t* ptr = reinterpret_cast<uint8_t*>(dst);
   while (v >= B) {
     *(ptr++) = v | B;
     v >>= 7;
   }
-  *(ptr++) = static_cast<unsigned char>(v);
+  *(ptr++) = static_cast<uint8_t>(v);
   return reinterpret_cast<char*>(ptr);
 }
 
@@ -96,7 +70,7 @@ void PutVarint64(std::string* dst, uint64_t v) {
 }
 
 void PutLengthPrefixedSlice(std::string* dst, const Slice& value) {
-  PutVarint32(dst, value.size());
+  PutVarint32(dst, (uint32_t)value.size());
   dst->append(value.data(), value.size());
 }
 
@@ -113,7 +87,7 @@ const char* GetVarint32PtrFallback(const char* p, const char* limit,
                                    uint32_t* value) {
   uint32_t result = 0;
   for (uint32_t shift = 0; shift <= 28 && p < limit; shift += 7) {
-    uint32_t byte = *(reinterpret_cast<const unsigned char*>(p));
+    uint32_t byte = *(reinterpret_cast<const uint8_t*>(p));
     p++;
     if (byte & 128) {
       // More bytes are present
@@ -142,7 +116,7 @@ bool GetVarint32(Slice* input, uint32_t* value) {
 const char* GetVarint64Ptr(const char* p, const char* limit, uint64_t* value) {
   uint64_t result = 0;
   for (uint32_t shift = 0; shift <= 63 && p < limit; shift += 7) {
-    uint64_t byte = *(reinterpret_cast<const unsigned char*>(p));
+    uint64_t byte = *(reinterpret_cast<const uint8_t*>(p));
     p++;
     if (byte & 128) {
       // More bytes are present

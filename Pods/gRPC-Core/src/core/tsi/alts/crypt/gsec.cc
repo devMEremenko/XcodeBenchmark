@@ -1,29 +1,27 @@
-/*
- *
- * Copyright 2018 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
-
-#include <grpc/support/port_platform.h>
+//
+//
+// Copyright 2018 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 
 #include "src/core/tsi/alts/crypt/gsec.h"
 
+#include <grpc/support/alloc.h>
+#include <grpc/support/port_platform.h>
 #include <stdio.h>
 #include <string.h>
-
-#include <grpc/support/alloc.h>
 
 static const char vtable_error_msg[] =
     "crypter or crypter->vtable has not been initialized properly";
@@ -43,15 +41,16 @@ grpc_status_code gsec_aead_crypter_encrypt(
     char** error_details) {
   if (crypter != nullptr && crypter->vtable != nullptr &&
       crypter->vtable->encrypt_iovec != nullptr) {
-    struct iovec aad_vec = {(void*)aad, aad_length};
-    struct iovec plaintext_vec = {(void*)plaintext, plaintext_length};
+    struct iovec aad_vec = {const_cast<uint8_t*>(aad), aad_length};
+    struct iovec plaintext_vec = {const_cast<uint8_t*>(plaintext),
+                                  plaintext_length};
     struct iovec ciphertext_vec = {ciphertext_and_tag,
                                    ciphertext_and_tag_length};
     return crypter->vtable->encrypt_iovec(
         crypter, nonce, nonce_length, &aad_vec, 1, &plaintext_vec, 1,
         ciphertext_vec, bytes_written, error_details);
   }
-  /* An error occurred. */
+  // An error occurred.
   maybe_copy_error_msg(vtable_error_msg, error_details);
   return GRPC_STATUS_INVALID_ARGUMENT;
 }
@@ -69,7 +68,7 @@ grpc_status_code gsec_aead_crypter_encrypt_iovec(
         plaintext_vec_length, ciphertext_vec, ciphertext_bytes_written,
         error_details);
   }
-  /* An error occurred. */
+  // An error occurred.
   maybe_copy_error_msg(vtable_error_msg, error_details);
   return GRPC_STATUS_INVALID_ARGUMENT;
 }
@@ -81,15 +80,15 @@ grpc_status_code gsec_aead_crypter_decrypt(
     size_t plaintext_length, size_t* bytes_written, char** error_details) {
   if (crypter != nullptr && crypter->vtable != nullptr &&
       crypter->vtable->decrypt_iovec != nullptr) {
-    struct iovec aad_vec = {(void*)aad, aad_length};
-    struct iovec ciphertext_vec = {(void*)ciphertext_and_tag,
+    struct iovec aad_vec = {const_cast<uint8_t*>(aad), aad_length};
+    struct iovec ciphertext_vec = {const_cast<uint8_t*>(ciphertext_and_tag),
                                    ciphertext_and_tag_length};
     struct iovec plaintext_vec = {plaintext, plaintext_length};
     return crypter->vtable->decrypt_iovec(
         crypter, nonce, nonce_length, &aad_vec, 1, &ciphertext_vec, 1,
         plaintext_vec, bytes_written, error_details);
   }
-  /* An error occurred. */
+  // An error occurred.
   maybe_copy_error_msg(vtable_error_msg, error_details);
   return GRPC_STATUS_INVALID_ARGUMENT;
 }
@@ -107,7 +106,7 @@ grpc_status_code gsec_aead_crypter_decrypt_iovec(
         ciphertext_vec_length, plaintext_vec, plaintext_bytes_written,
         error_details);
   }
-  /* An error occurred. */
+  // An error occurred.
   maybe_copy_error_msg(vtable_error_msg, error_details);
   return GRPC_STATUS_INVALID_ARGUMENT;
 }
@@ -121,7 +120,7 @@ grpc_status_code gsec_aead_crypter_max_ciphertext_and_tag_length(
         crypter, plaintext_length, max_ciphertext_and_tag_length_to_return,
         error_details);
   }
-  /* An error occurred. */
+  // An error occurred.
   maybe_copy_error_msg(vtable_error_msg, error_details);
   return GRPC_STATUS_INVALID_ARGUMENT;
 }
@@ -135,7 +134,7 @@ grpc_status_code gsec_aead_crypter_max_plaintext_length(
         crypter, ciphertext_and_tag_length, max_plaintext_length_to_return,
         error_details);
   }
-  /* An error occurred. */
+  // An error occurred.
   maybe_copy_error_msg(vtable_error_msg, error_details);
   return GRPC_STATUS_INVALID_ARGUMENT;
 }
@@ -148,7 +147,7 @@ grpc_status_code gsec_aead_crypter_nonce_length(
     return crypter->vtable->nonce_length(crypter, nonce_length_to_return,
                                          error_details);
   }
-  /* An error occurred. */
+  // An error occurred.
   maybe_copy_error_msg(vtable_error_msg, error_details);
   return GRPC_STATUS_INVALID_ARGUMENT;
 }
@@ -161,7 +160,7 @@ grpc_status_code gsec_aead_crypter_key_length(const gsec_aead_crypter* crypter,
     return crypter->vtable->key_length(crypter, key_length_to_return,
                                        error_details);
   }
-  /* An error occurred */
+  // An error occurred
   maybe_copy_error_msg(vtable_error_msg, error_details);
   return GRPC_STATUS_INVALID_ARGUMENT;
 }
@@ -174,7 +173,7 @@ grpc_status_code gsec_aead_crypter_tag_length(const gsec_aead_crypter* crypter,
     return crypter->vtable->tag_length(crypter, tag_length_to_return,
                                        error_details);
   }
-  /* An error occurred. */
+  // An error occurred.
   maybe_copy_error_msg(vtable_error_msg, error_details);
   return GRPC_STATUS_INVALID_ARGUMENT;
 }

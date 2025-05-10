@@ -19,13 +19,45 @@
 #ifndef GRPC_SUPPORT_SYNC_H
 #define GRPC_SUPPORT_SYNC_H
 
+/* Platform-specific type declarations of gpr_mu and gpr_cv.   */
 #include <grpc/support/port_platform.h>
-
-#include <grpc/impl/codegen/gpr_types.h> /* for gpr_timespec */
-#include <grpc/impl/codegen/sync.h>
+#include <grpc/support/time.h> /* for gpr_timespec */
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+/** Synchronization primitives for GPR.
+
+   The type  gpr_mu              provides a non-reentrant mutex (lock).
+
+   The type  gpr_cv              provides a condition variable.
+
+   The type  gpr_once            provides for one-time initialization.
+
+   The type gpr_event            provides one-time-setting, reading, and
+                                 waiting of a void*, with memory barriers.
+
+   The type gpr_refcount         provides an object reference counter,
+                                 with memory barriers suitable to control
+                                 object lifetimes.
+
+   The type gpr_stats_counter    provides an atomic statistics counter. It
+                                 provides no memory barriers.
+ */
+
+#include <grpc/support/sync_generic.h>  // IWYU pragma: export
+
+#if defined(GPR_CUSTOM_SYNC)
+#include <grpc/support/sync_custom.h>  // IWYU pragma: export
+#elif defined(GPR_ABSEIL_SYNC)
+#include <grpc/support/sync_abseil.h>  // IWYU pragma: export
+#elif defined(GPR_POSIX_SYNC)
+#include <grpc/support/sync_posix.h>  // IWYU pragma: export
+#elif defined(GPR_WINDOWS)
+#include <grpc/support/sync_windows.h>  // IWYU pragma: export
+#else
+#error Unable to determine platform for sync
 #endif
 
 /** --- Mutex interface ---
@@ -94,12 +126,12 @@ GPRAPI void gpr_cv_broadcast(gpr_cv* cv);
    GPR_ONCE_INIT.  e.g.,
      static gpr_once once_var = GPR_ONCE_INIT;     */
 
-/** Ensure that (*init_routine)() has been called exactly once (for the
+/** Ensure that (*init_function)() has been called exactly once (for the
    specified gpr_once instance) and then return.
    If multiple threads call gpr_once() on the same gpr_once instance, one of
-   them will call (*init_routine)(), and the others will block until that call
+   them will call (*init_function)(), and the others will block until that call
    finishes.*/
-GPRAPI void gpr_once_init(gpr_once* once, void (*init_routine)(void));
+GPRAPI void gpr_once_init(gpr_once* once, void (*init_function)(void));
 
 /** --- One-time event notification ---
 

@@ -7,6 +7,7 @@
  */
 
 #import "SDWebImageDownloaderConfig.h"
+#import "SDWebImageDownloaderOperation.h"
 
 static SDWebImageDownloaderConfig * _defaultDownloaderConfig;
 
@@ -26,6 +27,7 @@ static SDWebImageDownloaderConfig * _defaultDownloaderConfig;
         _maxConcurrentDownloads = 6;
         _downloadTimeout = 15.0;
         _executionOrder = SDWebImageDownloaderFIFOExecutionOrder;
+        _acceptableStatusCodes = [NSIndexSet indexSetWithIndexesInRange:NSMakeRange(200, 100)];
     }
     return self;
 }
@@ -41,8 +43,17 @@ static SDWebImageDownloaderConfig * _defaultDownloaderConfig;
     config.urlCredential = self.urlCredential;
     config.username = self.username;
     config.password = self.password;
+    config.acceptableStatusCodes = self.acceptableStatusCodes;
+    config.acceptableContentTypes = self.acceptableContentTypes;
     
     return config;
+}
+
+- (void)setOperationClass:(Class)operationClass {
+    if (operationClass) {
+        NSAssert([operationClass isSubclassOfClass:[NSOperation class]] && [operationClass conformsToProtocol:@protocol(SDWebImageDownloaderOperation)], @"Custom downloader operation class must subclass NSOperation and conform to `SDWebImageDownloaderOperation` protocol");
+    }
+    _operationClass = operationClass;
 }
 
 

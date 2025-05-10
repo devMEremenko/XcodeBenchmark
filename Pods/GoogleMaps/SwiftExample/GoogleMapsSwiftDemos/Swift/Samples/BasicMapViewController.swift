@@ -25,6 +25,7 @@ class BasicMapViewController: UIViewController {
     let mapView = GMSMapView(frame: view.bounds, camera: camera)
     mapView.delegate = self
     view = mapView
+    navigationController?.navigationBar.isTranslucent = false
 
     statusLabel = UILabel(frame: .zero)
     statusLabel.alpha = 0.0
@@ -34,7 +35,7 @@ class BasicMapViewController: UIViewController {
     view.addSubview(statusLabel)
     statusLabel.translatesAutoresizingMaskIntoConstraints = false
     NSLayoutConstraint.activate([
-      statusLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: 100),
+      statusLabel.topAnchor.constraint(equalTo: view.topAnchor),
       statusLabel.heightAnchor.constraint(equalToConstant: 30),
       statusLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor),
       statusLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor),

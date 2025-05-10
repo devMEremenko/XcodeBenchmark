@@ -36,4 +36,7 @@ public protocol Section
     
     ///  Number of items in current section.
     var numberOfItems: Int { get }
+    
+    // Returns whether section contains no elements. Accessing this property might be more performant than accessing numberOfItems property.
+    var isEmpty: Bool { get }
 }

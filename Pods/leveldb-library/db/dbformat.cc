@@ -4,7 +4,8 @@
 
 #include "db/dbformat.h"
 
-#include <stdio.h>
+#include <cstdio>
+#include <sstream>
 
 #include "port/port.h"
 #include "util/coding.h"
@@ -23,25 +24,20 @@ void AppendInternalKey(std::string* result, const ParsedInternalKey& key) {
 }
 
 std::string ParsedInternalKey::DebugString() const {
-  char buf[50];
-  snprintf(buf, sizeof(buf), "' @ %llu : %d", (unsigned long long)sequence,
-           int(type));
-  std::string result = "'";
-  result += EscapeString(user_key.ToString());
-  result += buf;
-  return result;
+  std::ostringstream ss;
+  ss << '\'' << EscapeString(user_key.ToString()) << "' @ " << sequence << " : "
+     << static_cast<int>(type);
+  return ss.str();
 }
 
 std::string InternalKey::DebugString() const {
-  std::string result;
   ParsedInternalKey parsed;
   if (ParseInternalKey(rep_, &parsed)) {
-    result = parsed.DebugString();
-  } else {
-    result = "(bad)";
-    result.append(EscapeString(rep_));
+    return parsed.DebugString();
   }
-  return result;
+  std::ostringstream ss;
+  ss << "(bad)" << EscapeString(rep_);
+  return ss.str();
 }
 
 const char* InternalKeyComparator::Name() const {
@@ -128,9 +124,9 @@ LookupKey::LookupKey(const Slice& user_key, SequenceNumber s) {
     dst = new char[needed];
   }
   start_ = dst;
-  dst = EncodeVarint32(dst, usize + 8);
+  dst = EncodeVarint32(dst, (uint32_t)usize + 8);
   kstart_ = dst;
-  memcpy(dst, user_key.data(), usize);
+  std::memcpy(dst, user_key.data(), usize);
   dst += usize;
   EncodeFixed64(dst, PackSequenceAndType(s, kValueTypeForSeek));
   dst += 8;

@@ -1,7 +1,7 @@
 //
 //  CryptoSwift
 //
-//  Copyright (C) 2014-2017 Marcin Krzyżanowski <marcin@krzyzanowskim.com>
+//  Copyright (C) 2014-2022 Marcin Krzyżanowski <marcin@krzyzanowskim.com>
 //  This software is provided 'as-is', without any express or implied warranty.
 //
 //  In no event will the authors be held liable for any damages arising from the use of this software.
@@ -16,14 +16,14 @@
 import Foundation
 
 public extension Array where Element == UInt8 {
-  func toBase64() -> String? {
-    Data( self).base64EncodedString()
+  func toBase64(options: Data.Base64EncodingOptions = []) -> String {
+    Data(self).base64EncodedString(options: options)
   }
 
-  init(base64: String) {
+  init(base64: String, options: Data.Base64DecodingOptions = .ignoreUnknownCharacters) {
     self.init()
 
-    guard let decodedData = Data(base64Encoded: base64) else {
+    guard let decodedData = Data(base64Encoded: base64, options: options) else {
       return
     }
 

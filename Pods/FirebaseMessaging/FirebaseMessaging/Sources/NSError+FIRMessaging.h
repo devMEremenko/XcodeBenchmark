@@ -18,13 +18,15 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-FOUNDATION_EXPORT NSString *const kFIRMessagingDomain;
-
 // FIRMessaging Internal Error Code
 typedef NS_ENUM(NSUInteger, FIRMessagingErrorCode) {
   kFIRMessagingErrorCodeUnknown = 0,
+  kFIRMessagingErrorCodeInternal = 1,
 
   kFIRMessagingErrorCodeNetwork = 4,
+
+  // Failed to perform device check in.
+  kFIRMessagingErrorCodeRegistrarFailedToCheckIn = 6,
 
   kFIRMessagingErrorCodeInvalidRequest = 7,
 
@@ -32,6 +34,10 @@ typedef NS_ENUM(NSUInteger, FIRMessagingErrorCode) {
 
   // FIRMessaging generic errors
   kFIRMessagingErrorCodeMissingDeviceID = 501,
+  kFIRMessagingErrorCodeMissingAuthorizedEntity = 502,
+  kFIRMessagingErrorCodeMissingScope = 503,
+  kFIRMessagingErrorCodeMissingFid = 504,
+  kFIRMessagingErrorCodeMissingDeviceToken = 505,
 
   // Upstream send errors
   kFIRMessagingErrorCodeServiceNotAvailable = 1001,
@@ -39,11 +45,9 @@ typedef NS_ENUM(NSUInteger, FIRMessagingErrorCode) {
   kFIRMessagingErrorCodeSave = 1004,
   kFIRMessagingErrorCodeSizeExceeded = 1005,
 
-  // Already connected with MCS
-  kFIRMessagingErrorCodeAlreadyConnected = 2001,
+  kFIRMessagingErrorCodeInvalidIdentity = 2001,
 
   // PubSub errors
-  kFIRMessagingErrorCodePubSubClientNotSetup = 3004,
   kFIRMessagingErrorCodePubSubOperationIsCancelled = 3005,
 };
 

@@ -57,7 +57,96 @@ static inline CGRect SDCGRectFitWithScaleMode(CGRect rect, CGSize size, SDImageS
     return rect;
 }
 
-static inline UIColor * SDGetColorFromPixel(Pixel_8888 pixel, CGBitmapInfo bitmapInfo) {
+static inline UIColor * SDGetColorFromGrayscale(Pixel_88 pixel, CGBitmapInfo bitmapInfo, CGColorSpaceRef cgColorSpace) {
+    // Get alpha info, byteOrder info
+    CGImageAlphaInfo alphaInfo = bitmapInfo & kCGBitmapAlphaInfoMask;
+    CGBitmapInfo byteOrderInfo = bitmapInfo & kCGBitmapByteOrderMask;
+    CGFloat w = 0, a = 1;
+    
+    BOOL byteOrderNormal = NO;
+    switch (byteOrderInfo) {
+        case kCGBitmapByteOrderDefault: {
+            byteOrderNormal = YES;
+        } break;
+        case kCGBitmapByteOrder32Little: {
+        } break;
+        case kCGBitmapByteOrder32Big: {
+            byteOrderNormal = YES;
+        } break;
+        default: break;
+    }
+    switch (alphaInfo) {
+        case kCGImageAlphaPremultipliedFirst:
+        case kCGImageAlphaFirst: {
+            if (byteOrderNormal) {
+                // AW
+                a = pixel[0] / 255.0;
+                w = pixel[1] / 255.0;
+            } else {
+                // WA
+                w = pixel[0] / 255.0;
+                a = pixel[1] / 255.0;
+            }
+        }
+            break;
+        case kCGImageAlphaPremultipliedLast:
+        case kCGImageAlphaLast: {
+            if (byteOrderNormal) {
+                // WA
+                w = pixel[0] / 255.0;
+                a = pixel[1] / 255.0;
+            } else {
+                // AW
+                a = pixel[0] / 255.0;
+                w = pixel[1] / 255.0;
+            }
+        }
+            break;
+        case kCGImageAlphaNone: {
+            // W
+            w = pixel[0] / 255.0;
+        }
+            break;
+        case kCGImageAlphaNoneSkipLast: {
+            if (byteOrderNormal) {
+                // WX
+                w = pixel[0] / 255.0;
+            } else {
+                // XW
+                a = pixel[1] / 255.0;
+            }
+        }
+            break;
+        case kCGImageAlphaNoneSkipFirst: {
+            if (byteOrderNormal) {
+                // XW
+                a = pixel[1] / 255.0;
+            } else {
+                // WX
+                a = pixel[0] / 255.0;
+            }
+        }
+            break;
+        case kCGImageAlphaOnly: {
+            // A
+            a = pixel[0] / 255.0;
+        }
+            break;
+        default:
+            break;
+    }
+#if SD_MAC
+    // Mac supports ColorSync, to ensure the same bahvior, we convert color to sRGB
+    NSColorSpace *colorSpace = [[NSColorSpace alloc] initWithCGColorSpace:cgColorSpace];
+    CGFloat components[2] = {w, a};
+    NSColor *color = [NSColor colorWithColorSpace:colorSpace components:components count:2];
+    return [color colorUsingColorSpace:NSColorSpace.genericGamma22GrayColorSpace];
+#else
+    return [UIColor colorWithWhite:w alpha:a];
+#endif
+}
+
+static inline UIColor * SDGetColorFromRGBA(Pixel_8888 pixel, CGBitmapInfo bitmapInfo, CGColorSpaceRef cgColorSpace) {
     // Get alpha info, byteOrder info
     CGImageAlphaInfo alphaInfo = bitmapInfo & kCGBitmapAlphaInfoMask;
     CGBitmapInfo byteOrderInfo = bitmapInfo & kCGBitmapByteOrderMask;
@@ -68,8 +157,10 @@ static inline UIColor * SDGetColorFromPixel(Pixel_8888 pixel, CGBitmapInfo bitma
         case kCGBitmapByteOrderDefault: {
             byteOrderNormal = YES;
         } break;
+        case kCGBitmapByteOrder16Little:
         case kCGBitmapByteOrder32Little: {
         } break;
+        case kCGBitmapByteOrder16Big:
         case kCGBitmapByteOrder32Big: {
             byteOrderNormal = YES;
         } break;
@@ -160,8 +251,15 @@ static inline UIColor * SDGetColorFromPixel(Pixel_8888 pixel, CGBitmapInfo bitma
         default:
             break;
     }
-    
+#if SD_MAC
+    // Mac supports ColorSync, to ensure the same bahvior, we convert color to sRGB
+    NSColorSpace *colorSpace = [[NSColorSpace alloc] initWithCGColorSpace:cgColorSpace];
+    CGFloat components[4] = {r, g, b, a};
+    NSColor *color = [NSColor colorWithColorSpace:colorSpace components:components count:4];
+    return [color colorUsingColorSpace:NSColorSpace.sRGBColorSpace];
+#else
     return [UIColor colorWithRed:r green:g blue:b alpha:a];
+#endif
 }
 
 #if SD_UIKIT || SD_MAC
@@ -470,18 +568,37 @@ static inline CGImageRef _Nullable SDCreateCGImageFromCIImage(CIImage * _Nonnull
     size_t components = CGImageGetBitsPerPixel(imageRef) / CGImageGetBitsPerComponent(imageRef);
     CGBitmapInfo bitmapInfo = CGImageGetBitmapInfo(imageRef);
     
-    CFRange range = CFRangeMake(bytesPerRow * point.y + components * point.x, 4);
+    CFRange range = CFRangeMake(bytesPerRow * point.y + components * point.x, components);
     if (CFDataGetLength(data) < range.location + range.length) {
         CFRelease(data);
         CGImageRelease(imageRef);
         return nil;
     }
-    Pixel_8888 pixel = {0};
-    CFDataGetBytes(data, range, pixel);
-    CFRelease(data);
-    CGImageRelease(imageRef);
-    // Convert to color
-    return SDGetColorFromPixel(pixel, bitmapInfo);
+    // Get color space for transform
+    CGColorSpaceRef colorSpace = CGImageGetColorSpace(imageRef);
+    
+    // greyscale
+    if (components == 2) {
+        Pixel_88 pixel = {0};
+        CFDataGetBytes(data, range, pixel);
+        CFRelease(data);
+        CGImageRelease(imageRef);
+        // Convert to color
+        return SDGetColorFromGrayscale(pixel, bitmapInfo, colorSpace);
+    } else if (components == 3 || components == 4) {
+        // RGB/RGBA
+        Pixel_8888 pixel = {0};
+        CFDataGetBytes(data, range, pixel);
+        CFRelease(data);
+        CGImageRelease(imageRef);
+        // Convert to color
+        return SDGetColorFromRGBA(pixel, bitmapInfo, colorSpace);
+    } else {
+        NSLog(@"Unsupported components: %zu", components);
+        CFRelease(data);
+        CGImageRelease(imageRef);
+        return nil;
+    }
 }
 
 - (nullable NSArray<UIColor *> *)sd_colorsWithRect:(CGRect)rect {
@@ -539,17 +656,34 @@ static inline CGImageRef _Nullable SDCreateCGImageFromCIImage(CIImage * _Nonnull
     // Convert to color
     CGBitmapInfo bitmapInfo = CGImageGetBitmapInfo(imageRef);
     NSMutableArray<UIColor *> *colors = [NSMutableArray arrayWithCapacity:CGRectGetWidth(rect) * CGRectGetHeight(rect)];
-    for (size_t index = start; index < end; index += 4) {
+    // ColorSpace
+    CGColorSpaceRef colorSpace = CGImageGetColorSpace(imageRef);
+    for (size_t index = start; index < end; index += components) {
         if (index >= row * bytesPerRow + col * components) {
             // Index beyond the end of current row, go next row
             row++;
             index = row * bytesPerRow + CGRectGetMinX(rect) * components;
-            index -= 4;
+            index -= components;
             continue;
         }
-        Pixel_8888 pixel = {pixels[index], pixels[index+1], pixels[index+2], pixels[index+3]};
-        UIColor *color = SDGetColorFromPixel(pixel, bitmapInfo);
-        [colors addObject:color];
+        UIColor *color;
+        if (components == 2) {
+            Pixel_88 pixel = {pixels[index], pixel[index+1]};
+            color = SDGetColorFromGrayscale(pixel, bitmapInfo, colorSpace);
+        } else {
+            if (components == 3) {
+                Pixel_8888 pixel = {pixels[index], pixels[index+1], pixels[index+2], 0};
+                color = SDGetColorFromRGBA(pixel, bitmapInfo, colorSpace);
+            } else if (components == 4) {
+                Pixel_8888 pixel = {pixels[index], pixels[index+1], pixels[index+2], pixels[index+3]};
+                color = SDGetColorFromRGBA(pixel, bitmapInfo, colorSpace);
+            } else {
+                NSLog(@"Unsupported components: %zu", components);
+            }
+        }
+        if (color) {
+            [colors addObject:color];
+        }
     }
     CFRelease(data);
     CGImageRelease(imageRef);
@@ -588,15 +722,8 @@ static inline CGImageRef _Nullable SDCreateCGImageFromCIImage(CIImage * _Nonnull
 #endif
     
     CGImageRef imageRef = self.CGImage;
-    
-    //convert to BGRA if it isn't
-    if (CGImageGetBitsPerPixel(imageRef) != 32 ||
-        CGImageGetBitsPerComponent(imageRef) != 8 ||
-        !((CGImageGetBitmapInfo(imageRef) & kCGBitmapAlphaInfoMask))) {
-        SDGraphicsBeginImageContextWithOptions(self.size, NO, self.scale);
-        [self drawInRect:CGRectMake(0, 0, self.size.width, self.size.height)];
-        imageRef = SDGraphicsGetImageFromCurrentImageContext().CGImage;
-        SDGraphicsEndImageContext();
+    if (!imageRef) {
+        return nil;
     }
     
     vImage_Buffer effect = {}, scratch = {};
@@ -609,11 +736,11 @@ static inline CGImageRef _Nullable SDCreateCGImageFromCIImage(CIImage * _Nonnull
         .bitmapInfo = kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Host, //requests a BGRA buffer.
         .version = 0,
         .decode = NULL,
-        .renderingIntent = kCGRenderingIntentDefault
+        .renderingIntent = CGImageGetRenderingIntent(imageRef)
     };
     
     vImage_Error err;
-    err = vImageBuffer_InitWithCGImage(&effect, &format, NULL, imageRef, kvImageNoFlags);
+    err = vImageBuffer_InitWithCGImage(&effect, &format, NULL, imageRef, kvImageNoFlags); // vImage will convert to format we requests, no need `vImageConvert`
     if (err != kvImageNoError) {
         NSLog(@"UIImage+Transform error: vImageBuffer_InitWithCGImage returned error code %zi for inputImage: %@", err, self);
         return nil;
@@ -627,6 +754,7 @@ static inline CGImageRef _Nullable SDCreateCGImageFromCIImage(CIImage * _Nonnull
     input = &effect;
     output = &scratch;
     
+    // See: https://developer.apple.com/library/archive/samplecode/UIImageEffects/Introduction/Intro.html
     if (hasBlur) {
         // A description of how to compute the box kernel width from the Gaussian
         // radius (aka standard deviation) appears in the SVG spec:
@@ -643,19 +771,16 @@ static inline CGImageRef _Nullable SDCreateCGImageFromCIImage(CIImage * _Nonnull
         if (inputRadius - 2.0 < __FLT_EPSILON__) inputRadius = 2.0;
         uint32_t radius = floor(inputRadius * 3.0 * sqrt(2 * M_PI) / 4 + 0.5);
         radius |= 1; // force radius to be odd so that the three box-blur methodology works.
-        int iterations;
-        if (blurRadius * scale < 0.5) iterations = 1;
-        else if (blurRadius * scale < 1.5) iterations = 2;
-        else iterations = 3;
         NSInteger tempSize = vImageBoxConvolve_ARGB8888(input, output, NULL, 0, 0, radius, radius, NULL, kvImageGetTempBufferSize | kvImageEdgeExtend);
         void *temp = malloc(tempSize);
-        for (int i = 0; i < iterations; i++) {
-            vImageBoxConvolve_ARGB8888(input, output, temp, 0, 0, radius, radius, NULL, kvImageEdgeExtend);
-            vImage_Buffer *tmp = input;
-            input = output;
-            output = tmp;
-        }
+        vImageBoxConvolve_ARGB8888(input, output, temp, 0, 0, radius, radius, NULL, kvImageEdgeExtend);
+        vImageBoxConvolve_ARGB8888(output, input, temp, 0, 0, radius, radius, NULL, kvImageEdgeExtend);
+        vImageBoxConvolve_ARGB8888(input, output, temp, 0, 0, radius, radius, NULL, kvImageEdgeExtend);
         free(temp);
+        
+        vImage_Buffer *tmp = input;
+        input = output;
+        output = tmp;
     }
     
     CGImageRef effectCGImage = NULL;

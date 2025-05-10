@@ -14,110 +14,40 @@
 
 #include <openssl_grpc/aead.h>
 
+#include <assert.h>
 #include <string.h>
 
 #include <openssl_grpc/chacha.h>
 #include <openssl_grpc/cipher.h>
-#include <openssl_grpc/cpu.h>
 #include <openssl_grpc/err.h>
 #include <openssl_grpc/mem.h>
 #include <openssl_grpc/poly1305.h>
-#include <openssl_grpc/type_check.h>
 
+#include "internal.h"
+#include "../chacha/internal.h"
 #include "../fipsmodule/cipher/internal.h"
 #include "../internal.h"
-#include "../chacha/internal.h"
-
-
-#define POLY1305_TAG_LEN 16
 
 struct aead_chacha20_poly1305_ctx {
   uint8_t key[32];
 };
 
-OPENSSL_STATIC_ASSERT(sizeof(((EVP_AEAD_CTX *)NULL)->state) >=
-                          sizeof(struct aead_chacha20_poly1305_ctx),
-                      "AEAD state is too small");
-#if defined(__GNUC__) || defined(__clang__)
-OPENSSL_STATIC_ASSERT(alignof(union evp_aead_ctx_st_state) >=
-                          alignof(struct aead_chacha20_poly1305_ctx),
-                      "AEAD state has insufficient alignment");
-#endif
-
-// For convenience (the x86_64 calling convention allows only six parameters in
-// registers), the final parameter for the assembly functions is both an input
-// and output parameter.
-union open_data {
-  struct {
-    alignas(16) uint8_t key[32];
-    uint32_t counter;
-    uint8_t nonce[12];
-  } in;
-  struct {
-    uint8_t tag[POLY1305_TAG_LEN];
-  } out;
-};
-
-union seal_data {
-  struct {
-    alignas(16) uint8_t key[32];
-    uint32_t counter;
-    uint8_t nonce[12];
-    const uint8_t *extra_ciphertext;
-    size_t extra_ciphertext_len;
-  } in;
-  struct {
-    uint8_t tag[POLY1305_TAG_LEN];
-  } out;
-};
-
-#if defined(OPENSSL_X86_64) && !defined(OPENSSL_NO_ASM) && \
-    !defined(OPENSSL_WINDOWS)
-static int asm_capable(void) {
-  const int sse41_capable = (OPENSSL_ia32cap_P[1] & (1 << 19)) != 0;
-  return sse41_capable;
-}
-
-OPENSSL_STATIC_ASSERT(sizeof(union open_data) == 48, "wrong open_data size");
-OPENSSL_STATIC_ASSERT(sizeof(union seal_data) == 48 + 8 + 8,
-                      "wrong seal_data size");
-
-// chacha20_poly1305_open is defined in chacha20_poly1305_x86_64.pl. It decrypts
-// |plaintext_len| bytes from |ciphertext| and writes them to |out_plaintext|.
-// Additional input parameters are passed in |aead_data->in|. On exit, it will
-// write calculated tag value to |aead_data->out.tag|, which the caller must
-// check.
-extern void chacha20_poly1305_open(uint8_t *out_plaintext,
-                                   const uint8_t *ciphertext,
-                                   size_t plaintext_len, const uint8_t *ad,
-                                   size_t ad_len, union open_data *aead_data);
-
-// chacha20_poly1305_open is defined in chacha20_poly1305_x86_64.pl. It encrypts
-// |plaintext_len| bytes from |plaintext| and writes them to |out_ciphertext|.
-// Additional input parameters are passed in |aead_data->in|. The calculated tag
-// value is over the computed ciphertext concatenated with |extra_ciphertext|
-// and written to |aead_data->out.tag|.
-extern void chacha20_poly1305_seal(uint8_t *out_ciphertext,
-                                   const uint8_t *plaintext,
-                                   size_t plaintext_len, const uint8_t *ad,
-                                   size_t ad_len, union seal_data *aead_data);
-#else
-static int asm_capable(void) { return 0; }
-
-
-static void chacha20_poly1305_open(uint8_t *out_plaintext,
-                                   const uint8_t *ciphertext,
-                                   size_t plaintext_len, const uint8_t *ad,
-                                   size_t ad_len, union open_data *aead_data) {}
-
-static void chacha20_poly1305_seal(uint8_t *out_ciphertext,
-                                   const uint8_t *plaintext,
-                                   size_t plaintext_len, const uint8_t *ad,
-                                   size_t ad_len, union seal_data *aead_data) {}
-#endif
+static_assert(sizeof(((EVP_AEAD_CTX *)NULL)->state) >=
+                  sizeof(struct aead_chacha20_poly1305_ctx),
+              "AEAD state is too small");
+static_assert(alignof(union evp_aead_ctx_st_state) >=
+                  alignof(struct aead_chacha20_poly1305_ctx),
+              "AEAD state has insufficient alignment");
 
 static int aead_chacha20_poly1305_init(EVP_AEAD_CTX *ctx, const uint8_t *key,
                                        size_t key_len, size_t tag_len) {
+  // TODO(crbug.com/42290548): The x86_64 assembly depends on initializing
+  // |OPENSSL_ia32cap_P|. Move the dispatch to C. While we're here, it may be
+  // worth adjusting the assembly calling convention. The assembly functions do
+  // too much work right now. For now, explicitly initialize |OPENSSL_ia32cap_P|
+  // first.
+  OPENSSL_init_cpuid();
+
   struct aead_chacha20_poly1305_ctx *c20_ctx =
       (struct aead_chacha20_poly1305_ctx *)&ctx->state;
 
@@ -222,7 +152,7 @@ static int chacha20_poly1305_seal_scatter(
   // encrypted byte-by-byte first.
   if (extra_in_len) {
     static const size_t kChaChaBlockSize = 64;
-    uint32_t block_counter = 1 + (in_len / kChaChaBlockSize);
+    uint32_t block_counter = (uint32_t)(1 + (in_len / kChaChaBlockSize));
     size_t offset = in_len % kChaChaBlockSize;
     uint8_t block[64 /* kChaChaBlockSize */];
 
@@ -238,8 +168,8 @@ static int chacha20_poly1305_seal_scatter(
     }
   }
 
-  union seal_data data;
-  if (asm_capable()) {
+  union chacha20_poly1305_seal_data data;
+  if (chacha20_poly1305_asm_capable()) {
     OPENSSL_memcpy(data.in.key, key, 32);
     data.in.counter = 0;
     OPENSSL_memcpy(data.in.nonce, nonce, 12);
@@ -321,8 +251,8 @@ static int chacha20_poly1305_open_gather(
     return 0;
   }
 
-  union open_data data;
-  if (asm_capable()) {
+  union chacha20_poly1305_open_data data;
+  if (chacha20_poly1305_asm_capable()) {
     OPENSSL_memcpy(data.in.key, key, 32);
     data.in.counter = 0;
     OPENSSL_memcpy(data.in.nonce, nonce, 12);
