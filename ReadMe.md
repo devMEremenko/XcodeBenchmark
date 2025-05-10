@@ -57,6 +57,11 @@ _XcodeBenchmark has been updated to support Xcode 16.3, and new submissions must
 | iMac19,2 21.5" 2019  |      i7 3.2 GHz         | 16  | 512 | 16.2  |   14.7.5 |    349    |
 | Mac Mini 2018        |      i7 3.2 GHz         | 64  | 512 | 16.1  |   15.1   |    490    |
 
+## Older Xcode versions
+
+<details>
+<summary>Tap to reveal older Xcode versions</summary>
+
 ## Xcode 15
 
 ```diff
@@ -304,6 +309,7 @@ _XcodeBenchmark has been updated to support Xcode 16.3, and new submissions must
 |      Hackintosh      |  i5-8400 2.8 Ghz 6-core |  32 | 512 |     |  11.6 | 10.15.6 |    409    |                |
 |       Ryzentosh      |  R5 3600 3.6 Ghz 6-core |  16 | 1TB |     |  11.7 | 10.15.6 |    312    |                |
 
+</details>
 
 ## Set up
 
