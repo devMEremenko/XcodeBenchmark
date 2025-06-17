@@ -10,8 +10,10 @@ The project has already saved thousands of dollars for developers and companies 
 
 If a device you are looking for is not listed below, check out open [issues](https://github.com/devMEremenko/XcodeBenchmark/issues) and [PRs](https://github.com/devMEremenko/XcodeBenchmark/pulls).
 
-|        Device        |           CPU           | RAM | SSD | Xcode |   macOS  | Time(sec) |
-|:--------------------:|:-----------------------:|:---:|:---:|:-----:|:--------:|:---------:|
+|        Device        |    CPU     | RAM | SSD | Xcode | macOS | Time(sec) |
+|:--------------------:|:----------:|:---:|:---:|:-----:|:-----:|:---------:|
+| MacBook Air 13" 2025 | M4 10-core | 32  | 1TB | 16.3  | 15.5  |    277    |
+
 
 
 ## Previous Xcode 16 results
@@ -451,3 +453,4 @@ Make sure:
 - [@facuramirez7](https://github.com/facuramirez7)
 - [@lprhodes](https://github.com/lprhodes)
 - [@KAnggara75](https://github.com/KAnggara75)
+- [@AshishKenjale](https://github.com/AshishKenjale)
