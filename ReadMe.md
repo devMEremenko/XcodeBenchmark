@@ -56,6 +56,7 @@ _XcodeBenchmark has been updated to support Xcode 16.3, and new submissions must
 | MacBook Pro 13" 2020 |      M1 8c (8c GPU)     | 16  | 256 | 16.1  |   15.1   |    258    |
 | iMac19,2 21.5" 2019  |      i7 3.2 GHz         | 16  | 512 | 16.2  |   14.7.5 |    349    |
 | Mac Mini 2018        |      i7 3.2 GHz         | 64  | 512 | 16.1  |   15.1   |    490    |
+| MacBook Pro 15" 2014 |      i7 2.8 GHz 4-core  | 16  | 1TB | 16.4  |   15.6   |    1003   |
 
 ## Xcode 15
 
