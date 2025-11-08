@@ -13,7 +13,8 @@ If a device you are looking for is not listed below, check out open [issues](htt
 
 |        Device        |           CPU           | RAM | SSD | Xcode |   macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:-----:|:--------:|:---------:|
-| Macbook Pro 16" 2024 |      M4 Pro 14c         | 48  | 1TB | 26.1  |  15.7.1  |    104    | 
+| Macbook Pro 16" 2024 |      M4 Pro 14c         | 48  | 1TB | 26.1  |  15.7.1  |    104    |
+| Macbook Pro 16" 2024 |      M2 Pro 12c         | 16  | 1TB | 26.1  |  26.1    |    158    |
 | Macbook Air 13" 2024 |      M4 10c (10c GPU)   | 16  | 256 | 26.1  |  26.1    |    188    | 
 
 
