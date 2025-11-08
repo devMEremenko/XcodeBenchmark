@@ -7,20 +7,16 @@ The project has already saved thousands of dollars for developers and companies 
 <img src="https://raw.githubusercontent.com/Schweinepriester/github-profile-achievements/main/images/public-sponsor-default.png" width="16px" height="16px"> Visit the [GitHub Sponsor page](https://github.com/sponsors/devMEremenko) if you'd like to support the project. 🤗
 
 
+If a device you are looking for is not listed below, check out open [issues](https://github.com/devMEremenko/XcodeBenchmark/issues) and [PRs](https://github.com/devMEremenko/XcodeBenchmark/pulls).
+
 ## Xcode 26
 
 |        Device        |           CPU           | RAM | SSD | Xcode |   macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:-----:|:--------:|:---------:|
 | Macbook Air 13" 2024 |      M4 10c (10c GPU)   | 16  | 256 | 26.1  |   26.1   |    188    | 
 
-## Xcode 16
 
-If a device you are looking for is not listed below, check out open [issues](https://github.com/devMEremenko/XcodeBenchmark/issues) and [PRs](https://github.com/devMEremenko/XcodeBenchmark/pulls).
-
-|        Device        |           CPU           | RAM | SSD | Xcode |   macOS  | Time(sec) |
-|:--------------------:|:-----------------------:|:---:|:---:|:-----:|:--------:|:---------:|
-
-## Previous Xcode 16 results
+## Xcode 16 
 
 _XcodeBenchmark has been updated to support Xcode 16.3, and new submissions must not be compared with previous ones._
 
