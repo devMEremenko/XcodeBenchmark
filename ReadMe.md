@@ -73,6 +73,7 @@ _XcodeBenchmark has been updated to support Xcode 16.3, and new submissions must
 |        Device        |           CPU           | RAM | SSD | Xcode |  macOS | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:-----:|:------:|:---------:|
 | Mac Studio 2023      |     M2 Ultra 24-core    | 192 | 2TB | 15.0.1| 14.0   |     63    |
+| Mac Studio 2023      |     M2 Ultra 24-core    | 128 | 2TB |  15.4 |  14.5  |     65    |
 | MacBook Pro 16" 2023 | M3 Max 16 (High Power)  |  48 | 1TB | 15.3.1| 14.4.0 |     67    |
 | MacBook Pro 16" 2023 |     M3 Max 16-core      |  64 | 1TB | 15.0.1| 14.1.1 |     70    |
 | Mac Studio 2022      |     M1 Ultra 20-core    | 128 | 4TB |  15.3 | 14.4   |     73    |
