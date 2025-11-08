@@ -1,20 +1,20 @@
-/*
- *
- * Copyright 2015 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+//
+//
+// Copyright 2015 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 
 #include <grpc/support/port_platform.h>
 
@@ -23,24 +23,25 @@
 #ifdef GRPC_POSIX_SOCKET_UTILS_COMMON
 
 #include "src/core/lib/iomgr/socket_utils.h"
+// sys/types.h must precede netinet/tcp.h for compatibility.
+#include <sys/types.h>
 #ifdef GRPC_LINUX_TCP_H
 #include <linux/tcp.h>
 #else
 #include <netinet/tcp.h>
 #endif
+#include <grpc/support/alloc.h>
+#include <grpc/support/sync.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <sys/types.h>
 #include <unistd.h>
 
 #include <string>
 
-#include <grpc/support/alloc.h>
-#include <grpc/support/log.h>
-#include <grpc/support/sync.h>
-
+#include "absl/log/check.h"
 #include "src/core/lib/iomgr/sockaddr.h"
+#include "src/core/util/crash.h"
 
 uint16_t grpc_htons(uint16_t hostshort) { return htons(hostshort); }
 
@@ -55,7 +56,7 @@ int grpc_inet_pton(int af, const char* src, void* dst) {
 }
 
 const char* grpc_inet_ntop(int af, const void* src, char* dst, size_t size) {
-  GPR_ASSERT(size <= (socklen_t)-1);
+  CHECK(size <= (socklen_t)-1);
   return inet_ntop(af, src, dst, static_cast<socklen_t>(size));
 }
 

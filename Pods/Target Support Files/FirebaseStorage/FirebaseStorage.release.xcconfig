@@ -1,9 +1,9 @@
 CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = NO
 CONFIGURATION_BUILD_DIR = ${PODS_CONFIGURATION_BUILD_DIR}/FirebaseStorage
-FRAMEWORK_SEARCH_PATHS = $(inherited) "${PODS_CONFIGURATION_BUILD_DIR}/FirebaseAppCheckInterop" "${PODS_CONFIGURATION_BUILD_DIR}/FirebaseAuthInterop" "${PODS_CONFIGURATION_BUILD_DIR}/FirebaseCore" "${PODS_CONFIGURATION_BUILD_DIR}/FirebaseCoreExtension" "${PODS_CONFIGURATION_BUILD_DIR}/FirebaseCoreInternal" "${PODS_CONFIGURATION_BUILD_DIR}/GTMSessionFetcher" "${PODS_CONFIGURATION_BUILD_DIR}/GoogleUtilities" "${PODS_CONFIGURATION_BUILD_DIR}/PromisesObjC"
+FRAMEWORK_SEARCH_PATHS = $(inherited) "${PODS_CONFIGURATION_BUILD_DIR}/FirebaseAppCheckInterop" "${PODS_CONFIGURATION_BUILD_DIR}/FirebaseAuthInterop" "${PODS_CONFIGURATION_BUILD_DIR}/FirebaseCore" "${PODS_CONFIGURATION_BUILD_DIR}/FirebaseCoreExtension" "${PODS_CONFIGURATION_BUILD_DIR}/FirebaseCoreInternal" "${PODS_CONFIGURATION_BUILD_DIR}/GTMSessionFetcher" "${PODS_CONFIGURATION_BUILD_DIR}/GoogleUtilities"
 GCC_PREPROCESSOR_DEFINITIONS = $(inherited) COCOAPODS=1
 LIBRARY_SEARCH_PATHS = $(inherited) "${TOOLCHAIN_DIR}/usr/lib/swift/${PLATFORM_NAME}" /usr/lib/swift
-OTHER_LDFLAGS = $(inherited) -framework "FirebaseAppCheckInterop" -framework "FirebaseAuthInterop" -framework "FirebaseCore" -framework "FirebaseCoreExtension" -framework "Foundation" -framework "GTMSessionFetcher" -framework "Security" -framework "UIKit"
+OTHER_LDFLAGS = $(inherited) -framework "FirebaseAppCheckInterop" -framework "FirebaseAuthInterop" -framework "FirebaseCore" -framework "FirebaseCoreExtension" -framework "Foundation" -framework "GTMSessionFetcher" -framework "GoogleUtilities" -framework "Security" -framework "SystemConfiguration" -framework "UIKit"
 OTHER_SWIFT_FLAGS = $(inherited) -D COCOAPODS -suppress-warnings
 PODS_BUILD_DIR = ${BUILD_DIR}
 PODS_CONFIGURATION_BUILD_DIR = ${PODS_BUILD_DIR}/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)

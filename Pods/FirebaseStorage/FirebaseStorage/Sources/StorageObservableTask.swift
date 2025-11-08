@@ -14,18 +14,14 @@
 
 import Foundation
 
-#if COCOAPODS
-  import GTMSessionFetcher
-#else
-  import GTMSessionFetcherCore
-#endif
-
 /**
  * An extended `StorageTask` providing observable semantics that can be used for responding to changes
  * in task state.
+ *
  * Observers produce a `StorageHandle`, which is used to keep track of and remove specific
  * observers at a later date.
  */
+@available(iOS 13, tvOS 13, macOS 10.15, macCatalyst 13, watchOS 7, *)
 @objc(FIRStorageObservableTask) open class StorageObservableTask: StorageTask {
   /**
    * Observes changes in the upload status: Resume, Pause, Progress, Success, and Failure.
@@ -80,7 +76,7 @@ import Foundation
 
   /**
    * Removes the single observer with the provided handle.
-   * - Parameter handle The handle of the task to remove.
+   * - Parameter handle: The handle of the task to remove.
    */
   @objc(removeObserverWithHandle:) open func removeObserver(withHandle handle: String) {
     if let status = handleToStatusMap[handle] {
@@ -93,7 +89,7 @@ import Foundation
 
   /**
    * Removes all observers for a single status.
-   * - Parameter status A `StorageTaskStatus` to remove all listeners for.
+   * - Parameter status: A `StorageTaskStatus` to remove all listeners for.
    */
   @objc(removeAllObserversForStatus:)
   open func removeAllObservers(for status: StorageTaskStatus) {
@@ -131,10 +127,9 @@ import Foundation
 
   // MARK: - Internal Implementations
 
-  internal init(reference: StorageReference,
-                service: GTMSessionFetcherService,
-                queue: DispatchQueue,
-                file: URL?) {
+  init(reference: StorageReference,
+       queue: DispatchQueue,
+       file: URL?) {
     handlerDictionaries = [
       .resume: [String: (StorageTaskSnapshot) -> Void](),
       .pause: [String: (StorageTaskSnapshot) -> Void](),
@@ -144,11 +139,11 @@ import Foundation
     ]
     handleToStatusMap = [:]
     fileURL = file
-    super.init(reference: reference, service: service, queue: queue)
+    super.init(reference: reference, queue: queue)
   }
 
-  internal func updateHandlerDictionary(for status: StorageTaskStatus,
-                                        with handler: @escaping ((StorageTaskSnapshot) -> Void))
+  func updateHandlerDictionary(for status: StorageTaskStatus,
+                               with handler: @escaping ((StorageTaskSnapshot) -> Void))
     -> String {
     // TODO: use an increasing counter instead of a random UUID
     let uuidString = NSUUID().uuidString
@@ -158,20 +153,19 @@ import Foundation
     return uuidString
   }
 
-  internal func fire(for status: StorageTaskStatus, snapshot: StorageTaskSnapshot) {
+  func fire(for status: StorageTaskStatus, snapshot: StorageTaskSnapshot) {
     if let observerDictionary = handlerDictionaries[status] {
       fire(handlers: observerDictionary, snapshot: snapshot)
     }
   }
 
-  internal func fire(handlers: [String: (StorageTaskSnapshot) -> Void],
-                     snapshot: StorageTaskSnapshot) {
-    let callbackQueue = fetcherService.callbackQueue ?? DispatchQueue.main
+  func fire(handlers: [String: (StorageTaskSnapshot) -> Void],
+            snapshot: StorageTaskSnapshot) {
     objc_sync_enter(StorageObservableTask.self)
     let enumeration = handlers.enumerated()
     objc_sync_exit(StorageObservableTask.self)
     for (_, handler) in enumeration {
-      callbackQueue.async {
+      reference.storage.callbackQueue.async {
         handler.value(snapshot)
       }
     }

@@ -3,7 +3,7 @@
 #import <UserMessagingPlatform/UMPRequestParameters.h>
 
 /// SDK version string, of a form "major.minor.patch".
-extern NSString *_Nonnull const UMPVersionString;
+extern NSString *_Nonnull const UMPVersionString NS_SWIFT_NAME(Version);
 
 /// Consent status values.
 typedef NS_ENUM(NSInteger, UMPConsentStatus) {
@@ -12,7 +12,7 @@ typedef NS_ENUM(NSInteger, UMPConsentStatus) {
   UMPConsentStatusNotRequired = 2,  ///< Consent not required.
   UMPConsentStatusObtained =
       3,  ///< User consent obtained, personalized vs non-personalized undefined.
-};
+} NS_SWIFT_NAME(ConsentStatus);
 
 /// State values for whether the user has a consent form available to them. To check whether form
 /// status has changed, an update can be requested through
@@ -28,7 +28,7 @@ typedef NS_ENUM(NSInteger, UMPFormStatus) {
 
   /// Consent forms are unavailable. Showing a consent form is not required.
   UMPFormStatusUnavailable = 2,
-};
+} NS_SWIFT_NAME(FormStatus);
 
 /// State values for whether the user needs to be provided a way to modify their privacy options.
 typedef NS_ENUM(NSInteger, UMPPrivacyOptionsRequirementStatus) {
@@ -39,17 +39,18 @@ typedef NS_ENUM(NSInteger, UMPPrivacyOptionsRequirementStatus) {
   /// User does not need to modify their privacy options. Either consent is not required, or the
   /// consent type does not require modification.
   UMPPrivacyOptionsRequirementStatusNotRequired = 2,
-};
+} NS_SWIFT_NAME(PrivacyOptionsRequirementStatus);
 
 /// Called when the consent info request completes. Error is nil on success, and non-nil if the
 /// update failed.
 typedef void (^UMPConsentInformationUpdateCompletionHandler)(NSError *_Nullable error);
 
 /// Consent information. All methods must be called on the main thread.
+NS_SWIFT_NAME(ConsentInformation)
 @interface UMPConsentInformation : NSObject
 
 /// The shared consent information instance.
-@property(class, nonatomic, readonly, nonnull) UMPConsentInformation *sharedInstance;
+@property(class, nonatomic, readonly, nonnull) UMPConsentInformation *sharedInstance NS_SWIFT_NAME(shared);
 
 /// The user's consent status. This value defaults to UMPConsentStatusUnknown until
 /// requestConsentInfoUpdateWithParameters:completionHandler: is called, and defaults to the
@@ -57,10 +58,8 @@ typedef void (^UMPConsentInformationUpdateCompletionHandler)(NSError *_Nullable 
 /// requestConsentInfoUpdateWithParameters:completionHandler: is called.
 @property(nonatomic, readonly) UMPConsentStatus consentStatus;
 
-/// Indicates whether the app has completed the necessary steps for gathering updated user consent.
-/// Returns NO until requestConsentInfoUpdateWithParameters:completionHandler: is called. Returns
-/// YES once requestConsentInfoUpdateWithParameters:completionHandler: is called and when
-/// consentStatus is UMPConsentStatusNotRequired or UMPConsentStatusObtained.
+/// Indicates whether the SDK has gathered consent aligned with the app's configured messages.
+/// Returns NO until requestConsentInfoUpdateWithParameters:completionHandler: is called.
 @property(nonatomic, readonly) BOOL canRequestAds;
 
 /// Consent form status. This value defaults to UMPFormStatusUnknown and requires a call to
@@ -80,7 +79,8 @@ typedef void (^UMPConsentInformationUpdateCompletionHandler)(NSError *_Nullable 
 /// consentStatus may be updated again immediately before the completion handler is called.
 - (void)requestConsentInfoUpdateWithParameters:(nullable UMPRequestParameters *)parameters
                              completionHandler:
-                                 (nonnull UMPConsentInformationUpdateCompletionHandler)handler;
+                                 (nonnull UMPConsentInformationUpdateCompletionHandler)handler
+    NS_SWIFT_NAME(requestConsentInfoUpdate(with:completionHandler:));
 
 /// Clears all consent state from persistent storage.
 - (void)reset;

@@ -13,6 +13,8 @@
 #import <GoogleMobileAds/GADInitializationStatus.h>
 #import <GoogleMobileAds/GADRequestConfiguration.h>
 #import <GoogleMobileAds/Mediation/GADVersionNumber.h>
+#import <GoogleMobileAds/Request/GADSignal.h>
+#import <GoogleMobileAds/Request/GADSignalRequest.h>
 
 /// A block called with the initialization status when [GADMobileAds startWithCompletionHandler:]
 /// completes or times out.
@@ -21,6 +23,9 @@ typedef void (^GADInitializationCompletionHandler)(GADInitializationStatus *_Non
 /// Completion handler for presenting Ad Inspector. Returns an error if a problem was detected
 /// during presentation, or nil otherwise.
 typedef void (^GADAdInspectorCompletionHandler)(NSError *_Nullable error);
+
+/// Completion handler for signal request creation. Returns a signal or an error.
+typedef void (^GADSignalCompletionHandler)(GADSignal *_Nullable signal, NSError *_Nullable error);
 
 /// Google Mobile Ads SDK settings.
 @interface GADMobileAds : NSObject
@@ -89,9 +94,10 @@ typedef void (^GADAdInspectorCompletionHandler)(NSError *_Nullable error);
 /// to launch Ad Inspector. Set
 /// GADMobileAds.sharedInstance.requestConfiguration.testDeviceIdentifiers to enable test mode on
 /// this device.
-/// @param viewController A view controller to present Ad Inspector.
+/// @param viewController A view controller to present Ad Inspector. If nil, uses the top view
+/// controller of the app's main window.
 /// @param completionHandler A handler to execute when Ad Inspector is closed.
-- (void)presentAdInspectorFromViewController:(nonnull UIViewController *)viewController
+- (void)presentAdInspectorFromViewController:(nullable UIViewController *)viewController
                            completionHandler:
                                (nullable GADAdInspectorCompletionHandler)completionHandler;
 
@@ -99,10 +105,12 @@ typedef void (^GADAdInspectorCompletionHandler)(NSError *_Nullable error);
 /// within this web view.
 - (void)registerWebView:(nonnull WKWebView *)webView;
 
-#pragma mark Deprecated
-
-/// Returns the version of the SDK.
-@property(nonatomic, nonnull, readonly)
-    NSString *sdkVersion GAD_DEPRECATED_MSG_ATTRIBUTE("Use versionNumber property instead.");
+/// Generates a signal that can be used as input in a server-to-server Google request. Calls
+/// completionHandler asynchronously on the main thread once a signal has been generated or
+/// when an error occurs.
+/// @param request The signal request that will be used to generate the signal.
+/// @param completionHandler A handler to execute when the signal generation is done.
++ (void)generateSignal:(nonnull GADSignalRequest *)request
+     completionHandler:(nonnull GADSignalCompletionHandler)completionHandler;
 
 @end

@@ -81,13 +81,10 @@ struct bio_bio_st {
 };
 
 static int bio_new(BIO *bio) {
-  struct bio_bio_st *b;
-
-  b = OPENSSL_malloc(sizeof *b);
+  struct bio_bio_st *b = OPENSSL_zalloc(sizeof *b);
   if (b == NULL) {
     return 0;
   }
-  OPENSSL_memset(b, 0, sizeof(struct bio_bio_st));
 
   b->size = 17 * 1024;  // enough for one TLS record (just a default)
   bio->ptr = b;
@@ -221,7 +218,8 @@ static int bio_read(BIO *bio, char *buf, int size_) {
     rest -= chunk;
   } while (rest);
 
-  return size;
+  // |size| is bounded by the buffer size, which fits in |int|.
+  return (int)size;
 }
 
 static int bio_write(BIO *bio, const char *buf, int num_) {
@@ -293,7 +291,8 @@ static int bio_write(BIO *bio, const char *buf, int num_) {
     buf += chunk;
   } while (rest);
 
-  return num;
+  // |num| is bounded by the buffer size, which fits in |int|.
+  return (int)num;
 }
 
 static int bio_make_pair(BIO *bio1, BIO *bio2, size_t writebuf1_len,
@@ -317,7 +316,6 @@ static int bio_make_pair(BIO *bio1, BIO *bio2, size_t writebuf1_len,
     }
     b1->buf = OPENSSL_malloc(b1->size);
     if (b1->buf == NULL) {
-      OPENSSL_PUT_ERROR(BIO, ERR_R_MALLOC_FAILURE);
       return 0;
     }
     b1->len = 0;
@@ -330,7 +328,6 @@ static int bio_make_pair(BIO *bio1, BIO *bio2, size_t writebuf1_len,
     }
     b2->buf = OPENSSL_malloc(b2->size);
     if (b2->buf == NULL) {
-      OPENSSL_PUT_ERROR(BIO, ERR_R_MALLOC_FAILURE);
       return 0;
     }
     b2->len = 0;
@@ -479,5 +476,5 @@ size_t BIO_ctrl_get_write_guarantee(BIO *bio) {
 }
 
 int BIO_shutdown_wr(BIO *bio) {
-  return BIO_ctrl(bio, BIO_C_SHUTDOWN_WR, 0, NULL);
+  return (int)BIO_ctrl(bio, BIO_C_SHUTDOWN_WR, 0, NULL);
 }

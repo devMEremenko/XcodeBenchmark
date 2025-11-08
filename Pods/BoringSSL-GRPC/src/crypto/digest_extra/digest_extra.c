@@ -200,7 +200,6 @@ int EVP_marshal_digest_algorithm(CBB *cbb, const EVP_MD *md) {
   CBB algorithm, oid, null;
   if (!CBB_add_asn1(cbb, &algorithm, CBS_ASN1_SEQUENCE) ||
       !CBB_add_asn1(&algorithm, &oid, CBS_ASN1_OBJECT)) {
-    OPENSSL_PUT_ERROR(DIGEST, ERR_R_MALLOC_FAILURE);
     return 0;
   }
 
@@ -209,7 +208,6 @@ int EVP_marshal_digest_algorithm(CBB *cbb, const EVP_MD *md) {
   for (size_t i = 0; i < OPENSSL_ARRAY_SIZE(kMDOIDs); i++) {
     if (nid == kMDOIDs[i].nid) {
       if (!CBB_add_bytes(&oid, kMDOIDs[i].oid, kMDOIDs[i].oid_len)) {
-        OPENSSL_PUT_ERROR(DIGEST, ERR_R_MALLOC_FAILURE);
         return 0;
       }
       found = 1;
@@ -222,9 +220,9 @@ int EVP_marshal_digest_algorithm(CBB *cbb, const EVP_MD *md) {
     return 0;
   }
 
+  // TODO(crbug.com/boringssl/710): Is this correct? See RFC 4055, section 2.1.
   if (!CBB_add_asn1(&algorithm, &null, CBS_ASN1_NULL) ||
       !CBB_flush(cbb)) {
-    OPENSSL_PUT_ERROR(DIGEST, ERR_R_MALLOC_FAILURE);
     return 0;
   }
 

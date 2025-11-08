@@ -11,19 +11,27 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include <grpc/support/port_platform.h>
-
 #include "src/core/lib/event_engine/default_event_engine.h"
+
+#include <grpc/event_engine/event_engine.h>
+#include <grpc/support/port_platform.h>
 
 #include <atomic>
 #include <memory>
 #include <utility>
 
 #include "absl/functional/any_invocable.h"
-
-#include <grpc/event_engine/event_engine.h>
-
+#include "src/core/config/core_configuration.h"
+#include "src/core/lib/channel/channel_args.h"
+#include "src/core/lib/debug/trace.h"
 #include "src/core/lib/event_engine/default_event_engine_factory.h"
+#include "src/core/util/debug_location.h"
+#include "src/core/util/no_destruct.h"
+#include "src/core/util/sync.h"
+
+#ifdef GRPC_MAXIMIZE_THREADYNESS
+#include "src/core/lib/event_engine/thready_event_engine/thready_event_engine.h"  // IWYU pragma: keep
+#endif
 
 namespace grpc_event_engine {
 namespace experimental {
@@ -31,40 +39,69 @@ namespace experimental {
 namespace {
 std::atomic<absl::AnyInvocable<std::unique_ptr<EventEngine>()>*>
     g_event_engine_factory{nullptr};
-std::atomic<EventEngine*> g_event_engine{nullptr};
+grpc_core::NoDestruct<grpc_core::Mutex> g_mu;
+grpc_core::NoDestruct<std::weak_ptr<EventEngine>> g_event_engine;
 }  // namespace
 
-void SetDefaultEventEngineFactory(
+void SetEventEngineFactory(
     absl::AnyInvocable<std::unique_ptr<EventEngine>()> factory) {
   delete g_event_engine_factory.exchange(
       new absl::AnyInvocable<std::unique_ptr<EventEngine>()>(
           std::move(factory)));
+  // Forget any previous EventEngines
+  grpc_core::MutexLock lock(&*g_mu);
+  g_event_engine->reset();
 }
 
-std::unique_ptr<EventEngine> CreateEventEngine() {
+void EventEngineFactoryReset() {
+  delete g_event_engine_factory.exchange(nullptr);
+  g_event_engine->reset();
+}
+
+std::unique_ptr<EventEngine> CreateEventEngineInner() {
   if (auto* factory = g_event_engine_factory.load()) {
     return (*factory)();
   }
   return DefaultEventEngineFactory();
 }
 
-EventEngine* GetDefaultEventEngine() {
-  EventEngine* engine = g_event_engine.load(std::memory_order_acquire);
-  if (engine == nullptr) {
-    auto* created = CreateEventEngine().release();
-    if (g_event_engine.compare_exchange_strong(engine, created,
-                                               std::memory_order_acq_rel,
-                                               std::memory_order_acquire)) {
-      engine = created;
-    } else {
-      delete created;
-    }
+std::unique_ptr<EventEngine> CreateEventEngine() {
+#ifdef GRPC_MAXIMIZE_THREADYNESS
+  return std::make_unique<ThreadyEventEngine>(CreateEventEngineInner());
+#else
+  return CreateEventEngineInner();
+#endif
+}
+
+std::shared_ptr<EventEngine> GetDefaultEventEngine(
+    grpc_core::SourceLocation location) {
+  grpc_core::MutexLock lock(&*g_mu);
+  if (std::shared_ptr<EventEngine> engine = g_event_engine->lock()) {
+    GRPC_TRACE_LOG(event_engine, INFO)
+        << "Returning existing EventEngine::" << engine.get()
+        << ". use_count:" << engine.use_count() << ". Called from " << location;
+    return engine;
   }
+  std::shared_ptr<EventEngine> engine{CreateEventEngine()};
+  GRPC_TRACE_LOG(event_engine, INFO)
+      << "Created DefaultEventEngine::" << engine.get() << ". Called from "
+      << location;
+  *g_event_engine = engine;
   return engine;
 }
 
-void ResetDefaultEventEngine() {
-  delete g_event_engine.exchange(nullptr, std::memory_order_acq_rel);
+namespace {
+grpc_core::ChannelArgs EnsureEventEngineInChannelArgs(
+    grpc_core::ChannelArgs args) {
+  if (args.ContainsObject<EventEngine>()) return args;
+  return args.SetObject<EventEngine>(GetDefaultEventEngine());
+}
+}  // namespace
+
+void RegisterEventEngineChannelArgPreconditioning(
+    grpc_core::CoreConfiguration::Builder* builder) {
+  builder->channel_args_preconditioning()->RegisterStage(
+      grpc_event_engine::experimental::EnsureEventEngineInChannelArgs);
 }
 
 }  // namespace experimental

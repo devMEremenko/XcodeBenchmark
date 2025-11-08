@@ -46,12 +46,12 @@ NS_ASSUME_NONNULL_BEGIN
 /// Indicates whether it is running inside an extension or an app.
 + (BOOL)isAppExtension;
 
-/// @return Returns @YES when is run on iOS version greater or equal to 7.0
-+ (BOOL)isIOS7OrHigher DEPRECATED_MSG_ATTRIBUTE(
-    "Always `YES` because only iOS 8 and higher supported. The method will be removed.");
+/// Indicates whether it is running inside an app clip or a full app.
++ (BOOL)isAppClip;
 
-/// @return YES if Swift runtime detected in the app.
-+ (BOOL)hasSwiftRuntime __deprecated;
+/// Indicates whether the current target supports background URL session uploads.
+/// App extensions and app clips do not support background URL sessions.
++ (BOOL)supportsBackgroundURLSessionUploads;
 
 /// @return An Apple platform. Possible values "ios", "tvos", "macos", "watchos", "maccatalyst", and
 /// "visionos".

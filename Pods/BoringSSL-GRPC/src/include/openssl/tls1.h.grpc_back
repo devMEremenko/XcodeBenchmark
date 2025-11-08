@@ -239,12 +239,13 @@ extern "C" {
 // ExtensionType value from RFC 5746
 #define TLSEXT_TYPE_renegotiate 0xff01
 
-// ExtensionType value from draft-ietf-tls-subcerts.
-#define TLSEXT_TYPE_delegated_credential 0x22
+// ExtensionType value from RFC 9345
+#define TLSEXT_TYPE_delegated_credential 34
 
 // ExtensionType value from draft-vvv-tls-alps. This is not an IANA defined
 // extension number.
-#define TLSEXT_TYPE_application_settings 17513
+#define TLSEXT_TYPE_application_settings_old 17513
+#define TLSEXT_TYPE_application_settings 17613
 
 // ExtensionType values from draft-ietf-tls-esni-13. This is not an IANA defined
 // extension number.
@@ -408,6 +409,8 @@ extern "C" {
 #define TLS1_CK_ECDHE_RSA_WITH_AES_128_CBC_SHA 0x0300C013
 #define TLS1_CK_ECDHE_RSA_WITH_AES_256_CBC_SHA 0x0300C014
 
+#define TLS1_CK_ECDHE_RSA_WITH_AES_128_CBC_SHA256 0x0300C027
+
 #define TLS1_CK_ECDH_anon_WITH_NULL_SHA 0x0300C015
 #define TLS1_CK_ECDH_anon_WITH_RC4_128_SHA 0x0300C016
 #define TLS1_CK_ECDH_anon_WITH_DES_192_CBC3_SHA 0x0300C017
@@ -452,9 +455,15 @@ extern "C" {
 #define TLS1_CK_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256 0x0300CCAC
 
 // TLS 1.3 ciphersuites from RFC 8446.
-#define TLS1_CK_AES_128_GCM_SHA256 0x03001301
-#define TLS1_CK_AES_256_GCM_SHA384 0x03001302
-#define TLS1_CK_CHACHA20_POLY1305_SHA256 0x03001303
+#define TLS1_3_CK_AES_128_GCM_SHA256 0x03001301
+#define TLS1_3_CK_AES_256_GCM_SHA384 0x03001302
+#define TLS1_3_CK_CHACHA20_POLY1305_SHA256 0x03001303
+
+// The following constants are legacy aliases of |TLS1_3_CK_*|.
+// TODO(davidben): Migrate callers to the new name and remove these.
+#define TLS1_CK_AES_128_GCM_SHA256 TLS1_3_CK_AES_128_GCM_SHA256
+#define TLS1_CK_AES_256_GCM_SHA384 TLS1_3_CK_AES_256_GCM_SHA384
+#define TLS1_CK_CHACHA20_POLY1305_SHA256 TLS1_3_CK_CHACHA20_POLY1305_SHA256
 
 // XXX
 // Inconsistency alert:
@@ -511,6 +520,8 @@ extern "C" {
 #define TLS1_TXT_ECDHE_RSA_WITH_DES_192_CBC3_SHA "ECDHE-RSA-DES-CBC3-SHA"
 #define TLS1_TXT_ECDHE_RSA_WITH_AES_128_CBC_SHA "ECDHE-RSA-AES128-SHA"
 #define TLS1_TXT_ECDHE_RSA_WITH_AES_256_CBC_SHA "ECDHE-RSA-AES256-SHA"
+
+#define TLS1_TXT_ECDHE_RSA_WITH_AES_128_CBC_SHA256 "ECDHE-RSA-AES128-SHA256"
 
 #define TLS1_TXT_ECDH_anon_WITH_NULL_SHA "AECDH-NULL-SHA"
 #define TLS1_TXT_ECDH_anon_WITH_RC4_128_SHA "AECDH-RC4-SHA"
@@ -624,10 +635,15 @@ extern "C" {
   "ECDHE-PSK-CHACHA20-POLY1305"
 
 // TLS 1.3 ciphersuites from RFC 8446.
-#define TLS1_TXT_AES_128_GCM_SHA256 "TLS_AES_128_GCM_SHA256"
-#define TLS1_TXT_AES_256_GCM_SHA384 "TLS_AES_256_GCM_SHA384"
-#define TLS1_TXT_CHACHA20_POLY1305_SHA256 "TLS_CHACHA20_POLY1305_SHA256"
+#define TLS1_3_RFC_AES_128_GCM_SHA256 "TLS_AES_128_GCM_SHA256"
+#define TLS1_3_RFC_AES_256_GCM_SHA384 "TLS_AES_256_GCM_SHA384"
+#define TLS1_3_RFC_CHACHA20_POLY1305_SHA256 "TLS_CHACHA20_POLY1305_SHA256"
 
+// The following constants are legacy aliases of |TLS1_3_CK_*|.
+// TODO(bbe): Migrate callers to the new name and remove these.
+#define TLS1_TXT_AES_128_GCM_SHA256 TLS1_3_RFC_AES_128_GCM_SHA256
+#define TLS1_TXT_AES_256_GCM_SHA384 TLS1_3_RFC_AES_256_GCM_SHA384
+#define TLS1_TXT_CHACHA20_POLY1305_SHA256 TLS1_3_RFC_CHACHA20_POLY1305_SHA256
 
 #define TLS_CT_RSA_SIGN 1
 #define TLS_CT_DSS_SIGN 2

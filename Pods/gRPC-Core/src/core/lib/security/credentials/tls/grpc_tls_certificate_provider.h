@@ -14,32 +14,30 @@
 // limitations under the License.
 //
 
-#ifndef GRPC_CORE_LIB_SECURITY_CREDENTIALS_TLS_GRPC_TLS_CERTIFICATE_PROVIDER_H
-#define GRPC_CORE_LIB_SECURITY_CREDENTIALS_TLS_GRPC_TLS_CERTIFICATE_PROVIDER_H
+#ifndef GRPC_SRC_CORE_LIB_SECURITY_CREDENTIALS_TLS_GRPC_TLS_CERTIFICATE_PROVIDER_H
+#define GRPC_SRC_CORE_LIB_SECURITY_CREDENTIALS_TLS_GRPC_TLS_CERTIFICATE_PROVIDER_H
 
+#include <grpc/grpc_security.h>
 #include <grpc/support/port_platform.h>
+#include <grpc/support/sync.h>
+#include <stdint.h>
 
 #include <map>
 #include <string>
 
 #include "absl/base/thread_annotations.h"
+#include "absl/log/check.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
-
-#include <grpc/grpc_security.h>
-#include <grpc/support/log.h>
-#include <grpc/support/sync.h>
-
-#include "src/core/lib/gpr/useful.h"
-#include "src/core/lib/gprpp/ref_counted.h"
-#include "src/core/lib/gprpp/ref_counted_ptr.h"
-#include "src/core/lib/gprpp/sync.h"
-#include "src/core/lib/gprpp/thd.h"
-#include "src/core/lib/gprpp/unique_type_name.h"
-#include "src/core/lib/iomgr/iomgr_fwd.h"
 #include "src/core/lib/security/credentials/tls/grpc_tls_certificate_distributor.h"
 #include "src/core/lib/security/security_connector/ssl_utils.h"
+#include "src/core/util/ref_counted.h"
+#include "src/core/util/ref_counted_ptr.h"
+#include "src/core/util/sync.h"
+#include "src/core/util/thd.h"
+#include "src/core/util/unique_type_name.h"
+#include "src/core/util/useful.h"
 
 // Interface for a grpc_tls_certificate_provider that handles the process to
 // fetch credentials and validation contexts. Implementations are free to rely
@@ -53,8 +51,6 @@
 struct grpc_tls_certificate_provider
     : public grpc_core::RefCounted<grpc_tls_certificate_provider> {
  public:
-  virtual grpc_pollset_set* interested_parties() const { return nullptr; }
-
   virtual grpc_core::RefCountedPtr<grpc_tls_certificate_distributor>
   distributor() const = 0;
 
@@ -67,7 +63,7 @@ struct grpc_tls_certificate_provider
   // be reused when two different `grpc_tls_certificate_provider` objects are
   // used but they compare as equal (assuming other channel args match).
   int Compare(const grpc_tls_certificate_provider* other) const {
-    GPR_ASSERT(other != nullptr);
+    CHECK_NE(other, nullptr);
     int r = type().Compare(other->type());
     if (r != 0) return r;
     return CompareImpl(other);
@@ -110,6 +106,8 @@ class StaticDataCertificateProvider final
 
   UniqueTypeName type() const override;
 
+  absl::Status ValidateCredentials() const;
+
  private:
   struct WatcherInfo {
     bool root_being_watched = false;
@@ -139,7 +137,7 @@ class FileWatcherCertificateProvider final
   FileWatcherCertificateProvider(std::string private_key_path,
                                  std::string identity_certificate_path,
                                  std::string root_cert_path,
-                                 unsigned int refresh_interval_sec);
+                                 int64_t refresh_interval_sec);
 
   ~FileWatcherCertificateProvider() override;
 
@@ -148,6 +146,10 @@ class FileWatcherCertificateProvider final
   }
 
   UniqueTypeName type() const override;
+
+  absl::Status ValidateCredentials() const;
+
+  int64_t TestOnlyGetRefreshIntervalSecond() const;
 
  private:
   struct WatcherInfo {
@@ -176,14 +178,14 @@ class FileWatcherCertificateProvider final
   std::string private_key_path_;
   std::string identity_certificate_path_;
   std::string root_cert_path_;
-  unsigned int refresh_interval_sec_ = 0;
+  int64_t refresh_interval_sec_ = 0;
 
   RefCountedPtr<grpc_tls_certificate_distributor> distributor_;
   Thread refresh_thread_;
   gpr_event shutdown_event_;
 
   // Guards members below.
-  Mutex mu_;
+  mutable Mutex mu_;
   // The most-recent credential data. It will be empty if the most recent read
   // attempt failed.
   std::string root_certificate_ ABSL_GUARDED_BY(mu_);
@@ -201,4 +203,4 @@ absl::StatusOr<bool> PrivateKeyAndCertificateMatch(
 
 }  // namespace grpc_core
 
-#endif  // GRPC_CORE_LIB_SECURITY_CREDENTIALS_TLS_GRPC_TLS_CERTIFICATE_PROVIDER_H
+#endif  // GRPC_SRC_CORE_LIB_SECURITY_CREDENTIALS_TLS_GRPC_TLS_CERTIFICATE_PROVIDER_H

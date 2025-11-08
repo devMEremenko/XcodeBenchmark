@@ -1,34 +1,32 @@
-/*
- *
- * Copyright 2015 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
-#include <algorithm>
-#include <list>
-#include <memory>
-#include <string>
-#include <vector>
-
-#include <grpc/impl/codegen/compression_types.h>
-#include <grpc/impl/codegen/grpc_types.h>
-#include <grpc/support/log.h>
+//
+//
+// Copyright 2015 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
+#include <grpc/impl/channel_arg_names.h>
+#include <grpc/impl/compression_types.h>
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/resource_quota.h>
 #include <grpcpp/support/channel_arguments.h>
-#include <grpcpp/support/config.h>
 
+#include <algorithm>
+#include <list>
+#include <string>
+#include <vector>
+
+#include "absl/log/check.h"
 #include "src/core/lib/iomgr/exec_ctx.h"
 #include "src/core/lib/iomgr/socket_mutator.h"
 
@@ -47,7 +45,7 @@ ChannelArguments::ChannelArguments(const ChannelArguments& other)
   for (const auto& a : other.args_) {
     grpc_arg ap;
     ap.type = a.type;
-    GPR_ASSERT(list_it_src->c_str() == a.key);
+    CHECK(list_it_src->c_str() == a.key);
     ap.key = const_cast<char*>(list_it_dst->c_str());
     ++list_it_src;
     ++list_it_dst;
@@ -56,7 +54,7 @@ ChannelArguments::ChannelArguments(const ChannelArguments& other)
         ap.value.integer = a.value.integer;
         break;
       case GRPC_ARG_STRING:
-        GPR_ASSERT(list_it_src->c_str() == a.value.string);
+        CHECK(list_it_src->c_str() == a.value.string);
         ap.value.string = const_cast<char*>(list_it_dst->c_str());
         ++list_it_src;
         ++list_it_dst;
@@ -103,7 +101,7 @@ void ChannelArguments::SetSocketMutator(grpc_socket_mutator* mutator) {
   for (auto& arg : args_) {
     if (arg.type == mutator_arg.type &&
         std::string(arg.key) == std::string(mutator_arg.key)) {
-      GPR_ASSERT(!replaced);
+      CHECK(!replaced);
       arg.value.pointer.vtable->destroy(arg.value.pointer.p);
       arg.value.pointer = mutator_arg.value.pointer;
       replaced = true;
@@ -132,7 +130,7 @@ void ChannelArguments::SetUserAgentPrefix(
     ++strings_it;
     if (arg.type == GRPC_ARG_STRING) {
       if (std::string(arg.key) == GRPC_ARG_PRIMARY_USER_AGENT_STRING) {
-        GPR_ASSERT(arg.value.string == strings_it->c_str());
+        CHECK(arg.value.string == strings_it->c_str());
         *(strings_it) = user_agent_prefix + " " + arg.value.string;
         arg.value.string = const_cast<char*>(strings_it->c_str());
         replaced = true;
@@ -217,6 +215,19 @@ void ChannelArguments::SetChannelArgs(grpc_channel_args* channel_args) const {
   if (channel_args->num_args > 0) {
     channel_args->args = const_cast<grpc_arg*>(&args_[0]);
   }
+}
+
+void ChannelArguments::SetSslTargetNameOverride(const std::string& name) {
+  SetString(GRPC_SSL_TARGET_NAME_OVERRIDE_ARG, name);
+}
+
+std::string ChannelArguments::GetSslTargetNameOverride() const {
+  for (unsigned int i = 0; i < args_.size(); i++) {
+    if (std::string(GRPC_SSL_TARGET_NAME_OVERRIDE_ARG) == args_[i].key) {
+      return args_[i].value.string;
+    }
+  }
+  return "";
 }
 
 }  // namespace grpc

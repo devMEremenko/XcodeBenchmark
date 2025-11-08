@@ -1,25 +1,25 @@
-/*
- *
- * Copyright 2018 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+//
+//
+// Copyright 2018 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 
 #include <grpc/support/port_platform.h>
 
 #include <algorithm>
-#include <memory>
+#include <string>
 #include <vector>
 
 #if defined(GPR_LINUX) || defined(GPR_ANDROID) || defined(GPR_FREEBSD) || \
@@ -27,25 +27,19 @@
 
 #include <dirent.h>
 #include <fcntl.h>
+#include <grpc/support/alloc.h>
 #include <stdio.h>
-#include <string.h>
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <grpc/support/alloc.h>
-#include <grpc/support/log.h>
-
-#include "src/core/lib/gpr/useful.h"
-#include "src/core/lib/gprpp/global_config.h"
-#include "src/core/lib/gprpp/memory.h"
+#include "absl/log/log.h"
+#include "src/core/config/config_vars.h"
 #include "src/core/lib/iomgr/error.h"
-#include "src/core/lib/iomgr/load_file.h"
 #include "src/core/lib/security/security_connector/load_system_roots.h"
 #include "src/core/lib/security/security_connector/load_system_roots_supported.h"
-
-GPR_GLOBAL_CONFIG_DEFINE_STRING(grpc_system_ssl_roots_dir, "",
-                                "Custom directory to SSL Roots");
+#include "src/core/util/load_file.h"
+#include "src/core/util/useful.h"
 
 namespace grpc_core {
 namespace {
@@ -68,16 +62,10 @@ const char* kCertDirectories[] = {""};
 #endif                      // GPR_APPLE
 
 grpc_slice GetSystemRootCerts() {
-  grpc_slice valid_bundle_slice = grpc_empty_slice();
   size_t num_cert_files_ = GPR_ARRAY_SIZE(kCertFiles);
   for (size_t i = 0; i < num_cert_files_; i++) {
-    grpc_error_handle error =
-        grpc_load_file(kCertFiles[i], 1, &valid_bundle_slice);
-    if (GRPC_ERROR_IS_NONE(error)) {
-      return valid_bundle_slice;
-    } else {
-      GRPC_ERROR_UNREF(error);
-    }
+    auto slice = LoadFile(kCertFiles[i], /*add_null_terminator=*/true);
+    if (slice.ok()) return slice->TakeCSlice();
   }
   return grpc_empty_slice();
 }
@@ -90,8 +78,7 @@ void GetAbsoluteFilePath(const char* valid_file_dir,
     int path_len = snprintf(path_buffer, MAXPATHLEN, "%s/%s", valid_file_dir,
                             file_entry_name);
     if (path_len == 0) {
-      gpr_log(GPR_ERROR, "failed to get absolute path for file: %s",
-              file_entry_name);
+      LOG(ERROR) << "failed to get absolute path for file: " << file_entry_name;
     }
   }
 }
@@ -121,7 +108,7 @@ grpc_slice CreateRootCertsBundle(const char* certs_directory) {
     if (stat_return == -1 || !S_ISREG(dir_entry_stat.st_mode)) {
       // no subdirectories.
       if (stat_return == -1) {
-        gpr_log(GPR_ERROR, "failed to get status for file: %s", file_data.path);
+        LOG(ERROR) << "failed to get status for file: " << file_data.path;
       }
       continue;
     }
@@ -142,7 +129,7 @@ grpc_slice CreateRootCertsBundle(const char* certs_directory) {
       if (read_ret != -1) {
         bytes_read += read_ret;
       } else {
-        gpr_log(GPR_ERROR, "failed to read file: %s", roots_filenames[i].path);
+        LOG(ERROR) << "failed to read file: " << roots_filenames[i].path;
       }
     }
   }
@@ -153,9 +140,9 @@ grpc_slice CreateRootCertsBundle(const char* certs_directory) {
 grpc_slice LoadSystemRootCerts() {
   grpc_slice result = grpc_empty_slice();
   // Prioritize user-specified custom directory if flag is set.
-  UniquePtr<char> custom_dir = GPR_GLOBAL_CONFIG_GET(grpc_system_ssl_roots_dir);
-  if (strlen(custom_dir.get()) > 0) {
-    result = CreateRootCertsBundle(custom_dir.get());
+  auto custom_dir = ConfigVars::Get().SystemSslRootsDir();
+  if (!custom_dir.empty()) {
+    result = CreateRootCertsBundle(std::string(custom_dir).c_str());
   }
   // If the custom directory is empty/invalid/not specified, fallback to
   // distribution-specific directory.
@@ -175,4 +162,4 @@ grpc_slice LoadSystemRootCerts() {
 
 }  // namespace grpc_core
 
-#endif /* GPR_LINUX || GPR_ANDROID || GPR_FREEBSD || GPR_APPLE */
+#endif  // GPR_LINUX || GPR_ANDROID || GPR_FREEBSD || GPR_APPLE

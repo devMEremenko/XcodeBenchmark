@@ -21,6 +21,7 @@
 #import "GoogleDataTransport/GDTCORLibrary/Internal/GDTCORStorageProtocol.h"
 #import "GoogleDataTransport/GDTCORLibrary/Public/GoogleDataTransport/GDTCORClock.h"
 #import "GoogleDataTransport/GDTCORLibrary/Public/GoogleDataTransport/GDTCORConsoleLogger.h"
+#import "GoogleDataTransport/GDTCORLibrary/Public/GoogleDataTransport/GDTCORProductData.h"
 
 #import "GoogleDataTransport/GDTCORLibrary/Private/GDTCOREvent_Private.h"
 
@@ -31,7 +32,9 @@
   return [[NSUUID UUID].UUIDString stringByReplacingOccurrencesOfString:@"-" withString:@""];
 }
 
-- (nullable instancetype)initWithMappingID:(NSString *)mappingID target:(GDTCORTarget)target {
+- (nullable instancetype)initWithMappingID:(NSString *)mappingID
+                               productData:(nullable GDTCORProductData *)productData
+                                    target:(GDTCORTarget)target {
   GDTCORAssert(mappingID.length > 0, @"Please give a valid mapping ID");
   GDTCORAssert(target > 0, @"A target cannot be negative or 0");
   if (mappingID.length == 0 || target <= 0) {
@@ -41,6 +44,7 @@
   if (self) {
     _eventID = [GDTCOREvent nextEventID];
     _mappingID = mappingID;
+    _productData = productData;
     _target = target;
     _qosTier = GDTCOREventQosDefault;
     _expirationDate = [NSDate dateWithTimeIntervalSinceNow:604800];  // 7 days.
@@ -52,8 +56,14 @@
   return self;
 }
 
+- (nullable instancetype)initWithMappingID:(NSString *)mappingID target:(GDTCORTarget)target {
+  return [self initWithMappingID:mappingID productData:nil target:target];
+}
+
 - (instancetype)copy {
-  GDTCOREvent *copy = [[GDTCOREvent alloc] initWithMappingID:_mappingID target:_target];
+  GDTCOREvent *copy = [[GDTCOREvent alloc] initWithMappingID:_mappingID
+                                                 productData:_productData
+                                                      target:_target];
   copy->_eventID = _eventID;
   copy.dataObject = _dataObject;
   copy.qosTier = _qosTier;
@@ -67,10 +77,12 @@
   // This loses some precision, but it's probably fine.
   NSUInteger eventIDHash = [_eventID hash];
   NSUInteger mappingIDHash = [_mappingID hash];
+  NSUInteger productDataHash = [_productData hash];
   NSUInteger timeHash = [_clockSnapshot hash];
   NSInteger serializedBytesHash = [_serializedDataObjectBytes hash];
 
-  return eventIDHash ^ mappingIDHash ^ _target ^ _qosTier ^ timeHash ^ serializedBytesHash;
+  return eventIDHash ^ mappingIDHash ^ productDataHash ^ _target ^ _qosTier ^ timeHash ^
+         serializedBytesHash;
 }
 
 - (BOOL)isEqual:(id)object {
@@ -115,6 +127,9 @@ static NSString *kSerializedDataObjectBytes = @"GDTCOREventSerializedDataObjectB
 /** NSCoding key for customData property. */
 static NSString *kCustomDataKey = @"GDTCOREventCustomDataKey";
 
+/** NSCoding key for productData property. */
+static NSString *kProductDataKey = @"GDTCOREventProductDataKey";
+
 + (BOOL)supportsSecureCoding {
   return YES;
 }
@@ -123,6 +138,7 @@ static NSString *kCustomDataKey = @"GDTCOREventCustomDataKey";
   self = [self init];
   if (self) {
     _mappingID = [aDecoder decodeObjectOfClass:[NSString class] forKey:kMappingIDKey];
+    _productData = [aDecoder decodeObjectOfClass:[GDTCORProductData class] forKey:kProductDataKey];
     _target = [aDecoder decodeIntegerForKey:kTargetKey];
     _eventID = [aDecoder decodeObjectOfClass:[NSString class] forKey:kEventIDKey]
                    ?: [GDTCOREvent nextEventID];
@@ -142,6 +158,7 @@ static NSString *kCustomDataKey = @"GDTCOREventCustomDataKey";
 - (void)encodeWithCoder:(NSCoder *)aCoder {
   [aCoder encodeObject:_eventID forKey:kEventIDKey];
   [aCoder encodeObject:_mappingID forKey:kMappingIDKey];
+  [aCoder encodeObject:_productData forKey:kProductDataKey];
   [aCoder encodeInteger:_target forKey:kTargetKey];
   [aCoder encodeInteger:_qosTier forKey:kQoSTierKey];
   [aCoder encodeObject:_clockSnapshot forKey:kClockSnapshotKey];

@@ -1,28 +1,27 @@
-/*
- *
- * Copyright 2018 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
-
-#include <grpc/support/port_platform.h>
+//
+//
+// Copyright 2018 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 
 #include <grpc/grpc_security.h>
 #include <grpc/support/alloc.h>
-#include <grpc/support/log.h>
+#include <grpc/support/port_platform.h>
 #include <grpc/support/string_util.h>
 
+#include "absl/log/log.h"
 #include "src/core/lib/security/credentials/alts/grpc_alts_credentials_options.h"
 #include "src/core/tsi/alts/handshaker/transport_security_common_api.h"
 
@@ -45,10 +44,9 @@ static target_service_account* target_service_account_create(
 void grpc_alts_credentials_client_options_add_target_service_account(
     grpc_alts_credentials_options* options, const char* service_account) {
   if (options == nullptr || service_account == nullptr) {
-    gpr_log(
-        GPR_ERROR,
-        "Invalid nullptr arguments to "
-        "grpc_alts_credentials_client_options_add_target_service_account()");
+    LOG(ERROR)
+        << "Invalid nullptr arguments to "
+           "grpc_alts_credentials_client_options_add_target_service_account()";
     return;
   }
   auto client_options =
@@ -87,7 +85,7 @@ static grpc_alts_credentials_options* alts_client_options_copy(
       grpc_alts_credentials_client_options_create();
   auto new_client_options =
       reinterpret_cast<grpc_alts_credentials_client_options*>(new_options);
-  /* Copy target service accounts. */
+  // Copy target service accounts.
   target_service_account* prev = nullptr;
   auto node =
       (reinterpret_cast<const grpc_alts_credentials_client_options*>(options))
@@ -103,7 +101,7 @@ static grpc_alts_credentials_options* alts_client_options_copy(
     prev = new_node;
     node = node->next;
   }
-  /* Copy rpc protocol versions. */
+  // Copy rpc protocol versions.
   grpc_gcp_rpc_protocol_versions_copy(&options->rpc_versions,
                                       &new_options->rpc_versions);
   return new_options;

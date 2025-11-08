@@ -17,7 +17,6 @@
 #error "This file requires ARC support."
 #endif
 
-#include <sys/stat.h>
 #include <unistd.h>
 
 #import "GTMSessionFetcher/GTMSessionFetcherLogging.h"
@@ -228,33 +227,6 @@ static NSString *gLoggingProcessName = nil;
 
 + (NSString *)htmlFileName {
   return @"aperçu_http_log.html";
-}
-
-+ (void)deleteLogDirectoriesOlderThanDate:(NSDate *)cutoffDate {
-  NSFileManager *fileMgr = [NSFileManager defaultManager];
-  NSURL *parentDir = [NSURL fileURLWithPath:[[self class] loggingDirectory]];
-  NSURL *logDirectoryForCurrentRun =
-      [NSURL fileURLWithPath:[[self class] logDirectoryForCurrentRun]];
-  NSError *error;
-  NSArray *contents = [fileMgr contentsOfDirectoryAtURL:parentDir
-                             includingPropertiesForKeys:@[ NSURLContentModificationDateKey ]
-                                                options:0
-                                                  error:&error];
-  for (NSURL *itemURL in contents) {
-    if ([itemURL isEqual:logDirectoryForCurrentRun]) continue;
-
-    NSDate *modDate;
-    if ([itemURL getResourceValue:&modDate forKey:NSURLContentModificationDateKey error:&error]) {
-      if ([modDate compare:cutoffDate] == NSOrderedAscending) {
-        if (![fileMgr removeItemAtURL:itemURL error:&error]) {
-          NSLog(@"deleteLogDirectoriesOlderThanDate failed to delete %@: %@", itemURL.path, error);
-        }
-      }
-    } else {
-      NSLog(@"deleteLogDirectoriesOlderThanDate failed to get mod date of %@: %@", itemURL.path,
-            error);
-    }
-  }
 }
 
 // formattedStringFromData returns a prettyprinted string for JSON input,

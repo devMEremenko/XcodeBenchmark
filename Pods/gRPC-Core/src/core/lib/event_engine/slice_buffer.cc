@@ -12,16 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <grpc/support/port_platform.h>
-
-#include <stddef.h>
-
 #include <grpc/event_engine/slice.h>
 #include <grpc/event_engine/slice_buffer.h>
-#include <grpc/slice.h>
 #include <grpc/slice_buffer.h>
+#include <grpc/support/port_platform.h>
+#include <stddef.h>
 
-#include "src/core/lib/slice/slice_refcount.h"
+#include "src/core/lib/slice/slice.h"
 
 namespace grpc_event_engine {
 namespace experimental {
@@ -43,7 +40,7 @@ void SliceBuffer::Prepend(Slice slice) {
 }
 
 Slice SliceBuffer::RefSlice(size_t index) {
-  return Slice(grpc_slice_ref_internal(slice_buffer_.slices[index]));
+  return Slice(grpc_core::CSliceRef(slice_buffer_.slices[index]));
 }
 
 }  // namespace experimental

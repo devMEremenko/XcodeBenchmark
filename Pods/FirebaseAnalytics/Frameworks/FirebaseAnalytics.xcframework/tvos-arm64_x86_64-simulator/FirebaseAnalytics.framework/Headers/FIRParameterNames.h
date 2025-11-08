@@ -7,8 +7,9 @@
 /// not limited to these. You may supply extra Params for suggested Events or custom Params for
 /// Custom events. Param names can be up to 40 characters long, may only contain alphanumeric
 /// characters and underscores ("_"), and must start with an alphabetic character. Param values can
-/// be up to 100 characters long. The "firebase_", "google_", and "ga_" prefixes are reserved and
-/// should not be used.
+/// be up to 100 characters long for standard Google Analytics properties and up to 500 characters
+/// long for Google Analytics 360 properties. The "firebase_", "google_", and "ga_" prefixes are
+/// reserved and should not be used.
 
 #import <Foundation/Foundation.h>
 

@@ -16,22 +16,32 @@
 
 #import <Foundation/Foundation.h>
 
-/**
- * The log levels used by internal logging.
- */
+NS_ASSUME_NONNULL_BEGIN
+
+/// The log levels used by internal logging.
 typedef NS_ENUM(NSInteger, GULLoggerLevel) {
-  /** Error level, matches ASL_LEVEL_ERR. */
-  GULLoggerLevelError = 3,
-  /** Warning level, matches ASL_LEVEL_WARNING. */
-  GULLoggerLevelWarning = 4,
-  /** Notice level, matches ASL_LEVEL_NOTICE. */
-  GULLoggerLevelNotice = 5,
-  /** Info level, matches ASL_LEVEL_INFO. */
-  GULLoggerLevelInfo = 6,
-  /** Debug level, matches ASL_LEVEL_DEBUG. */
-  GULLoggerLevelDebug = 7,
-  /** Minimum log level. */
+  /// Error level, corresponding to `OS_LOG_TYPE_ERROR`.
+  GULLoggerLevelError = 3,  // For backwards compatibility, the enum value matches `ASL_LEVEL_ERR`.
+
+  /// Warning level, corresponding to `OS_LOG_TYPE_DEFAULT`.
+  ///
+  /// > Note: Since OSLog doesn't have a WARNING type, this is equivalent to `GULLoggerLevelNotice`.
+  GULLoggerLevelWarning = 4,  // For backwards compatibility, the value matches `ASL_LEVEL_WARNING`.
+
+  /// Notice level, corresponding to `OS_LOG_TYPE_DEFAULT`.
+  GULLoggerLevelNotice = 5,  // For backwards compatibility, the value matches `ASL_LEVEL_NOTICE`.
+
+  /// Info level, corresponding to `OS_LOG_TYPE_INFO`.
+  GULLoggerLevelInfo = 6,  // For backwards compatibility, the enum value matches `ASL_LEVEL_INFO`.
+
+  /// Debug level, corresponding to `OS_LOG_TYPE_DEBUG`.
+  GULLoggerLevelDebug = 7,  // For backwards compatibility, the value matches `ASL_LEVEL_DEBUG`.
+
+  /// The minimum (most severe) supported logging level.
   GULLoggerLevelMin = GULLoggerLevelError,
-  /** Maximum log level. */
+
+  /// The maximum (least severe) supported logging level.
   GULLoggerLevelMax = GULLoggerLevelDebug
 } NS_SWIFT_NAME(GoogleLoggerLevel);
+
+NS_ASSUME_NONNULL_END

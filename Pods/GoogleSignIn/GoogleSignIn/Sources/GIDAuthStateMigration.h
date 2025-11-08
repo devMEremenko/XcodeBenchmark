@@ -16,14 +16,20 @@
 
 #import <Foundation/Foundation.h>
 
+@class GTMKeychainStore;
+@class GTMAuthSession;
+
 NS_ASSUME_NONNULL_BEGIN
 
-// A class providing migration support for auth state saved by older versions of the SDK.
+/// A class providing migration support for auth state saved by older versions of the SDK.
 @interface GIDAuthStateMigration : NSObject
 
-// Perform a one-time migration for auth state saved by GPPSignIn 1.x or GIDSignIn 1.0 - 4.x to the
-// GTMAppAuth storage introduced in GIDSignIn 5.0.
-+ (void)migrateIfNeededWithTokenURL:(NSURL *)tokenURL
+/// Creates an instance of this migration type with the keychain storage wrapper it will use.
+- (instancetype)initWithKeychainStore:(GTMKeychainStore *)keychainStore NS_DESIGNATED_INITIALIZER;
+
+/// Perform a one-time migration for auth state saved by GPPSignIn 1.x or GIDSignIn 1.0 - 4.x to the
+/// GTMAppAuth storage introduced in GIDSignIn 5.0.
+- (void)migrateIfNeededWithTokenURL:(NSURL *)tokenURL
                        callbackPath:(NSString *)callbackPath
                        keychainName:(NSString *)keychainName
                      isFreshInstall:(BOOL)isFreshInstall;

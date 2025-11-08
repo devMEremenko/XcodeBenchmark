@@ -74,10 +74,4 @@ FOUNDATION_EXPORT NSString *_Nonnull GADErrorUserInfoKeyResponseInfo;
 /// JSON-safe dictionary representation of the response info.
 @property(nonatomic, readonly, nonnull) NSDictionary<NSString *, id> *dictionaryRepresentation;
 
-#pragma mark - Deprecated
-
-/// Deprecated. Use loadedAdNetworkResponseInfo.adNetworkClassName instead.
-@property(nonatomic, readonly, nullable) NSString *adNetworkClassName GAD_DEPRECATED_MSG_ATTRIBUTE(
-    "Deprecated. Use loadedAdNetworkResponseInfo.adNetworkClassName instead.");
-
 @end

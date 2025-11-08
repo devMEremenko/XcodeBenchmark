@@ -14,10 +14,24 @@
 
 #include "absl/strings/internal/str_format/bind.h"
 
+#include <algorithm>
+#include <cassert>
 #include <cerrno>
+#include <cstddef>
+#include <cstdio>
+#include <ios>
 #include <limits>
+#include <ostream>
 #include <sstream>
 #include <string>
+#include "absl/base/config.h"
+#include "absl/base/optimization.h"
+#include "absl/strings/internal/str_format/arg.h"
+#include "absl/strings/internal/str_format/constexpr_parser.h"
+#include "absl/strings/internal/str_format/extension.h"
+#include "absl/strings/internal/str_format/output.h"
+#include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 
 namespace absl {
 ABSL_NAMESPACE_BEGIN
@@ -32,7 +46,8 @@ inline bool BindFromPosition(int position, int* value,
     return false;
   }
   // -1 because positions are 1-based
-  return FormatArgImplFriend::ToInt(pack[position - 1], value);
+  return FormatArgImplFriend::ToInt(pack[static_cast<size_t>(position) - 1],
+                                    value);
 }
 
 class ArgContext {
@@ -56,7 +71,7 @@ inline bool ArgContext::Bind(const UnboundConversion* unbound,
   const FormatArgImpl* arg = nullptr;
   int arg_position = unbound->arg_position;
   if (static_cast<size_t>(arg_position - 1) >= pack_.size()) return false;
-  arg = &pack_[arg_position - 1];  // 1-based
+  arg = &pack_[static_cast<size_t>(arg_position - 1)];  // 1-based
 
   if (unbound->flags != Flags::kBasic) {
     int width = unbound->width.value();
@@ -89,6 +104,8 @@ inline bool ArgContext::Bind(const UnboundConversion* unbound,
     } else {
       FormatConversionSpecImplFriend::SetFlags(unbound->flags, bound);
     }
+
+    FormatConversionSpecImplFriend::SetLengthMod(unbound->length_mod, bound);
   } else {
     FormatConversionSpecImplFriend::SetFlags(unbound->flags, bound);
     FormatConversionSpecImplFriend::SetWidth(-1, bound);
@@ -214,7 +231,7 @@ std::string& AppendPack(std::string* out, const UntypedFormatSpecImpl format,
   return *out;
 }
 
-std::string FormatPack(const UntypedFormatSpecImpl format,
+std::string FormatPack(UntypedFormatSpecImpl format,
                        absl::Span<const FormatArgImpl> args) {
   std::string out;
   if (ABSL_PREDICT_FALSE(!FormatUntyped(&out, format, args))) {

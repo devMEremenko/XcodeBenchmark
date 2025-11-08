@@ -89,10 +89,6 @@
 + (void)setLogDirectoryForCurrentRun:(NSString *)logDirectoryForCurrentRun;
 + (NSString *)logDirectoryForCurrentRun;
 
-// Prunes old log directories that have not been modified since the provided date.
-// This will not delete the current run's log directory.
-+ (void)deleteLogDirectoriesOlderThanDate:(NSDate *)date;
-
 // internal; called by fetcher
 - (void)logFetchWithError:(NSError *)error;
 - (NSInputStream *)loggedInputStreamForInputStream:(NSInputStream *)inputStream;

@@ -69,6 +69,7 @@
 #include "../internal.h"
 
 
+// We intentionally omit |dh_asn1_meth| from this list. It is not serializable.
 static const EVP_PKEY_ASN1_METHOD *const kASN1Methods[] = {
     &rsa_asn1_meth,
     &ec_asn1_meth,
@@ -77,28 +78,26 @@ static const EVP_PKEY_ASN1_METHOD *const kASN1Methods[] = {
     &x25519_asn1_meth,
 };
 
-static int parse_key_type(CBS *cbs, int *out_type) {
+static const EVP_PKEY_ASN1_METHOD *parse_key_type(CBS *cbs) {
   CBS oid;
   if (!CBS_get_asn1(cbs, &oid, CBS_ASN1_OBJECT)) {
-    return 0;
+    return NULL;
   }
 
   for (unsigned i = 0; i < OPENSSL_ARRAY_SIZE(kASN1Methods); i++) {
     const EVP_PKEY_ASN1_METHOD *method = kASN1Methods[i];
     if (CBS_len(&oid) == method->oid_len &&
         OPENSSL_memcmp(CBS_data(&oid), method->oid, method->oid_len) == 0) {
-      *out_type = method->pkey_id;
-      return 1;
+      return method;
     }
   }
 
-  return 0;
+  return NULL;
 }
 
 EVP_PKEY *EVP_parse_public_key(CBS *cbs) {
   // Parse the SubjectPublicKeyInfo.
   CBS spki, algorithm, key;
-  int type;
   uint8_t padding;
   if (!CBS_get_asn1(cbs, &spki, CBS_ASN1_SEQUENCE) ||
       !CBS_get_asn1(&spki, &algorithm, CBS_ASN1_SEQUENCE) ||
@@ -107,7 +106,8 @@ EVP_PKEY *EVP_parse_public_key(CBS *cbs) {
     OPENSSL_PUT_ERROR(EVP, EVP_R_DECODE_ERROR);
     return NULL;
   }
-  if (!parse_key_type(&algorithm, &type)) {
+  const EVP_PKEY_ASN1_METHOD *method = parse_key_type(&algorithm);
+  if (method == NULL) {
     OPENSSL_PUT_ERROR(EVP, EVP_R_UNSUPPORTED_ALGORITHM);
     return NULL;
   }
@@ -121,10 +121,10 @@ EVP_PKEY *EVP_parse_public_key(CBS *cbs) {
 
   // Set up an |EVP_PKEY| of the appropriate type.
   EVP_PKEY *ret = EVP_PKEY_new();
-  if (ret == NULL ||
-      !EVP_PKEY_set_type(ret, type)) {
+  if (ret == NULL) {
     goto err;
   }
+  evp_pkey_set_method(ret, method);
 
   // Call into the type-specific SPKI decoding function.
   if (ret->ameth->pub_decode == NULL) {
@@ -155,7 +155,6 @@ EVP_PKEY *EVP_parse_private_key(CBS *cbs) {
   // Parse the PrivateKeyInfo.
   CBS pkcs8, algorithm, key;
   uint64_t version;
-  int type;
   if (!CBS_get_asn1(cbs, &pkcs8, CBS_ASN1_SEQUENCE) ||
       !CBS_get_asn1_uint64(&pkcs8, &version) ||
       version != 0 ||
@@ -164,7 +163,8 @@ EVP_PKEY *EVP_parse_private_key(CBS *cbs) {
     OPENSSL_PUT_ERROR(EVP, EVP_R_DECODE_ERROR);
     return NULL;
   }
-  if (!parse_key_type(&algorithm, &type)) {
+  const EVP_PKEY_ASN1_METHOD *method = parse_key_type(&algorithm);
+  if (method == NULL) {
     OPENSSL_PUT_ERROR(EVP, EVP_R_UNSUPPORTED_ALGORITHM);
     return NULL;
   }
@@ -173,10 +173,10 @@ EVP_PKEY *EVP_parse_private_key(CBS *cbs) {
 
   // Set up an |EVP_PKEY| of the appropriate type.
   EVP_PKEY *ret = EVP_PKEY_new();
-  if (ret == NULL ||
-      !EVP_PKEY_set_type(ret, type)) {
+  if (ret == NULL) {
     goto err;
   }
+  evp_pkey_set_method(ret, method);
 
   // Call into the type-specific PrivateKeyInfo decoding function.
   if (ret->ameth->priv_decode == NULL) {
@@ -336,11 +336,11 @@ EVP_PKEY *d2i_AutoPrivateKey(EVP_PKEY **out, const uint8_t **inp, long len) {
 int i2d_PublicKey(const EVP_PKEY *key, uint8_t **outp) {
   switch (key->type) {
     case EVP_PKEY_RSA:
-      return i2d_RSAPublicKey(key->pkey.rsa, outp);
+      return i2d_RSAPublicKey(EVP_PKEY_get0_RSA(key), outp);
     case EVP_PKEY_DSA:
-      return i2d_DSAPublicKey(key->pkey.dsa, outp);
+      return i2d_DSAPublicKey(EVP_PKEY_get0_DSA(key), outp);
     case EVP_PKEY_EC:
-      return i2o_ECPublicKey(key->pkey.ec, outp);
+      return i2o_ECPublicKey(EVP_PKEY_get0_EC_KEY(key), outp);
     default:
       OPENSSL_PUT_ERROR(EVP, EVP_R_UNSUPPORTED_PUBLIC_KEY_TYPE);
       return -1;

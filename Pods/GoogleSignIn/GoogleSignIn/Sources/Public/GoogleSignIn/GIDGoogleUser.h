@@ -23,13 +23,7 @@
 #import <AppKit/AppKit.h>
 #endif
 
-// We have to import GTMAppAuth because forward declaring the protocol does
-// not generate the `fetcherAuthorizer` property below for Swift.
-#ifdef SWIFT_PACKAGE
-@import GTMAppAuth;
-#else
-#import <GTMAppAuth/GTMAppAuthFetcherAuthorization.h>
-#endif
+#import <GTMSessionFetcher/GTMSessionFetcher.h>
 
 @class GIDConfiguration;
 @class GIDSignInResult;
@@ -86,7 +80,7 @@ NS_ASSUME_NONNULL_BEGIN
 /// instance will be returned reflecting the new scopes and saved sign-in state will be updated.
 ///
 /// @param scopes The scopes to ask the user to consent to.
-/// @param presentingViewController The view controller used to present `SFSafariViewContoller` on
+/// @param presentingViewController The view controller used to present `SFSafariViewController` on
 ///     iOS 9 and 10 and to supply `presentationContextProvider` for `ASWebAuthenticationSession` on
 ///     iOS 13+.
 /// @param completion The optional block that is called on completion.  This block will be called

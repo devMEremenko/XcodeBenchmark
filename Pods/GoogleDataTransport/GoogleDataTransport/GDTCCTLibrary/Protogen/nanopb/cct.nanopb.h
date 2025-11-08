@@ -21,6 +21,8 @@
 #define PB_GDT_CCT_CCT_NANOPB_H_INCLUDED
 #include <nanopb/pb.h>
 
+#include "GoogleDataTransport/GDTCCTLibrary/Protogen/nanopb/compliance.nanopb.h"
+
 /* @@protoc_insertion_point(includes) */
 #if PB_PROTO_HEADER_VERSION != 30
 #error Regenerate this file with the current version of nanopb generator.
@@ -171,6 +173,8 @@ typedef struct _gdt_cct_LogEvent {
     int64_t event_uptime_ms;
     bool has_network_connection_info;
     gdt_cct_NetworkConnectionInfo network_connection_info;
+    bool has_compliance_data;
+    gdt_cct_ComplianceData compliance_data;
 /* @@protoc_insertion_point(struct:gdt_cct_LogEvent) */
 } gdt_cct_LogEvent;
 
@@ -205,7 +209,7 @@ extern const gdt_cct_QosTierConfiguration_QosTier gdt_cct_LogRequest_qos_tier_de
 extern const int32_t gdt_cct_QosTierConfiguration_log_source_default;
 
 /* Initializer values for message structs */
-#define gdt_cct_LogEvent_init_default            {false, 0, NULL, false, 0, false, 0, false, 0, false, gdt_cct_NetworkConnectionInfo_init_default}
+#define gdt_cct_LogEvent_init_default            {false, 0, NULL, false, 0, false, 0, false, 0, false, gdt_cct_NetworkConnectionInfo_init_default, false, gdt_cct_ComplianceData_init_default}
 #define gdt_cct_NetworkConnectionInfo_init_default {false, gdt_cct_NetworkConnectionInfo_NetworkType_NONE, false, gdt_cct_NetworkConnectionInfo_MobileSubtype_UNKNOWN_MOBILE_SUBTYPE}
 #define gdt_cct_MacClientInfo_init_default       {NULL, NULL, NULL, NULL}
 #define gdt_cct_IosClientInfo_init_default       {NULL, NULL, NULL, NULL, NULL, NULL, NULL}
@@ -215,7 +219,7 @@ extern const int32_t gdt_cct_QosTierConfiguration_log_source_default;
 #define gdt_cct_QosTierConfiguration_init_default {false, _gdt_cct_QosTierConfiguration_QosTier_MIN, false, 0}
 #define gdt_cct_QosTiersOverride_init_default    {0, NULL, false, 0}
 #define gdt_cct_LogResponse_init_default         {false, 0, false, gdt_cct_QosTiersOverride_init_default}
-#define gdt_cct_LogEvent_init_zero               {false, 0, NULL, false, 0, false, 0, false, 0, false, gdt_cct_NetworkConnectionInfo_init_zero}
+#define gdt_cct_LogEvent_init_zero               {false, 0, NULL, false, 0, false, 0, false, 0, false, gdt_cct_NetworkConnectionInfo_init_zero, false, gdt_cct_ComplianceData_init_zero}
 #define gdt_cct_NetworkConnectionInfo_init_zero  {false, _gdt_cct_NetworkConnectionInfo_NetworkType_MIN, false, _gdt_cct_NetworkConnectionInfo_MobileSubtype_MIN}
 #define gdt_cct_MacClientInfo_init_zero          {NULL, NULL, NULL, NULL}
 #define gdt_cct_IosClientInfo_init_zero          {NULL, NULL, NULL, NULL, NULL, NULL, NULL}
@@ -254,6 +258,7 @@ extern const int32_t gdt_cct_QosTierConfiguration_log_source_default;
 #define gdt_cct_LogEvent_source_extension_tag    6
 #define gdt_cct_LogEvent_timezone_offset_seconds_tag 15
 #define gdt_cct_LogEvent_network_connection_info_tag 23
+#define gdt_cct_LogEvent_compliance_data_tag     33
 #define gdt_cct_LogRequest_request_time_ms_tag   4
 #define gdt_cct_LogRequest_request_uptime_ms_tag 8
 #define gdt_cct_LogRequest_client_info_tag       1
@@ -264,7 +269,7 @@ extern const int32_t gdt_cct_QosTierConfiguration_log_source_default;
 #define gdt_cct_LogResponse_qos_tier_tag         3
 
 /* Struct field encoding specification for nanopb */
-extern const pb_field_t gdt_cct_LogEvent_fields[7];
+extern const pb_field_t gdt_cct_LogEvent_fields[8];
 extern const pb_field_t gdt_cct_NetworkConnectionInfo_fields[3];
 extern const pb_field_t gdt_cct_MacClientInfo_fields[5];
 extern const pb_field_t gdt_cct_IosClientInfo_fields[8];

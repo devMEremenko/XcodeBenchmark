@@ -1,38 +1,36 @@
-/*
- *
- * Copyright 2017 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+//
+//
+// Copyright 2017 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 
-#ifndef GRPC_CORE_LIB_IOMGR_CALL_COMBINER_H
-#define GRPC_CORE_LIB_IOMGR_CALL_COMBINER_H
+#ifndef GRPC_SRC_CORE_LIB_IOMGR_CALL_COMBINER_H
+#define GRPC_SRC_CORE_LIB_IOMGR_CALL_COMBINER_H
 
+#include <grpc/support/atm.h>
 #include <grpc/support/port_platform.h>
-
 #include <stddef.h>
 
 #include "absl/container/inlined_vector.h"
-
-#include <grpc/support/atm.h>
-
-#include "src/core/lib/gprpp/mpscq.h"
-#include "src/core/lib/gprpp/ref_counted.h"
-#include "src/core/lib/gprpp/ref_counted_ptr.h"
+#include "absl/log/log.h"
 #include "src/core/lib/iomgr/closure.h"
 #include "src/core/lib/iomgr/dynamic_annotations.h"
 #include "src/core/lib/iomgr/exec_ctx.h"
+#include "src/core/util/mpscq.h"
+#include "src/core/util/ref_counted.h"
+#include "src/core/util/ref_counted_ptr.h"
 
 // A simple, lock-free mechanism for serializing activity related to a
 // single call.  This is similar to a combiner but is more lightweight.
@@ -44,8 +42,6 @@
 // callback.
 
 namespace grpc_core {
-
-extern DebugOnlyTraceFlag grpc_call_combiner_trace;
 
 class CallCombiner {
  public:
@@ -80,16 +76,16 @@ class CallCombiner {
   /// once; this allows the closure to hold references that will be freed
   /// regardless of whether or not the call was cancelled.  If a cancellation
   /// does occur, the closure will be scheduled with the cancellation error;
-  /// otherwise, it will be scheduled with GRPC_ERROR_NONE.
+  /// otherwise, it will be scheduled with absl::OkStatus().
   ///
   /// The closure will be scheduled in the following cases:
   /// - If Cancel() was called prior to registering the closure, it will be
-  ///   scheduled immediately with the cancelation error.
+  ///   scheduled immediately with the cancellation error.
   /// - If Cancel() is called after registering the closure, the closure will
   ///   be scheduled with the cancellation error.
   /// - If SetNotifyOnCancel() is called again to register a new cancellation
   ///   closure, the previous cancellation closure will be scheduled with
-  ///   GRPC_ERROR_NONE.
+  ///   absl::OkStatus().
   ///
   /// If \a closure is NULL, then no closure will be invoked on
   /// cancellation; this effectively unregisters the previously set closure.
@@ -168,14 +164,12 @@ class CallCombinerClosureList {
       GRPC_CALL_COMBINER_START(call_combiner, closure.closure, closure.error,
                                closure.reason);
     }
-    if (GRPC_TRACE_FLAG_ENABLED(grpc_call_combiner_trace)) {
-      gpr_log(GPR_INFO,
-              "CallCombinerClosureList executing closure while already "
-              "holding call_combiner %p: closure=%p error=%s reason=%s",
-              call_combiner, closures_[0].closure,
-              grpc_error_std_string(closures_[0].error).c_str(),
-              closures_[0].reason);
-    }
+    GRPC_TRACE_LOG(call_combiner, INFO)
+        << "CallCombinerClosureList executing closure while already "
+           "holding call_combiner "
+        << call_combiner << ": closure=" << closures_[0].closure->DebugString()
+        << " error=" << StatusToString(closures_[0].error)
+        << " reason=" << closures_[0].reason;
     // This will release the call combiner.
     ExecCtx::Run(DEBUG_LOCATION, closures_[0].closure, closures_[0].error);
     closures_.clear();
@@ -212,4 +206,4 @@ class CallCombinerClosureList {
 
 }  // namespace grpc_core
 
-#endif /* GRPC_CORE_LIB_IOMGR_CALL_COMBINER_H */
+#endif  // GRPC_SRC_CORE_LIB_IOMGR_CALL_COMBINER_H
