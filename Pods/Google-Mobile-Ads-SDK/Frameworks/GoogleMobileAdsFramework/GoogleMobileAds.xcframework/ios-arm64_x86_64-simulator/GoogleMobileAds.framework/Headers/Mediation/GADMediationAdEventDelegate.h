@@ -39,16 +39,10 @@
 /// Reports banner related information to the Google Mobile Ads SDK from the adapter.
 @protocol GADMediationBannerAdEventDelegate <GADMediationAdEventDelegate>
 
-/// Deprecated. No replacement.
-- (void)willBackgroundApplication GAD_DEPRECATED_MSG_ATTRIBUTE("Deprecated. No replacement.");
-
 @end
 
 /// Reports interstitial related information to the Google Mobile Ads SDK from the adapter.
 @protocol GADMediationInterstitialAdEventDelegate <GADMediationAdEventDelegate>
-
-/// Deprecated. No replacement.
-- (void)willBackgroundApplication GAD_DEPRECATED_MSG_ATTRIBUTE("Deprecated. No replacement.");
 
 @end
 
@@ -70,9 +64,6 @@
 /// Notifies Google Mobile Ads SDK that the GADMediationAd unmuted video playback.
 - (void)didUnmuteVideo;
 
-/// Deprecated. No replacement.
-- (void)willBackgroundApplication GAD_DEPRECATED_MSG_ATTRIBUTE("Deprecated. No replacement.");
-
 @end
 
 /// Reports rewarded related information to the Google Mobile Ads SDK from the adapter.
@@ -86,11 +77,6 @@
 
 /// Notifies Google Mobile Ads SDK that the GADMediationAd's video playback finished.
 - (void)didEndVideo;
-
-#pragma mark - Deprecated
-/// Deprecated. Use -didRewardUser.
-- (void)didRewardUserWithReward:(nonnull GADAdReward *)reward
-    GAD_DEPRECATED_MSG_ATTRIBUTE("Deprecated. Use -didRewardUser.");
 
 @end
 

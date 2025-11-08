@@ -844,11 +844,6 @@ const uint64_t kGDTCORFlatFileStorageSizeLimit = 20 * 1000 * 1000;  // 20 MB.
   });
 }
 
-- (void)appWillTerminate:(GDTCORApplication *)application {
-  dispatch_sync(_storageQueue, ^{
-                });
-}
-
 @end
 
 NS_ASSUME_NONNULL_END

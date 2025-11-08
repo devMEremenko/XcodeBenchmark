@@ -1,21 +1,34 @@
-/*
- *
- * Copyright 2015 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+//
+//
+// Copyright 2015 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 
+#include <grpc/compression.h>
+#include <grpc/grpc.h>
+#include <grpc/impl/compression_types.h>
+#include <grpc/status.h>
+#include <grpc/support/alloc.h>
+#include <grpc/support/time.h>
+#include <grpcpp/channel.h>
+#include <grpcpp/client_context.h>
+#include <grpcpp/impl/interceptor_common.h>
+#include <grpcpp/impl/sync.h>
+#include <grpcpp/security/credentials.h>
+#include <grpcpp/server_context.h>
+#include <grpcpp/support/client_interceptor.h>
 #include <stdlib.h>
 
 #include <map>
@@ -24,24 +37,9 @@
 #include <utility>
 #include <vector>
 
-#include <grpc/compression.h>
-#include <grpc/grpc.h>
-#include <grpc/impl/codegen/compression_types.h>
-#include <grpc/impl/codegen/gpr_types.h>
-#include <grpc/impl/codegen/grpc_types.h>
-#include <grpc/status.h>
-#include <grpc/support/alloc.h>
-#include <grpc/support/log.h>
-#include <grpc/support/time.h>
-#include <grpcpp/channel.h>
-#include <grpcpp/client_context.h>
-#include <grpcpp/impl/codegen/interceptor_common.h>
-#include <grpcpp/impl/codegen/sync.h>
-#include <grpcpp/impl/grpc_library.h>
-#include <grpcpp/security/credentials.h>
-#include <grpcpp/server_context.h>
-#include <grpcpp/support/client_interceptor.h>
-#include <grpcpp/support/config.h>
+#include "absl/log/check.h"
+#include "absl/strings/str_format.h"
+#include "src/core/util/crash.h"
 
 namespace grpc {
 
@@ -55,7 +53,6 @@ class DefaultGlobalClientCallbacks final
   void Destructor(ClientContext* /*context*/) override {}
 };
 
-static internal::GrpcLibraryInitializer g_gli_initializer;
 static DefaultGlobalClientCallbacks* g_default_client_callbacks =
     new DefaultGlobalClientCallbacks();
 static ClientContext::GlobalCallbacks* g_client_callbacks =
@@ -72,7 +69,6 @@ ClientContext::ClientContext()
       propagate_from_call_(nullptr),
       compression_algorithm_(GRPC_COMPRESS_NONE),
       initial_metadata_corked_(false) {
-  g_gli_initializer.summon();
   g_client_callbacks->DefaultConstructor(this);
 }
 
@@ -127,7 +123,7 @@ void ClientContext::AddMetadata(const std::string& meta_key,
 void ClientContext::set_call(grpc_call* call,
                              const std::shared_ptr<Channel>& channel) {
   internal::MutexLock lock(&mu_);
-  GPR_ASSERT(call_ == nullptr);
+  CHECK_EQ(call_, nullptr);
   call_ = call;
   channel_ = channel;
   if (creds_ && !creds_->ApplyToCall(call_)) {
@@ -147,11 +143,10 @@ void ClientContext::set_compression_algorithm(
   compression_algorithm_ = algorithm;
   const char* algorithm_name = nullptr;
   if (!grpc_compression_algorithm_name(algorithm, &algorithm_name)) {
-    gpr_log(GPR_ERROR, "Name for compression algorithm '%d' unknown.",
-            algorithm);
-    abort();
+    grpc_core::Crash(absl::StrFormat(
+        "Name for compression algorithm '%d' unknown.", algorithm));
   }
-  GPR_ASSERT(algorithm_name != nullptr);
+  CHECK_NE(algorithm_name, nullptr);
   AddMetadata(GRPC_COMPRESSION_REQUEST_ALGORITHM_MD_KEY, algorithm_name);
 }
 
@@ -183,9 +178,9 @@ std::string ClientContext::peer() const {
 }
 
 void ClientContext::SetGlobalCallbacks(GlobalCallbacks* client_callbacks) {
-  GPR_ASSERT(g_client_callbacks == g_default_client_callbacks);
-  GPR_ASSERT(client_callbacks != nullptr);
-  GPR_ASSERT(client_callbacks != g_default_client_callbacks);
+  CHECK(g_client_callbacks == g_default_client_callbacks);
+  CHECK_NE(client_callbacks, nullptr);
+  CHECK(client_callbacks != g_default_client_callbacks);
   g_client_callbacks = client_callbacks;
 }
 

@@ -5,15 +5,8 @@
 //  Copyright 2016 Google LLC. All rights reserved.
 //
 
+#import <GoogleMobileAds/GADAdChoicesPosition.h>
 #import <GoogleMobileAds/GADAdLoader.h>
-
-/// Position of the AdChoices icon in the containing ad.
-typedef NS_ENUM(NSInteger, GADAdChoicesPosition) {
-  GADAdChoicesPositionTopRightCorner,     ///< Top right corner.
-  GADAdChoicesPositionTopLeftCorner,      ///< Top left corner.
-  GADAdChoicesPositionBottomRightCorner,  ///< Bottom right corner.
-  GADAdChoicesPositionBottomLeftCorner    ///< Bottom Left Corner.
-};
 
 /// Ad loader options for configuring the view of native ads.
 @interface GADNativeAdViewAdOptions : GADAdLoaderOptions

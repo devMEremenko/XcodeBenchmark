@@ -1,38 +1,35 @@
-/*
- *
- * Copyright 2017 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+//
+//
+// Copyright 2017 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 
-#ifndef GRPC_CORE_LIB_COMPRESSION_COMPRESSION_INTERNAL_H
-#define GRPC_CORE_LIB_COMPRESSION_COMPRESSION_INTERNAL_H
+#ifndef GRPC_SRC_CORE_LIB_COMPRESSION_COMPRESSION_INTERNAL_H
+#define GRPC_SRC_CORE_LIB_COMPRESSION_COMPRESSION_INTERNAL_H
 
+#include <grpc/impl/compression_types.h>
 #include <grpc/support/port_platform.h>
-
 #include <stdint.h>
 
 #include <initializer_list>
 
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
-
-#include <grpc/impl/codegen/compression_types.h>
-#include <grpc/impl/codegen/grpc_types.h>
-
-#include "src/core/lib/gprpp/bitset.h"
+#include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/slice/slice.h"
+#include "src/core/util/bitset.h"
 
 namespace grpc_core {
 
@@ -46,7 +43,7 @@ const char* CompressionAlgorithmAsString(grpc_compression_algorithm algorithm);
 // Retrieve the default compression algorithm from channel args, return nullopt
 // if not found.
 absl::optional<grpc_compression_algorithm>
-DefaultCompressionAlgorithmFromChannelArgs(const grpc_channel_args* args);
+DefaultCompressionAlgorithmFromChannelArgs(const ChannelArgs& args);
 
 // A set of grpc_compression_algorithm values.
 class CompressionAlgorithmSet {
@@ -55,7 +52,7 @@ class CompressionAlgorithmSet {
   // algorithm 1, etc.
   static CompressionAlgorithmSet FromUint32(uint32_t value);
   // Locate in channel args and construct from the found value.
-  static CompressionAlgorithmSet FromChannelArgs(const grpc_channel_args* args);
+  static CompressionAlgorithmSet FromChannelArgs(const ChannelArgs& args);
   // Parse a string of comma-separated compression algorithms.
   static CompressionAlgorithmSet FromString(absl::string_view str);
   // Construct an empty set.
@@ -88,6 +85,9 @@ class CompressionAlgorithmSet {
   BitSet<GRPC_COMPRESS_ALGORITHMS_COUNT> set_;
 };
 
+grpc_compression_options CompressionOptionsFromChannelArgs(
+    const ChannelArgs& args);
+
 }  // namespace grpc_core
 
-#endif /* GRPC_CORE_LIB_COMPRESSION_COMPRESSION_INTERNAL_H */
+#endif  // GRPC_SRC_CORE_LIB_COMPRESSION_COMPRESSION_INTERNAL_H

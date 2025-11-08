@@ -24,6 +24,7 @@
 @end
 
 /// Rendered interscroller ad.
+GAD_DEPRECATED_MSG_ATTRIBUTE("Interscroller will not be supported.")
 @protocol GADMediationInterscrollerAd <GADMediationBannerAd>
 
 /// Indicates whether the interscroller rendering effect should be delegated to the Google Mobile

@@ -8,21 +8,13 @@ target 'XcodeBenchmark' do
   inhibit_all_warnings!
   
   # Firebase
-  pod 'FirebaseCore', :git => 'https://github.com/firebase/firebase-ios-sdk.git', :branch => 'master'
-  pod 'FirebaseFirestore', :git => 'https://github.com/firebase/firebase-ios-sdk.git', :branch => 'master'
-  pod 'FirebaseAuth'
-  pod 'FirebaseAnalytics'
-  pod 'FirebaseRemoteConfig'
-  pod 'FirebaseStorage'
-  pod 'FirebaseMessaging'
-
-#  pod 'Firebase'
-#  pod 'Firebase/Database'
-#  pod 'Firebase/RemoteConfig'
-#  pod 'Firebase/Analytics'
-#  pod 'Firebase/Messaging'
-#  pod 'FirebaseFirestoreSwift'
-#  pod 'Firebase/Storage'
+  pod 'FirebaseCore', '~> 11.0'
+  pod 'FirebaseFirestore', '~> 11.0'
+  pod 'FirebaseAuth', '~> 11.0'
+  pod 'FirebaseAnalytics', '~> 11.0'
+  pod 'FirebaseRemoteConfig', '~> 11.0'
+  pod 'FirebaseStorage', '~> 11.0'
+  pod 'FirebaseMessaging', '~> 11.0'
 
   pod 'lottie-ios'
 
@@ -65,8 +57,8 @@ target 'XcodeBenchmark' do
   # Google
   pod 'GoogleMaps'
   pod 'GooglePlaces'
-  pod 'Google-Mobile-Ads-SDK'
-  pod 'GoogleSignIn'
+  pod 'Google-Mobile-Ads-SDK', '~> 11.0'
+  pod 'GoogleSignIn', '~> 8.0'
 
   # Social
   pod 'VK-ios-sdk'
@@ -76,8 +68,8 @@ target 'XcodeBenchmark' do
 end
 
 post_install do |pi|
-    pi.pods_project.targets.each do |t|
-        t.build_configurations.each do |config|
+    pi.pods_project.targets.each do |target|
+        target.build_configurations.each do |config|
             config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = minimum_target
             config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
 
@@ -85,6 +77,16 @@ post_install do |pi|
             xcconfig = File.read(xcconfig_path)
             xcconfig_mod = xcconfig.gsub(/DT_TOOLCHAIN_DIR/, "TOOLCHAIN_DIR")
             File.open(xcconfig_path, "w") { |file| file << xcconfig_mod }
+        end
+        
+        if target.name == 'BoringSSL-GRPC'
+          target.source_build_phase.files.each do |file|
+            if file.settings && file.settings['COMPILER_FLAGS']
+              flags = file.settings['COMPILER_FLAGS'].split
+              flags.reject! { |flag| flag == '-GCC_WARN_INHIBIT_ALL_WARNINGS' }
+              file.settings['COMPILER_FLAGS'] = flags.join(' ')
+            end
+          end
         end
     end
 end

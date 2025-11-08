@@ -34,10 +34,9 @@
 #import <nanopb/pb_decode.h>
 #import <nanopb/pb_encode.h>
 
-#import <GoogleUtilities/GULURLSessionDataResponse.h>
-#import <GoogleUtilities/NSURLSession+GULPromises.h>
 #import "GoogleDataTransport/GDTCCTLibrary/Private/GDTCCTCompressionHelper.h"
 #import "GoogleDataTransport/GDTCCTLibrary/Private/GDTCCTNanopbHelpers.h"
+#import "GoogleDataTransport/GDTCCTLibrary/Private/GDTCCTURLSessionDataResponse.h"
 #import "GoogleDataTransport/GDTCCTLibrary/Private/GDTCOREvent+GDTMetricsSupport.h"
 
 #import "GoogleDataTransport/GDTCCTLibrary/Protogen/nanopb/cct.nanopb.h"
@@ -141,6 +140,10 @@ typedef void (^GDTCCTUploaderEventBatchBlock)(NSNumber *_Nullable batchID,
 
                     // End the background task.
                     backgroundTaskCompletion();
+                  } else {
+                    GDTCORLog(GDTCORMCDDebugLog, GDTCORLoggingLevelWarnings,
+                              @"Attempted to cancel invalid background task in "
+                               "GDTCCTUploadOperation.");
                   }
                 }];
 
@@ -223,7 +226,7 @@ typedef void (^GDTCCTUploaderEventBatchBlock)(NSNumber *_Nullable batchID,
   // 1. Send URL request.
   return [self sendURLRequestWithBatch:batch target:target]
       .thenOn(self.uploaderQueue,
-              ^FBLPromise *(GULURLSessionDataResponse *response) {
+              ^FBLPromise *(GDTCCTURLSessionDataResponse *response) {
                 // 2. Update the next upload time and process response.
                 [self updateNextUploadTimeWithResponse:response forTarget:target];
 
@@ -242,7 +245,7 @@ typedef void (^GDTCCTUploaderEventBatchBlock)(NSNumber *_Nullable batchID,
 }
 
 /** Processes a URL session response for a given batch from storage. */
-- (FBLPromise<NSNull *> *)processResponse:(GULURLSessionDataResponse *)response
+- (FBLPromise<NSNull *> *)processResponse:(GDTCCTURLSessionDataResponse *)response
                                  forBatch:(GDTCORUploadBatch *)batch
                                   storage:(id<GDTCORStoragePromiseProtocol>)storage {
   // Cleanup batch based on the response's status code.
@@ -282,8 +285,8 @@ typedef void (^GDTCCTUploaderEventBatchBlock)(NSNumber *_Nullable batchID,
 }
 
 /** Composes and sends URL request. */
-- (FBLPromise<GULURLSessionDataResponse *> *)sendURLRequestWithBatch:(GDTCORUploadBatch *)batch
-                                                              target:(GDTCORTarget)target {
+- (FBLPromise<GDTCCTURLSessionDataResponse *> *)sendURLRequestWithBatch:(GDTCORUploadBatch *)batch
+                                                                 target:(GDTCORTarget)target {
   return [FBLPromise
              onQueue:self.uploaderQueue
                   do:^NSURLRequest * {
@@ -303,13 +306,28 @@ typedef void (^GDTCCTUploaderEventBatchBlock)(NSNumber *_Nullable batchID,
                     return request;
                   }]
       .thenOn(self.uploaderQueue,
-              ^FBLPromise<GULURLSessionDataResponse *> *(NSURLRequest *request) {
+              ^FBLPromise<GDTCCTURLSessionDataResponse *> *(NSURLRequest *request) {
                 // 2. Send URL request.
-                return
-                    [[self uploaderSessionCreateIfNeeded] gul_dataTaskPromiseWithRequest:request];
+                NSURLSession *session = [self uploaderSessionCreateIfNeeded];
+                return [FBLPromise wrapObjectOrErrorCompletion:^(
+                                       FBLPromiseObjectOrErrorCompletion _Nonnull handler) {
+                  [[session dataTaskWithRequest:request
+                              completionHandler:^(NSData *_Nullable data,
+                                                  NSURLResponse *_Nullable response,
+                                                  NSError *_Nullable error) {
+                                if (error) {
+                                  handler(nil, error);
+                                } else {
+                                  handler([[GDTCCTURLSessionDataResponse alloc]
+                                              initWithResponse:(NSHTTPURLResponse *)response
+                                                      HTTPBody:data],
+                                          nil);
+                                }
+                              }] resume];
+                }];
               })
       .thenOn(self.uploaderQueue,
-              ^GULURLSessionDataResponse *(GULURLSessionDataResponse *response) {
+              ^GDTCCTURLSessionDataResponse *(GDTCCTURLSessionDataResponse *response) {
                 // Invalidate session to release the delegate (which is `self`) to break the retain
                 // cycle.
                 [self.uploaderSession finishTasksAndInvalidate];
@@ -324,7 +342,7 @@ typedef void (^GDTCCTUploaderEventBatchBlock)(NSNumber *_Nullable batchID,
 }
 
 /** Parses server response and update next upload time for the specified target based on it. */
-- (void)updateNextUploadTimeWithResponse:(GULURLSessionDataResponse *)response
+- (void)updateNextUploadTimeWithResponse:(GDTCCTURLSessionDataResponse *)response
                                forTarget:(GDTCORTarget)target {
   GDTCORClock *futureUploadTime;
   if (response.HTTPBody) {
@@ -627,6 +645,22 @@ typedef void (^GDTCCTUploaderEventBatchBlock)(NSNumber *_Nullable batchID,
       _finished = YES;
     }
   }
+}
+
+#pragma mark - Force Category Linking
+
+extern void GDTCCTInclude_GDTCOREvent_GDTCCTSupport_Category(void);
+extern void GDTCCTInclude_GDTCOREvent_GDTMetricsSupport_Category(void);
+extern void GDTCCTInclude_GDTCORLogSourceMetrics_Internal_Category(void);
+
+/// Does nothing when called, and not meant to be called.
+///
+/// This method forces the linker to include categories even if
+/// users do not include the '-ObjC' linker flag in their project.
++ (void)noop {
+  GDTCCTInclude_GDTCOREvent_GDTCCTSupport_Category();
+  GDTCCTInclude_GDTCOREvent_GDTMetricsSupport_Category();
+  GDTCCTInclude_GDTCORLogSourceMetrics_Internal_Category();
 }
 
 @end

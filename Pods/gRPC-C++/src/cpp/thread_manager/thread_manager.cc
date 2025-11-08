@@ -1,32 +1,32 @@
-/*
- *
- * Copyright 2016 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+//
+//
+// Copyright 2016 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 
 #include "src/cpp/thread_manager/thread_manager.h"
 
-#include <stdlib.h>
-
 #include <climits>
 
-#include <grpc/support/log.h>
-
-#include "src/core/lib/gprpp/ref_counted_ptr.h"
-#include "src/core/lib/gprpp/thd.h"
+#include "absl/log/check.h"
+#include "absl/log/log.h"
+#include "absl/strings/str_format.h"
 #include "src/core/lib/resource_quota/resource_quota.h"
+#include "src/core/util/crash.h"
+#include "src/core/util/ref_counted_ptr.h"
+#include "src/core/util/thd.h"
 
 namespace grpc {
 
@@ -39,7 +39,7 @@ ThreadManager::WorkerThread::WorkerThread(ThreadManager* thd_mgr)
       [](void* th) { static_cast<ThreadManager::WorkerThread*>(th)->Run(); },
       this, &created_);
   if (!created_) {
-    gpr_log(GPR_ERROR, "Could not create grpc_sync_server worker-thread");
+    LOG(ERROR) << "Could not create grpc_sync_server worker-thread";
   }
 }
 
@@ -67,7 +67,7 @@ ThreadManager::ThreadManager(const char*, grpc_resource_quota* resource_quota,
 ThreadManager::~ThreadManager() {
   {
     grpc_core::MutexLock lock(&mu_);
-    GPR_ASSERT(num_threads_ == 0);
+    CHECK_EQ(num_threads_, 0);
   }
 
   CleanupCompletedThreads();
@@ -126,11 +126,10 @@ void ThreadManager::CleanupCompletedThreads() {
 
 void ThreadManager::Initialize() {
   if (!thread_quota_->Reserve(min_pollers_)) {
-    gpr_log(GPR_ERROR,
-            "No thread quota available to even create the minimum required "
-            "polling threads (i.e %d). Unable to start the thread manager",
-            min_pollers_);
-    abort();
+    grpc_core::Crash(absl::StrFormat(
+        "No thread quota available to even create the minimum required "
+        "polling threads (i.e %d). Unable to start the thread manager",
+        min_pollers_));
   }
 
   {
@@ -142,7 +141,7 @@ void ThreadManager::Initialize() {
 
   for (int i = 0; i < min_pollers_; i++) {
     WorkerThread* worker = new WorkerThread(this);
-    GPR_ASSERT(worker->created());  // Must be able to create the minimum
+    CHECK(worker->created());  // Must be able to create the minimum
     worker->Start();
   }
 }

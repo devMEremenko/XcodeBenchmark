@@ -19,6 +19,8 @@
 #import <SystemConfiguration/SystemConfiguration.h>
 #endif
 
+NS_ASSUME_NONNULL_BEGIN
+
 /// Reachability Status
 typedef enum {
   kGULReachabilityUnknown,  ///< Have not yet checked or been notified whether host is reachable.
@@ -77,3 +79,5 @@ const NSString *GULReachabilityStatusString(GULReachabilityStatus status);
 - (void)stop;
 
 @end
+
+NS_ASSUME_NONNULL_END

@@ -24,10 +24,12 @@ import Foundation
  * A superclass to all Storage tasks, including `StorageUploadTask`
  * and `StorageDownloadTask`, to provide state transitions, event raising, and common storage
  * for metadata and errors.
+ *
  * Callbacks are always fired on the developer-specified callback queue.
  * If no queue is specified, it defaults to the main queue.
  * This class is thread-safe.
  */
+@available(iOS 13, tvOS 13, macOS 10.15, macCatalyst 13, watchOS 7, *)
 @objc(FIRStorageTask) open class StorageTask: NSObject {
   /**
    * An immutable view of the task and associated metadata, progress, error, etc.
@@ -52,43 +54,38 @@ import Foundation
   /**
    * State for the current task in progress.
    */
-  internal var state: StorageTaskState
+  var state: StorageTaskState
 
   /**
    * StorageMetadata for the task in progress, or nil if none present.
    */
-  internal var metadata: StorageMetadata?
+  var metadata: StorageMetadata?
 
   /**
    * Error which occurred during task execution, or nil if no error occurred.
    */
-  internal var error: NSError?
+  var error: NSError?
 
   /**
    * NSProgress object which tracks the progress of an observable task.
    */
-  internal var progress: Progress
+  var progress: Progress
 
   /**
    * Reference pointing to the location the task is being performed against.
    */
-  internal let reference: StorageReference
+  let reference: StorageReference
 
   /**
    * A serial queue for all storage operations.
    */
-  internal let dispatchQueue: DispatchQueue
+  let dispatchQueue: DispatchQueue
 
-  internal let fetcherService: GTMSessionFetcherService
+  let baseRequest: URLRequest
 
-  internal let baseRequest: URLRequest
-
-  internal init(reference: StorageReference,
-                service: GTMSessionFetcherService,
-                queue: DispatchQueue) {
+  init(reference: StorageReference,
+       queue: DispatchQueue) {
     self.reference = reference
-    fetcherService = service
-    fetcherService.maxRetryInterval = reference.storage.maxOperationRetryInterval
     dispatchQueue = queue
     state = .unknown
     progress = Progress(totalUnitCount: 0)
@@ -98,6 +95,7 @@ import Foundation
 
 /**
  * Defines task operations such as pause, resume, cancel, and enqueue for all tasks.
+ *
  * All tasks are required to implement enqueue, which begins the task, and may optionally
  * implement pause, resume, and cancel, which operate on the task to pause, resume, and cancel
  * operations.

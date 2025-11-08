@@ -23,41 +23,18 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)init NS_UNAVAILABLE;
 
 /**
- * Builds a new reCAPTCHA Client for the given Site Key and timeout.
- *
- * The SDK currently supports one Site Key. Passing a different Site Key will
- * throw an exception.
- *
- * At least a 10000 millisecond timeout is suggested to allow for slow
- * networking, though in some cases longer timeouts may be necessary. The
- * minimum allowable value is 5000 milliseconds.
- *
- * @param siteKey reCAPTCHA Site Key for the app.
- * @param timeout Timeout for getClient in milliseconds.
- * @param completion Callback function to return the RecaptchaClient or an error.
- */
-+ (void)getClientWithSiteKey:(nonnull NSString *)siteKey
-                 withTimeout:(double)timeout
-                  completion:(void (^)(id<RCARecaptchaClientProtocol> _Nullable recaptchaClient,
-                                       NSError *_Nullable error))completion
-    NS_SWIFT_NAME(getClient(withSiteKey:withTimeout:completion:));
-
-/**
  * Builds a new reCAPTCHA Client for the given Site Key.
  *
  * The SDK currently supports one Site Key. Passing a different Site Key will
  * throw an exception.
  *
- * This method will throw a timeout exception after 10 seconds.
- *
  * @param siteKey reCAPTCHA Site Key for the app.
  * @param completion Callback function to return the RecaptchaClient or an error.
  */
-+ (void)getClientWithSiteKey:(nonnull NSString *)siteKey
-                  completion:(void (^)(id<RCARecaptchaClientProtocol> _Nullable recaptchaClient,
-                                       NSError *_Nullable error))completion
-    NS_SWIFT_NAME(getClient(withSiteKey:completion:));
-
++ (void)fetchClientWithSiteKey:(nonnull NSString *)siteKey
+                    completion:(void (^)(id<RCARecaptchaClientProtocol> _Nullable recaptchaClient,
+                                         NSError *_Nullable error))completion
+    NS_SWIFT_NAME(fetchClient(withSiteKey:completion:));
 @end
 
 NS_ASSUME_NONNULL_END

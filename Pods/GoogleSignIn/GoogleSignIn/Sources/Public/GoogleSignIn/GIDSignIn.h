@@ -66,6 +66,35 @@ typedef NS_ERROR_ENUM(kGIDSignInErrorDomain, GIDSignInErrorCode) {
 /// The active configuration for this instance of `GIDSignIn`.
 @property(nonatomic, nullable) GIDConfiguration *configuration;
 
+#if TARGET_OS_IOS && !TARGET_OS_MACCATALYST
+
+/// Configures `GIDSignIn` for use.
+///
+/// @param completion A nullable callback block passing back any error arising from the
+///     configuration process if any exists.
+///
+/// Call this method on `GIDSignIn` prior to use and as early as possible. This method generates App
+/// Attest key IDs and the attestation object eagerly to minimize latency later on during the sign
+/// in or add scopes flows.
+- (void)configureWithCompletion:(nullable void (^)(NSError * _Nullable error))completion
+NS_SWIFT_NAME(configure(completion:));
+
+/// Configures `GIDSignIn` for use in debug or test environments.
+///
+/// @param APIKey The API Key to use during configuration of the App Check debug provider.
+/// @param completion A nullable callback block passing back any error arising from the
+///     configuration process if any exists.
+///
+/// Call this method on `GIDSignIn` prior to use and as early as possible. This method generates App
+/// Attest key IDs and the attestation object eagerly to minimize latency later on during the sign
+/// in or add scopes flows.
+- (void)configureDebugProviderWithAPIKey:(NSString *)APIKey
+                              completion:(nullable void (^)(NSError * _Nullable error))completion
+API_AVAILABLE(ios(14))
+NS_SWIFT_NAME(configureDebugProvider(withAPIKey:completion:));
+
+#endif // TARGET_OS_IOS && !TARGET_OS_MACCATALYST
+
 /// Unavailable. Use the `sharedInstance` property to instantiate `GIDSignIn`.
 /// :nodoc:
 + (instancetype)new NS_UNAVAILABLE;
@@ -86,7 +115,9 @@ typedef NS_ERROR_ENUM(kGIDSignInErrorDomain, GIDSignInErrorCode) {
 /// @return `YES` if there is a previous user sign-in saved in keychain.
 - (BOOL)hasPreviousSignIn;
 
-/// Attempts to restore a previous user sign-in without interaction.
+/// Attempts to restore a previous user sign-in without interaction. 
+///
+/// Restores user from the local cache and refreshes tokens if they have expired (>1 hour).
 ///
 /// @param completion The block that is called on completion.  This block will be called asynchronously
 ///     on the main queue.
@@ -111,7 +142,7 @@ typedef NS_ERROR_ENUM(kGIDSignInErrorDomain, GIDSignInErrorCode) {
 /// starting up, (e.g in `application:didFinishLaunchingWithOptions:`); instead use the
 /// `restorePreviousSignInWithCompletion:` method to restore a previous sign-in.
 ///
-/// @param presentingViewController The view controller used to present `SFSafariViewContoller` on
+/// @param presentingViewController The view controller used to present `SFSafariViewController` on
 ///     iOS 9 and 10 and to supply `presentationContextProvider` for `ASWebAuthenticationSession` on
 ///     iOS 13+.
 /// @param completion The optional block that is called on completion.  This block will
@@ -129,7 +160,7 @@ typedef NS_ERROR_ENUM(kGIDSignInErrorDomain, GIDSignInErrorCode) {
 /// starting up, (e.g in `application:didFinishLaunchingWithOptions:`); instead use the
 /// `restorePreviousSignInWithCompletion:` method to restore a previous sign-in.
 ///
-/// @param presentingViewController The view controller used to present `SFSafariViewContoller` on
+/// @param presentingViewController The view controller used to present `SFSafariViewController` on
 ///     iOS 9 and 10 and to supply `presentationContextProvider` for `ASWebAuthenticationSession` on
 ///     iOS 13+.
 /// @param hint An optional hint for the authorization server, for example the user's ID or email
@@ -139,9 +170,9 @@ typedef NS_ERROR_ENUM(kGIDSignInErrorDomain, GIDSignInErrorCode) {
 - (void)signInWithPresentingViewController:(UIViewController *)presentingViewController
                                       hint:(nullable NSString *)hint
                                 completion:
-    (nullable void (^)(GIDSignInResult *_Nullable signInResult,
-                       NSError *_Nullable error))completion
-    NS_EXTENSION_UNAVAILABLE("The sign-in flow is not supported in App Extensions.");
+(nullable void (^)(GIDSignInResult *_Nullable signInResult,
+                   NSError *_Nullable error))completion
+NS_EXTENSION_UNAVAILABLE("The sign-in flow is not supported in App Extensions.");
 
 /// Starts an interactive sign-in flow on iOS using the provided hint and additional scopes.
 ///
@@ -150,7 +181,7 @@ typedef NS_ERROR_ENUM(kGIDSignInErrorDomain, GIDSignInErrorCode) {
 /// starting up, (e.g in `application:didFinishLaunchingWithOptions:`); instead use the
 /// `restorePreviousSignInWithCompletion:` method to restore a previous sign-in.
 ///
-/// @param presentingViewController The view controller used to present `SFSafariViewContoller` on
+/// @param presentingViewController The view controller used to present `SFSafariViewController` on
 ///     iOS 9 and 10.
 /// @param hint An optional hint for the authorization server, for example the user's ID or email
 ///     address, to be prefilled if possible.
@@ -161,9 +192,9 @@ typedef NS_ERROR_ENUM(kGIDSignInErrorDomain, GIDSignInErrorCode) {
                                       hint:(nullable NSString *)hint
                           additionalScopes:(nullable NSArray<NSString *> *)additionalScopes
                                 completion:
-    (nullable void (^)(GIDSignInResult *_Nullable signInResult,
-                       NSError *_Nullable error))completion
-    NS_EXTENSION_UNAVAILABLE("The sign-in flow is not supported in App Extensions.");
+(nullable void (^)(GIDSignInResult *_Nullable signInResult,
+                   NSError *_Nullable error))completion
+NS_EXTENSION_UNAVAILABLE("The sign-in flow is not supported in App Extensions.");
 
 #elif TARGET_OS_OSX
 

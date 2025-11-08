@@ -1,49 +1,44 @@
-/*
- *
- * Copyright 2018 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
-
-#include <grpc/support/port_platform.h>
+//
+//
+// Copyright 2018 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 
 #include "src/core/lib/security/security_connector/fake/fake_security_connector.h"
 
+#include <grpc/grpc_security_constants.h>
+#include <grpc/impl/channel_arg_names.h>
+#include <grpc/support/alloc.h>
+#include <grpc/support/port_platform.h>
+#include <grpc/support/string_util.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <string>
 #include <utility>
 
+#include "absl/log/check.h"
+#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
-
-#include <grpc/grpc_security_constants.h>
-#include <grpc/impl/codegen/grpc_types.h>
-#include <grpc/support/alloc.h>
-#include <grpc/support/log.h>
-#include <grpc/support/string_util.h>
-
-#include "src/core/ext/filters/client_channel/lb_policy/grpclb/grpclb.h"
+#include "src/core/handshaker/handshaker.h"
+#include "src/core/handshaker/security/security_handshaker.h"
 #include "src/core/lib/channel/channel_args.h"
-#include "src/core/lib/gpr/string.h"
-#include "src/core/lib/gpr/useful.h"
-#include "src/core/lib/gprpp/debug_location.h"
-#include "src/core/lib/gprpp/host_port.h"
-#include "src/core/lib/gprpp/ref_counted_ptr.h"
 #include "src/core/lib/iomgr/closure.h"
 #include "src/core/lib/iomgr/endpoint.h"
 #include "src/core/lib/iomgr/error.h"
@@ -54,10 +49,15 @@
 #include "src/core/lib/security/context/security_context.h"
 #include "src/core/lib/security/credentials/credentials.h"
 #include "src/core/lib/security/credentials/fake/fake_credentials.h"
-#include "src/core/lib/security/transport/security_handshaker.h"
-#include "src/core/lib/transport/handshaker.h"
+#include "src/core/load_balancing/grpclb/grpclb.h"
 #include "src/core/tsi/fake_transport_security.h"
 #include "src/core/tsi/transport_security_interface.h"
+#include "src/core/util/crash.h"
+#include "src/core/util/debug_location.h"
+#include "src/core/util/host_port.h"
+#include "src/core/util/ref_counted_ptr.h"
+#include "src/core/util/string.h"
+#include "src/core/util/useful.h"
 
 namespace {
 class grpc_fake_channel_security_connector final
@@ -86,9 +86,7 @@ class grpc_fake_channel_security_connector final
                   grpc_closure* on_peer_checked) override;
 
   void cancel_check_peer(grpc_closure* /*on_peer_checked*/,
-                         grpc_error_handle error) override {
-    GRPC_ERROR_UNREF(error);
-  }
+                         grpc_error_handle /*error*/) override {}
 
   int cmp(const grpc_security_connector* other_sc) const override {
     auto* other =
@@ -126,16 +124,13 @@ class grpc_fake_channel_security_connector final
           &fake_security_target_name_override_hostname,
           &fake_security_target_name_override_ignored_port);
       if (authority_hostname != fake_security_target_name_override_hostname) {
-        gpr_log(GPR_ERROR,
-                "Authority (host) '%s' != Fake Security Target override '%s'",
-                host.data(),
-                fake_security_target_name_override_hostname.data());
-        abort();
+        grpc_core::Crash(absl::StrFormat(
+            "Authority (host) '%s' != Fake Security Target override '%s'",
+            host.data(), fake_security_target_name_override_hostname.data()));
       }
     } else if (authority_hostname != target_hostname) {
-      gpr_log(GPR_ERROR, "Authority (host) '%s' != Target '%s'", host.data(),
-              target_);
-      abort();
+      grpc_core::Crash(absl::StrFormat("Authority (host) '%s' != Target '%s'",
+                                       host.data(), target_));
     }
     return grpc_core::ImmediateOkStatus();
   }
@@ -145,7 +140,7 @@ class grpc_fake_channel_security_connector final
 
  private:
   bool fake_check_target(const char* target, const char* set_str) const {
-    GPR_ASSERT(target != nullptr);
+    CHECK_NE(target, nullptr);
     char** set = nullptr;
     size_t set_size = 0;
     gpr_string_split(set_str, ",", &set, &set_size);
@@ -168,28 +163,30 @@ class grpc_fake_channel_security_connector final
     gpr_string_split(expected_targets_->c_str(), ";", &lbs_and_backends,
                      &lbs_and_backends_size);
     if (lbs_and_backends_size > 2 || lbs_and_backends_size == 0) {
-      gpr_log(GPR_ERROR, "Invalid expected targets arg value: '%s'",
-              expected_targets_->c_str());
+      LOG(ERROR) << "Invalid expected targets arg value: '"
+                 << expected_targets_->c_str() << "'";
       goto done;
     }
     if (is_lb_channel_) {
       if (lbs_and_backends_size != 2) {
-        gpr_log(GPR_ERROR,
-                "Invalid expected targets arg value: '%s'. Expectations for LB "
-                "channels must be of the form 'be1,be2,be3,...;lb1,lb2,...",
-                expected_targets_->c_str());
+        LOG(ERROR) << "Invalid expected targets arg value: '"
+                   << expected_targets_->c_str()
+                   << "'. Expectations for LB channels must be of the form "
+                      "'be1,be2,be3,...;lb1,lb2,...";
         goto done;
       }
       if (!fake_check_target(target_, lbs_and_backends[1])) {
-        gpr_log(GPR_ERROR, "LB target '%s' not found in expected set '%s'",
-                target_, lbs_and_backends[1]);
+        LOG(ERROR) << "LB target '" << target_
+                   << "' not found in expected set '" << lbs_and_backends[1]
+                   << "'";
         goto done;
       }
       success = true;
     } else {
       if (!fake_check_target(target_, lbs_and_backends[0])) {
-        gpr_log(GPR_ERROR, "Backend target '%s' not found in expected set '%s'",
-                target_, lbs_and_backends[0]);
+        LOG(ERROR) << "Backend target '" << target_
+                   << "' not found in expected set '" << lbs_and_backends[0]
+                   << "'";
         goto done;
       }
       success = true;
@@ -212,39 +209,36 @@ void fake_check_peer(grpc_security_connector* /*sc*/, tsi_peer peer,
                      grpc_core::RefCountedPtr<grpc_auth_context>* auth_context,
                      grpc_closure* on_peer_checked) {
   const char* prop_name;
-  grpc_error_handle error = GRPC_ERROR_NONE;
+  grpc_error_handle error;
   *auth_context = nullptr;
   if (peer.property_count != 2) {
-    error = GRPC_ERROR_CREATE_FROM_STATIC_STRING(
-        "Fake peers should only have 2 properties.");
+    error = GRPC_ERROR_CREATE("Fake peers should only have 2 properties.");
     goto end;
   }
   prop_name = peer.properties[0].name;
   if (prop_name == nullptr ||
       strcmp(prop_name, TSI_CERTIFICATE_TYPE_PEER_PROPERTY) != 0) {
-    error = GRPC_ERROR_CREATE_FROM_CPP_STRING(
+    error = GRPC_ERROR_CREATE(
         absl::StrCat("Unexpected property in fake peer: ",
                      prop_name == nullptr ? "<EMPTY>" : prop_name));
     goto end;
   }
   if (strncmp(peer.properties[0].value.data, TSI_FAKE_CERTIFICATE_TYPE,
               peer.properties[0].value.length) != 0) {
-    error = GRPC_ERROR_CREATE_FROM_STATIC_STRING(
-        "Invalid value for cert type property.");
+    error = GRPC_ERROR_CREATE("Invalid value for cert type property.");
     goto end;
   }
   prop_name = peer.properties[1].name;
   if (prop_name == nullptr ||
       strcmp(prop_name, TSI_SECURITY_LEVEL_PEER_PROPERTY) != 0) {
-    error = GRPC_ERROR_CREATE_FROM_CPP_STRING(
+    error = GRPC_ERROR_CREATE(
         absl::StrCat("Unexpected property in fake peer: ",
                      prop_name == nullptr ? "<EMPTY>" : prop_name));
     goto end;
   }
   if (strncmp(peer.properties[1].value.data, TSI_FAKE_SECURITY_LEVEL,
               peer.properties[1].value.length) != 0) {
-    error = GRPC_ERROR_CREATE_FROM_STATIC_STRING(
-        "Invalid value for security level property.");
+    error = GRPC_ERROR_CREATE("Invalid value for security level property.");
     goto end;
   }
 
@@ -286,9 +280,7 @@ class grpc_fake_server_security_connector
   }
 
   void cancel_check_peer(grpc_closure* /*on_peer_checked*/,
-                         grpc_error_handle error) override {
-    GRPC_ERROR_UNREF(error);
-  }
+                         grpc_error_handle /*error*/) override {}
 
   void add_handshakers(const grpc_core::ChannelArgs& args,
                        grpc_pollset_set* /*interested_parties*/,

@@ -70,8 +70,13 @@
       completion(wasWritten, error);
     }
 
-    // The work is done, cancel the background task if it's valid.
-    [weakApplication endBackgroundTask:bgID];
+    if (bgID != GDTCORBackgroundIdentifierInvalid) {
+      // The work is done, cancel the background task if it's valid.
+      [weakApplication endBackgroundTask:bgID];
+    } else {
+      GDTCORLog(GDTCORMCDDebugLog, GDTCORLoggingLevelWarnings,
+                @"Attempted to cancel invalid background task in GDTCORTransformer.");
+    }
     bgID = GDTCORBackgroundIdentifierInvalid;
   };
 
@@ -98,14 +103,6 @@
 
     [storage storeEvent:transformedEvent onComplete:completionWrapper];
   });
-}
-
-#pragma mark - GDTCORLifecycleProtocol
-
-- (void)appWillTerminate:(GDTCORApplication *)application {
-  // Flush the queue immediately.
-  dispatch_sync(_eventWritingQueue, ^{
-                });
 }
 
 @end

@@ -54,13 +54,13 @@
  * Hudson (tjh@cryptsoft.com).
  *
  */
-#ifndef HEADER_ASN1T_H
-#define HEADER_ASN1T_H
+#ifndef OPENSSL_HEADER_ASN1T_H
+#define OPENSSL_HEADER_ASN1T_H
 
 #include <openssl_grpc/base.h>
 #include <openssl_grpc/asn1.h>
 
-#ifdef  __cplusplus
+#if defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -244,11 +244,6 @@ typedef struct ASN1_TLC_st ASN1_TLC;
 	(flags), (tag), offsetof(stname, field),\
 	#field, ASN1_ITEM_ref(type) }
 
-/* used when the structure is combined with the parent */
-
-#define ASN1_EX_COMBINE(flags, tag, type) { \
-	(flags)|ASN1_TFLG_COMBINE, (tag), 0, NULL, ASN1_ITEM_ref(type) }
-
 /* implicit and explicit helper macros */
 
 #define ASN1_IMP_EX(stname, field, type, tag, ex) \
@@ -260,7 +255,6 @@ typedef struct ASN1_TLC_st ASN1_TLC;
 /* Any defined by macros: the field used is in the table itself */
 
 #define ASN1_ADB_OBJECT(tblname) { ASN1_TFLG_ADB_OID, -1, 0, #tblname, (const ASN1_ITEM *)&(tblname##_adb) }
-#define ASN1_ADB_INTEGER(tblname) { ASN1_TFLG_ADB_INT, -1, 0, #tblname, (const ASN1_ITEM *)&(tblname##_adb) }
 /* Plain simple type */
 #define ASN1_SIMPLE(stname, field, type) ASN1_EX_TYPE(0,0, stname, field, type)
 
@@ -349,8 +343,8 @@ typedef struct ASN1_TLC_st ASN1_TLC;
  */
 
 struct ASN1_TEMPLATE_st {
-unsigned long flags;		/* Various flags */
-long tag;			/* tag, not used if no tagging */
+uint32_t flags;		/* Various flags */
+int tag;			/* tag, not used if no tagging */
 unsigned long offset;		/* Offset of this field in structure */
 const char *field_name;		/* Field name */
 ASN1_ITEM_EXP *item;		/* Relevant ASN1_ITEM or ASN1_ADB */
@@ -367,7 +361,7 @@ typedef struct ASN1_ADB_st ASN1_ADB;
 typedef struct asn1_must_be_null_st ASN1_MUST_BE_NULL;
 
 struct ASN1_ADB_st {
-	unsigned long flags;	/* Various flags */
+	uint32_t flags;	/* Various flags */
 	unsigned long offset;	/* Offset of selector field */
 	ASN1_MUST_BE_NULL *unused;
 	const ASN1_ADB_TABLE *tbl;	/* Table of possible types */
@@ -377,7 +371,7 @@ struct ASN1_ADB_st {
 };
 
 struct ASN1_ADB_TABLE_st {
-	long value;		/* NID for an object or value for an int */
+	int value;		/* NID for an object */
 	const ASN1_TEMPLATE tt;		/* item for this value */
 };
 
@@ -442,23 +436,11 @@ struct ASN1_ADB_TABLE_st {
 
 #define ASN1_TFLG_ADB_OID	(0x1<<8)
 
-#define ASN1_TFLG_ADB_INT	(0x1<<9)
-
-/* This flag means a parent structure is passed
- * instead of the field: this is useful is a
- * SEQUENCE is being combined with a CHOICE for
- * example. Since this means the structure and
- * item name will differ we need to use the
- * ASN1_CHOICE_END_name() macro for example.
- */
-
-#define ASN1_TFLG_COMBINE	(0x1<<10)
-
 /* This is the actual ASN1 item itself */
 
 struct ASN1_ITEM_st {
 char itype;			/* The item type, primitive, SEQUENCE, CHOICE or extern */
-long utype;			/* underlying type */
+int utype;			/* underlying type */
 const ASN1_TEMPLATE *templates;	/* If SEQUENCE or CHOICE this contains the contents */
 long tcount;			/* Number of templates if SEQUENCE or CHOICE */
 const void *funcs;		/* functions that handle this type */
@@ -512,48 +494,8 @@ const char *sname;		/* Structure name */
 
 #define ASN1_ITYPE_MSTRING		0x5
 
-/* Cache for ASN1 tag and length, so we
- * don't keep re-reading it for things
- * like CHOICE
- */
-
-struct ASN1_TLC_st{
-	char valid;	/* Values below are valid */
-	int ret;	/* return value */
-	long plen;	/* length */
-	int ptag;	/* class value */
-	int pclass;	/* class value */
-	int hdrlen;	/* header length */
-};
-
-/* Typedefs for ASN1 function pointers */
-
-typedef ASN1_VALUE * ASN1_new_func(void);
-typedef void ASN1_free_func(ASN1_VALUE *a);
-typedef ASN1_VALUE * ASN1_d2i_func(ASN1_VALUE **a, const unsigned char ** in, long length);
-typedef int ASN1_i2d_func(ASN1_VALUE * a, unsigned char **in);
-
-typedef int ASN1_ex_d2i(ASN1_VALUE **pval, const unsigned char **in, long len, const ASN1_ITEM *it,
-					int tag, int aclass, char opt, ASN1_TLC *ctx);
-
-typedef int ASN1_ex_i2d(ASN1_VALUE **pval, unsigned char **out, const ASN1_ITEM *it, int tag, int aclass);
-typedef int ASN1_ex_new_func(ASN1_VALUE **pval, const ASN1_ITEM *it);
-typedef void ASN1_ex_free_func(ASN1_VALUE **pval, const ASN1_ITEM *it);
-
-typedef int ASN1_ex_print_func(BIO *out, ASN1_VALUE **pval, 
-						int indent, const char *fname, 
-						const ASN1_PCTX *pctx);
-
-typedef struct ASN1_EXTERN_FUNCS_st {
-	void *app_data;
-	ASN1_ex_new_func *asn1_ex_new;
-	ASN1_ex_free_func *asn1_ex_free;
-	ASN1_ex_free_func *asn1_ex_clear;
-	ASN1_ex_d2i *asn1_ex_d2i;
-	ASN1_ex_i2d *asn1_ex_i2d;
-	/* asn1_ex_print is unused. */
-	ASN1_ex_print_func *asn1_ex_print;
-} ASN1_EXTERN_FUNCS;
+/* Deprecated tag and length cache */
+struct ASN1_TLC_st;
 
 /* This is the ASN1_AUX structure: it handles various
  * miscellaneous requirements. For example the use of
@@ -577,7 +519,7 @@ typedef int ASN1_aux_cb(int operation, ASN1_VALUE **in, const ASN1_ITEM *it,
 
 typedef struct ASN1_AUX_st {
 	void *app_data;
-	int flags;
+	uint32_t flags;
 	int ref_offset;		/* Offset of reference value */
 	ASN1_aux_cb *asn1_cb;
 	int enc_offset;		/* Offset of ASN1_ENCODING structure */
@@ -691,13 +633,17 @@ typedef struct ASN1_AUX_st {
 	int i2d_##fname(const stname *a, unsigned char **out) \
 	{ \
 		return ASN1_item_i2d((ASN1_VALUE *)a, out, ASN1_ITEM_rptr(itname));\
-	} 
+	}
 
-#define IMPLEMENT_ASN1_DUP_FUNCTION(stname) \
-	stname * stname##_dup(stname *x) \
-        { \
-        return ASN1_item_dup(ASN1_ITEM_rptr(stname), x); \
-        }
+#define IMPLEMENT_ASN1_DUP_FUNCTION(stname)          \
+  stname *stname##_dup(stname *x) {                  \
+    return ASN1_item_dup(ASN1_ITEM_rptr(stname), x); \
+  }
+
+#define IMPLEMENT_ASN1_DUP_FUNCTION_const(stname)            \
+  stname *stname##_dup(const stname *x) {                    \
+    return ASN1_item_dup(ASN1_ITEM_rptr(stname), (void *)x); \
+  }
 
 #define IMPLEMENT_ASN1_FUNCTIONS_const(name) \
 		IMPLEMENT_ASN1_FUNCTIONS_const_fname(name, name, name)
@@ -712,7 +658,9 @@ DECLARE_ASN1_ITEM(ASN1_SEQUENCE)
 
 DEFINE_STACK_OF(ASN1_VALUE)
 
-#ifdef  __cplusplus
-}
+
+#if defined(__cplusplus)
+}  // extern "C"
 #endif
-#endif
+
+#endif  // OPENSSL_HEADER_ASN1T_H

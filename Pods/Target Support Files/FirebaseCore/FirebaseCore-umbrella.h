@@ -15,6 +15,7 @@
 #import "FirebaseCore.h"
 #import "FIRLoggerLevel.h"
 #import "FIROptions.h"
+#import "FIRTimestamp.h"
 #import "FIRVersion.h"
 
 FOUNDATION_EXPORT double FirebaseCoreVersionNumber;
