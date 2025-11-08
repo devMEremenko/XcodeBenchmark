@@ -95,6 +95,7 @@ _XcodeBenchmark has been updated to support Xcode 16.3, and new submissions must
 | MacBook Air 13" 2024 |     M3 8-core           |  24 | 2TB |  15.3 | 14.4   |    140    |
 | MacBook Air 13" 2022 |     M2 8c (10c GPU)     |  8  | 512 | 15.0.1| 14.1.1 |    158    |
 | MacBook Pro 14" 2021 |     M1 Pro 8-core       |  32 | 1TB |  15.2 | 14.1.2 |    170    |
+| MacBook Pro 14" 2021 |     M1 Pro 8-core       |  32 | 512 | 15.0.1| 14.1.1 |    175    |
 | Mac Mini M1 2020     |     M1 8-core           |  16 | 1TB |  15.2 | 13.6.3 |    180    |
 | MacBook Air 13" 2020 |     M1 8c (8c GPU)      |  16 | 512 |  15.0 | 14.0   |    208    |
 | iMac19,1 27" 2019    |     i9 3.6 GHz 8-core   |  24 | 512 |  15.2 | 13.7.1 |    265    |  
