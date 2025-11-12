@@ -7,6 +7,7 @@
 //  License: MIT License
 //
 
+#if !os(watchOS)
 import Foundation
 import UIKit
 
@@ -33,3 +34,4 @@ extension TypedStoryboardSegueInfo {
     self.destination = destination
   }
 }
+#endif

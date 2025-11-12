@@ -66,7 +66,7 @@ class BigUnsigned {
                static_cast<uint32_t>(v >> 32)} {}
 
   // Constructs a BigUnsigned from the given string_view containing a decimal
-  // value.  If the input std::string is not a decimal integer, constructs a 0
+  // value.  If the input string is not a decimal integer, constructs a 0
   // instead.
   explicit BigUnsigned(absl::string_view sv) : size_(0), words_{} {
     // Check for valid input, returning a 0 otherwise.  This is reasonable
@@ -92,7 +92,7 @@ class BigUnsigned {
   // numbers with this many decimal digits or fewer are representable by this
   // type.
   //
-  // Analagous to std::numeric_limits<BigUnsigned>::digits10.
+  // Analogous to std::numeric_limits<BigUnsigned>::digits10.
   static constexpr int Digits10() {
     // 9975007/1035508 is very slightly less than log10(2**32).
     return static_cast<uint64_t>(max_words) * 9975007 / 1035508;
@@ -109,7 +109,17 @@ class BigUnsigned {
       size_ = (std::min)(size_ + word_shift, max_words);
       count %= 32;
       if (count == 0) {
+// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=warray-bounds
+// shows a lot of bogus -Warray-bounds warnings under GCC.
+// This is not the only one in Abseil.
+#if ABSL_INTERNAL_HAVE_MIN_GNUC_VERSION(14, 0)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
         std::copy_backward(words_, words_ + size_ - word_shift, words_ + size_);
+#if ABSL_INTERNAL_HAVE_MIN_GNUC_VERSION(14, 0)
+#pragma GCC diagnostic pop
+#endif
       } else {
         for (int i = (std::min)(size_, max_words - 1); i > word_shift; --i) {
           words_[i] = (words_[i - word_shift] << count) |
@@ -121,7 +131,7 @@ class BigUnsigned {
           ++size_;
         }
       }
-      std::fill(words_, words_ + word_shift, 0u);
+      std::fill_n(words_, word_shift, 0u);
     }
   }
 
@@ -197,7 +207,7 @@ class BigUnsigned {
   }
 
   void SetToZero() {
-    std::fill(words_, words_ + size_, 0u);
+    std::fill_n(words_, size_, 0u);
     size_ = 0;
   }
 
@@ -210,7 +220,7 @@ class BigUnsigned {
     return words_[index];
   }
 
-  // Returns this integer as a decimal std::string.  This is not used in the decimal-
+  // Returns this integer as a decimal string.  This is not used in the decimal-
   // to-binary conversion; it is intended to aid in testing.
   std::string ToString() const;
 

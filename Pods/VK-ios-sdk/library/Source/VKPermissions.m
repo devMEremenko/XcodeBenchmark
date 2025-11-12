@@ -25,7 +25,6 @@
 NSString *const VK_PER_NOTIFY = @"notify";
 NSString *const VK_PER_FRIENDS = @"friends";
 NSString *const VK_PER_PHOTOS = @"photos";
-NSString *const VK_PER_AUDIO = @"audio";
 NSString *const VK_PER_VIDEO = @"video";
 NSString *const VK_PER_DOCS = @"docs";
 NSString *const VK_PER_NOTES = @"notes";
@@ -47,7 +46,6 @@ NSArray *VKParseVkPermissionsFromInteger(NSInteger permissionsValue) {
     if (permissionsValue & 1) [res addObject:VK_PER_NOTIFY];
     if (permissionsValue & 2) [res addObject:VK_PER_FRIENDS];
     if (permissionsValue & 4) [res addObject:VK_PER_PHOTOS];
-    if (permissionsValue & 8) [res addObject:VK_PER_AUDIO];
     if (permissionsValue & 16) [res addObject:VK_PER_VIDEO];
     if (permissionsValue & 128) [res addObject:VK_PER_PAGES];
     if (permissionsValue & 1024) [res addObject:VK_PER_STATUS];

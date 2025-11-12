@@ -15,16 +15,13 @@
 #include "absl/strings/str_split.h"
 
 #include <algorithm>
-#include <cassert>
-#include <cstdint>
+#include <cstddef>
 #include <cstdlib>
 #include <cstring>
-#include <iterator>
-#include <limits>
-#include <memory>
 
+#include "absl/base/config.h"
 #include "absl/base/internal/raw_logging.h"
-#include "absl/strings/ascii.h"
+#include "absl/strings/string_view.h"
 
 namespace absl {
 ABSL_NAMESPACE_BEGIN
@@ -42,7 +39,7 @@ absl::string_view GenericFind(absl::string_view text,
                               absl::string_view delimiter, size_t pos,
                               FindPolicy find_policy) {
   if (delimiter.empty() && text.length() > 0) {
-    // Special case for empty std::string delimiters: always return a zero-length
+    // Special case for empty string delimiters: always return a zero-length
     // absl::string_view referring to the item at position 1 past pos.
     return absl::string_view(text.data() + pos + 1, 0);
   }
@@ -60,19 +57,23 @@ absl::string_view GenericFind(absl::string_view text,
 // Finds using absl::string_view::find(), therefore the length of the found
 // delimiter is delimiter.length().
 struct LiteralPolicy {
-  size_t Find(absl::string_view text, absl::string_view delimiter, size_t pos) {
+  static size_t Find(absl::string_view text, absl::string_view delimiter,
+                     size_t pos) {
     return text.find(delimiter, pos);
   }
-  size_t Length(absl::string_view delimiter) { return delimiter.length(); }
+  static size_t Length(absl::string_view delimiter) {
+    return delimiter.length();
+  }
 };
 
 // Finds using absl::string_view::find_first_of(), therefore the length of the
 // found delimiter is 1.
 struct AnyOfPolicy {
-  size_t Find(absl::string_view text, absl::string_view delimiter, size_t pos) {
+  static size_t Find(absl::string_view text, absl::string_view delimiter,
+                     size_t pos) {
     return text.find_first_of(delimiter, pos);
   }
-  size_t Length(absl::string_view /* delimiter */) { return 1; }
+  static size_t Length(absl::string_view /* delimiter */) { return 1; }
 };
 
 }  // namespace
@@ -93,6 +94,11 @@ absl::string_view ByString::Find(absl::string_view text, size_t pos) const {
     return text.substr(found_pos, 1);
   }
   return GenericFind(text, delimiter_, pos, LiteralPolicy());
+}
+
+absl::string_view ByAsciiWhitespace::Find(absl::string_view text,
+                                          size_t pos) const {
+  return GenericFind(text, " \t\v\f\r\n", pos, AnyOfPolicy());
 }
 
 //
@@ -123,11 +129,10 @@ ByLength::ByLength(ptrdiff_t length) : length_(length) {
   ABSL_RAW_CHECK(length > 0, "");
 }
 
-absl::string_view ByLength::Find(absl::string_view text,
-                                      size_t pos) const {
+absl::string_view ByLength::Find(absl::string_view text, size_t pos) const {
   pos = std::min(pos, text.size());  // truncate `pos`
   absl::string_view substr = text.substr(pos);
-  // If the std::string is shorter than the chunk size we say we
+  // If the string is shorter than the chunk size we say we
   // "can't find the delimiter" so this will be the last chunk.
   if (substr.length() <= static_cast<size_t>(length_))
     return absl::string_view(text.data() + text.size(), 0);

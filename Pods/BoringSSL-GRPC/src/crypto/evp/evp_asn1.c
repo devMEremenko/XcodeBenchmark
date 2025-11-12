@@ -65,9 +65,11 @@
 #include <openssl_grpc/rsa.h>
 
 #include "internal.h"
+#include "../bytestring/internal.h"
 #include "../internal.h"
 
 
+// We intentionally omit |dh_asn1_meth| from this list. It is not serializable.
 static const EVP_PKEY_ASN1_METHOD *const kASN1Methods[] = {
     &rsa_asn1_meth,
     &ec_asn1_meth,
@@ -76,28 +78,26 @@ static const EVP_PKEY_ASN1_METHOD *const kASN1Methods[] = {
     &x25519_asn1_meth,
 };
 
-static int parse_key_type(CBS *cbs, int *out_type) {
+static const EVP_PKEY_ASN1_METHOD *parse_key_type(CBS *cbs) {
   CBS oid;
   if (!CBS_get_asn1(cbs, &oid, CBS_ASN1_OBJECT)) {
-    return 0;
+    return NULL;
   }
 
   for (unsigned i = 0; i < OPENSSL_ARRAY_SIZE(kASN1Methods); i++) {
     const EVP_PKEY_ASN1_METHOD *method = kASN1Methods[i];
     if (CBS_len(&oid) == method->oid_len &&
         OPENSSL_memcmp(CBS_data(&oid), method->oid, method->oid_len) == 0) {
-      *out_type = method->pkey_id;
-      return 1;
+      return method;
     }
   }
 
-  return 0;
+  return NULL;
 }
 
 EVP_PKEY *EVP_parse_public_key(CBS *cbs) {
   // Parse the SubjectPublicKeyInfo.
   CBS spki, algorithm, key;
-  int type;
   uint8_t padding;
   if (!CBS_get_asn1(cbs, &spki, CBS_ASN1_SEQUENCE) ||
       !CBS_get_asn1(&spki, &algorithm, CBS_ASN1_SEQUENCE) ||
@@ -106,7 +106,8 @@ EVP_PKEY *EVP_parse_public_key(CBS *cbs) {
     OPENSSL_PUT_ERROR(EVP, EVP_R_DECODE_ERROR);
     return NULL;
   }
-  if (!parse_key_type(&algorithm, &type)) {
+  const EVP_PKEY_ASN1_METHOD *method = parse_key_type(&algorithm);
+  if (method == NULL) {
     OPENSSL_PUT_ERROR(EVP, EVP_R_UNSUPPORTED_ALGORITHM);
     return NULL;
   }
@@ -120,10 +121,10 @@ EVP_PKEY *EVP_parse_public_key(CBS *cbs) {
 
   // Set up an |EVP_PKEY| of the appropriate type.
   EVP_PKEY *ret = EVP_PKEY_new();
-  if (ret == NULL ||
-      !EVP_PKEY_set_type(ret, type)) {
+  if (ret == NULL) {
     goto err;
   }
+  evp_pkey_set_method(ret, method);
 
   // Call into the type-specific SPKI decoding function.
   if (ret->ameth->pub_decode == NULL) {
@@ -154,7 +155,6 @@ EVP_PKEY *EVP_parse_private_key(CBS *cbs) {
   // Parse the PrivateKeyInfo.
   CBS pkcs8, algorithm, key;
   uint64_t version;
-  int type;
   if (!CBS_get_asn1(cbs, &pkcs8, CBS_ASN1_SEQUENCE) ||
       !CBS_get_asn1_uint64(&pkcs8, &version) ||
       version != 0 ||
@@ -163,7 +163,8 @@ EVP_PKEY *EVP_parse_private_key(CBS *cbs) {
     OPENSSL_PUT_ERROR(EVP, EVP_R_DECODE_ERROR);
     return NULL;
   }
-  if (!parse_key_type(&algorithm, &type)) {
+  const EVP_PKEY_ASN1_METHOD *method = parse_key_type(&algorithm);
+  if (method == NULL) {
     OPENSSL_PUT_ERROR(EVP, EVP_R_UNSUPPORTED_ALGORITHM);
     return NULL;
   }
@@ -172,10 +173,10 @@ EVP_PKEY *EVP_parse_private_key(CBS *cbs) {
 
   // Set up an |EVP_PKEY| of the appropriate type.
   EVP_PKEY *ret = EVP_PKEY_new();
-  if (ret == NULL ||
-      !EVP_PKEY_set_type(ret, type)) {
+  if (ret == NULL) {
     goto err;
   }
+  evp_pkey_set_method(ret, method);
 
   // Call into the type-specific PrivateKeyInfo decoding function.
   if (ret->ameth->priv_decode == NULL) {
@@ -335,11 +336,11 @@ EVP_PKEY *d2i_AutoPrivateKey(EVP_PKEY **out, const uint8_t **inp, long len) {
 int i2d_PublicKey(const EVP_PKEY *key, uint8_t **outp) {
   switch (key->type) {
     case EVP_PKEY_RSA:
-      return i2d_RSAPublicKey(key->pkey.rsa, outp);
+      return i2d_RSAPublicKey(EVP_PKEY_get0_RSA(key), outp);
     case EVP_PKEY_DSA:
-      return i2d_DSAPublicKey(key->pkey.dsa, outp);
+      return i2d_DSAPublicKey(EVP_PKEY_get0_DSA(key), outp);
     case EVP_PKEY_EC:
-      return i2o_ECPublicKey(key->pkey.ec, outp);
+      return i2o_ECPublicKey(EVP_PKEY_get0_EC_KEY(key), outp);
     default:
       OPENSSL_PUT_ERROR(EVP, EVP_R_UNSUPPORTED_PUBLIC_KEY_TYPE);
       return -1;
@@ -368,8 +369,8 @@ EVP_PKEY *d2i_PublicKey(int type, EVP_PKEY **out, const uint8_t **inp,
     // Unlike OpenSSL, we do not support EC keys with this API. The raw EC
     // public key serialization requires knowing the group. In OpenSSL, calling
     // this function with |EVP_PKEY_EC| and setting |out| to NULL does not work.
-    // It requires |*out| to include a partially-initiazed |EVP_PKEY| to extract
-    // the group.
+    // It requires |*out| to include a partially-initialized |EVP_PKEY| to
+    // extract the group.
     default:
       OPENSSL_PUT_ERROR(EVP, EVP_R_UNSUPPORTED_PUBLIC_KEY_TYPE);
       goto err;
@@ -385,4 +386,162 @@ EVP_PKEY *d2i_PublicKey(int type, EVP_PKEY **out, const uint8_t **inp,
 err:
   EVP_PKEY_free(ret);
   return NULL;
+}
+
+EVP_PKEY *d2i_PUBKEY(EVP_PKEY **out, const uint8_t **inp, long len) {
+  if (len < 0) {
+    return NULL;
+  }
+  CBS cbs;
+  CBS_init(&cbs, *inp, (size_t)len);
+  EVP_PKEY *ret = EVP_parse_public_key(&cbs);
+  if (ret == NULL) {
+    return NULL;
+  }
+  if (out != NULL) {
+    EVP_PKEY_free(*out);
+    *out = ret;
+  }
+  *inp = CBS_data(&cbs);
+  return ret;
+}
+
+int i2d_PUBKEY(const EVP_PKEY *pkey, uint8_t **outp) {
+  if (pkey == NULL) {
+    return 0;
+  }
+
+  CBB cbb;
+  if (!CBB_init(&cbb, 128) ||
+      !EVP_marshal_public_key(&cbb, pkey)) {
+    CBB_cleanup(&cbb);
+    return -1;
+  }
+  return CBB_finish_i2d(&cbb, outp);
+}
+
+RSA *d2i_RSA_PUBKEY(RSA **out, const uint8_t **inp, long len) {
+  if (len < 0) {
+    return NULL;
+  }
+  CBS cbs;
+  CBS_init(&cbs, *inp, (size_t)len);
+  EVP_PKEY *pkey = EVP_parse_public_key(&cbs);
+  if (pkey == NULL) {
+    return NULL;
+  }
+  RSA *rsa = EVP_PKEY_get1_RSA(pkey);
+  EVP_PKEY_free(pkey);
+  if (rsa == NULL) {
+    return NULL;
+  }
+  if (out != NULL) {
+    RSA_free(*out);
+    *out = rsa;
+  }
+  *inp = CBS_data(&cbs);
+  return rsa;
+}
+
+int i2d_RSA_PUBKEY(const RSA *rsa, uint8_t **outp) {
+  if (rsa == NULL) {
+    return 0;
+  }
+
+  int ret = -1;
+  EVP_PKEY *pkey = EVP_PKEY_new();
+  if (pkey == NULL ||
+      !EVP_PKEY_set1_RSA(pkey, (RSA *)rsa)) {
+    goto err;
+  }
+
+  ret = i2d_PUBKEY(pkey, outp);
+
+err:
+  EVP_PKEY_free(pkey);
+  return ret;
+}
+
+DSA *d2i_DSA_PUBKEY(DSA **out, const uint8_t **inp, long len) {
+  if (len < 0) {
+    return NULL;
+  }
+  CBS cbs;
+  CBS_init(&cbs, *inp, (size_t)len);
+  EVP_PKEY *pkey = EVP_parse_public_key(&cbs);
+  if (pkey == NULL) {
+    return NULL;
+  }
+  DSA *dsa = EVP_PKEY_get1_DSA(pkey);
+  EVP_PKEY_free(pkey);
+  if (dsa == NULL) {
+    return NULL;
+  }
+  if (out != NULL) {
+    DSA_free(*out);
+    *out = dsa;
+  }
+  *inp = CBS_data(&cbs);
+  return dsa;
+}
+
+int i2d_DSA_PUBKEY(const DSA *dsa, uint8_t **outp) {
+  if (dsa == NULL) {
+    return 0;
+  }
+
+  int ret = -1;
+  EVP_PKEY *pkey = EVP_PKEY_new();
+  if (pkey == NULL ||
+      !EVP_PKEY_set1_DSA(pkey, (DSA *)dsa)) {
+    goto err;
+  }
+
+  ret = i2d_PUBKEY(pkey, outp);
+
+err:
+  EVP_PKEY_free(pkey);
+  return ret;
+}
+
+EC_KEY *d2i_EC_PUBKEY(EC_KEY **out, const uint8_t **inp, long len) {
+  if (len < 0) {
+    return NULL;
+  }
+  CBS cbs;
+  CBS_init(&cbs, *inp, (size_t)len);
+  EVP_PKEY *pkey = EVP_parse_public_key(&cbs);
+  if (pkey == NULL) {
+    return NULL;
+  }
+  EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(pkey);
+  EVP_PKEY_free(pkey);
+  if (ec_key == NULL) {
+    return NULL;
+  }
+  if (out != NULL) {
+    EC_KEY_free(*out);
+    *out = ec_key;
+  }
+  *inp = CBS_data(&cbs);
+  return ec_key;
+}
+
+int i2d_EC_PUBKEY(const EC_KEY *ec_key, uint8_t **outp) {
+  if (ec_key == NULL) {
+    return 0;
+  }
+
+  int ret = -1;
+  EVP_PKEY *pkey = EVP_PKEY_new();
+  if (pkey == NULL ||
+      !EVP_PKEY_set1_EC_KEY(pkey, (EC_KEY *)ec_key)) {
+    goto err;
+  }
+
+  ret = i2d_PUBKEY(pkey, outp);
+
+err:
+  EVP_PKEY_free(pkey);
+  return ret;
 }

@@ -26,14 +26,16 @@
 import UIKit
 import DTModelStorage
 
-//swiftlint:disable:next type_name
-private class DummyCollectionViewCellThatPreventsAppFromCrashing: UICollectionViewCell {}
+// swiftlint:disable:next type_name
+class DummyCollectionViewCellThatPreventsAppFromCrashing: UICollectionViewCell {}
 
 /// Object, that implements `UICollectionViewDataSource` methods for `DTCollectionViewManager`.
 open class DTCollectionViewDataSource: DTCollectionViewDelegateWrapper, UICollectionViewDataSource {
     override func delegateWasReset() {
-        collectionView?.dataSource = nil
-        collectionView?.dataSource = self
+        if collectionView?.dataSource === self {
+            collectionView?.dataSource = nil
+            collectionView?.dataSource = self
+        }
     }
     
     private func dummyCell(for indexPath: IndexPath) -> UICollectionViewCell {
@@ -105,6 +107,7 @@ open class DTCollectionViewDataSource: DTCollectionViewDelegateWrapper, UICollec
                                                                   to: destination)
     }
     
+    @available(iOS 14.0, tvOS 10.2, *)
     /// Implementation of `UICollectionViewDataSource` protocol.
     open func indexTitles(for collectionView: UICollectionView) -> [String]? {
         if let reaction = unmappedReactions.first(where: { $0.methodSignature == EventMethodSignature.indexTitlesForCollectionView.rawValue }) {
@@ -113,6 +116,7 @@ open class DTCollectionViewDataSource: DTCollectionViewDelegateWrapper, UICollec
         return (delegate as? UICollectionViewDataSource)?.indexTitles?(for: collectionView)
     }
     
+    @available(iOS 14.0, tvOS 10.2, *)
     /// Implementation of `UICollectionViewDataSource` protocol.
     open func collectionView(_ collectionView: UICollectionView, indexPathForIndexTitle title: String, at index: Int) -> IndexPath {
         if let indexPath = performNonCellReaction(.indexPathForIndexTitleAtIndex, argumentOne: title, argumentTwo: index) as? IndexPath {

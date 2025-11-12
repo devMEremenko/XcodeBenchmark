@@ -88,7 +88,7 @@ extension Lifetime {
 	/// A token object which completes its associated `Lifetime` when
 	/// it deinitializes, or when `dispose()` is called.
 	///
-	/// It is generally used in conjuncion with `Lifetime` as a private
+	/// It is generally used in conjunction with `Lifetime` as a private
 	/// deinitialization trigger.
 	///
 	/// ```

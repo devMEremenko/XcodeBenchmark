@@ -1,6 +1,3 @@
-#ifndef ABSL_BASE_OPTIONS_H_
-#define ABSL_BASE_OPTIONS_H_
-
 // Copyright 2019 The Abseil Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -67,11 +64,8 @@
 // proper Abseil implementation at compile-time, which will not be sufficient
 // to guarantee ABI stability to package managers.
 
-// Include a standard library header to allow configuration based on the
-// standard library in use.
-#ifdef __cplusplus
-#include <ciso646>
-#endif
+#ifndef ABSL_BASE_OPTIONS_H_
+#define ABSL_BASE_OPTIONS_H_
 
 // -----------------------------------------------------------------------------
 // Type Compatibility Options
@@ -182,6 +176,32 @@
 
 #define ABSL_OPTION_USE_STD_VARIANT 2
 
+// ABSL_OPTION_USE_STD_ORDERING
+//
+// This option controls whether absl::{partial,weak,strong}_ordering are
+// implemented as aliases to the std:: ordering types, or as an independent
+// implementation.
+//
+// A value of 0 means to use Abseil's implementation.  This requires only C++11
+// support, and is expected to work on every toolchain we support.
+//
+// A value of 1 means to use aliases.  This requires that all code using Abseil
+// is built in C++20 mode or later.
+//
+// A value of 2 means to detect the C++ version being used to compile Abseil,
+// and use an alias only if working std:: ordering types are available.  This
+// option is useful when you are building your program from source.  It should
+// not be used otherwise -- for example, if you are distributing Abseil in a
+// binary package manager -- since in mode 2, they will name different types,
+// with different mangled names and binary layout, depending on the compiler
+// flags passed by the end user.  For more info, see
+// https://abseil.io/about/design/dropin-types.
+//
+// User code should not inspect this macro.  To check in the preprocessor if
+// the ordering types are aliases of std:: ordering types, use the feature macro
+// ABSL_USES_STD_ORDERING.
+
+#define ABSL_OPTION_USE_STD_ORDERING 2
 
 // ABSL_OPTION_USE_INLINE_NAMESPACE
 // ABSL_OPTION_INLINE_NAMESPACE_NAME
@@ -206,6 +226,33 @@
 // allowed.
 
 #define ABSL_OPTION_USE_INLINE_NAMESPACE 1
-#define ABSL_OPTION_INLINE_NAMESPACE_NAME lts_2020_02_25
+#define ABSL_OPTION_INLINE_NAMESPACE_NAME lts_20240722
+
+// ABSL_OPTION_HARDENED
+//
+// This option enables a "hardened" build in release mode (in this context,
+// release mode is defined as a build where the `NDEBUG` macro is defined).
+//
+// A value of 0 means that "hardened" mode is not enabled.
+//
+// A value of 1 means that "hardened" mode is enabled.
+//
+// Hardened builds have additional security checks enabled when `NDEBUG` is
+// defined. Defining `NDEBUG` is normally used to turn `assert()` macro into a
+// no-op, as well as disabling other bespoke program consistency checks. By
+// defining ABSL_OPTION_HARDENED to 1, a select set of checks remain enabled in
+// release mode. These checks guard against programming errors that may lead to
+// security vulnerabilities. In release mode, when one of these programming
+// errors is encountered, the program will immediately abort, possibly without
+// any attempt at logging.
+//
+// The checks enabled by this option are not free; they do incur runtime cost.
+//
+// The checks enabled by this option are always active when `NDEBUG` is not
+// defined, even in the case when ABSL_OPTION_HARDENED is defined to 0. The
+// checks enabled by this option may abort the program in a different way and
+// log additional information when `NDEBUG` is not defined.
+
+#define ABSL_OPTION_HARDENED 0
 
 #endif  // ABSL_BASE_OPTIONS_H_

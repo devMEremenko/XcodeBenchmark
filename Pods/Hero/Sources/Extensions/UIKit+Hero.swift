@@ -20,14 +20,20 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#if canImport(UIKit)
+
 import UIKit
 
 private let parameterRegex = "(?:\\-?\\d+(\\.?\\d+)?)|\\w+"
 private let modifiersRegex = "(\\w+)(?:\\(([^\\)]*)\\))?"
 
-internal extension NSObject {
+internal extension NSCoding where Self: NSObject {
   func copyWithArchiver() -> Any? {
-    return NSKeyedUnarchiver.unarchiveObject(with: NSKeyedArchiver.archivedData(withRootObject: self))!
+		if #available(iOS 11.0, tvOS 11.0, *) {
+			return try? NSKeyedUnarchiver.unarchivedObject(ofClass: type(of: self), from: NSKeyedArchiver.archivedData(withRootObject: self, requiringSecureCoding: false))
+		} else {
+			return NSKeyedUnarchiver.unarchiveObject(with: NSKeyedArchiver.archivedData(withRootObject: self))!
+		}
   }
 }
 
@@ -54,3 +60,5 @@ internal extension UIColor {
     return components.a
   }
 }
+
+#endif

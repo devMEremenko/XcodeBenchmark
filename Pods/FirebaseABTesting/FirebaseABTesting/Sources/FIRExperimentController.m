@@ -18,21 +18,12 @@
 #import "FirebaseABTesting/Sources/ABTConstants.h"
 #import "FirebaseABTesting/Sources/Private/ABTExperimentPayload.h"
 #import "FirebaseABTesting/Sources/Public/FirebaseABTesting/FIRLifecycleEvents.h"
-#import "FirebaseCore/Sources/Private/FirebaseCoreInternal.h"
+#import "FirebaseCore/Extension/FirebaseCoreInternal.h"
 
 #import "Interop/Analytics/Public/FIRAnalyticsInterop.h"
 
-#ifndef FIRABTesting_VERSION
-#error "FIRABTesting_VERSION is not defined: \
-add -DFIRABTesting_VERSION=... to the build invocation"
-#endif
-
-// The following two macros supply the incantation so that the C
-// preprocessor does not try to parse the version as a floating
-// point number. See
-// https://www.guyrutenberg.com/2008/12/20/expanding-macros-into-string-constants-in-c/
-#define STR(x) STR_EXPAND(x)
-#define STR_EXPAND(x) #x
+/// Logger Service String.
+FIRLoggerService kFIRLoggerABTesting = @"[FirebaseABTesting]";
 
 /// Default experiment overflow policy.
 const ABTExperimentPayloadExperimentOverflowPolicy FIRDefaultExperimentOverflowPolicy =
@@ -99,9 +90,9 @@ NSArray *ABTExperimentsToClearFromPayloads(
       [ABTConditionalUserPropertyController sharedInstanceWithAnalytics:analytics];
 
   // Check if the experiment is in experiments but not payloads.
-  for (id experiment in experiments) {
+  for (id experiment in [experiments copy]) {
     BOOL doesExperimentNoLongerExist = YES;
-    for (NSData *payload in payloads) {
+    for (NSData *payload in [payloads copy]) {
       ABTExperimentPayload *experimentPayload = ABTDeserializeExperimentPayload(payload);
       if (!experimentPayload) {
         FIRLogInfo(kFIRLoggerABTesting, @"I-ABT000002",
@@ -133,14 +124,10 @@ NSArray *ABTExperimentsToClearFromPayloads(
 @implementation FIRExperimentController
 
 + (void)load {
-  [FIRApp registerInternalLibrary:(Class<FIRLibrary>)self
-                         withName:@"fire-abt"
-                      withVersion:[NSString stringWithUTF8String:STR(FIRABTesting_VERSION)]];
+  [FIRApp registerInternalLibrary:(Class<FIRLibrary>)self withName:@"fire-abt"];
 }
 
 + (nonnull NSArray<FIRComponent *> *)componentsToRegister {
-  FIRDependency *analyticsDep = [FIRDependency dependencyWithProtocol:@protocol(FIRAnalyticsInterop)
-                                                           isRequired:NO];
   FIRComponentCreationBlock creationBlock =
       ^id _Nullable(FIRComponentContainer *container, BOOL *isCacheable) {
     // Ensure it's cached so it returns the same instance every time ABTesting is called.
@@ -150,7 +137,6 @@ NSArray *ABTExperimentsToClearFromPayloads(
   };
   FIRComponent *abtProvider = [FIRComponent componentWithProtocol:@protocol(FIRABTInstanceProvider)
                                               instantiationTiming:FIRInstantiationTimingLazy
-                                                     dependencies:@[ analyticsDep ]
                                                     creationBlock:creationBlock];
 
   return @[ abtProvider ];
@@ -191,19 +177,6 @@ NSArray *ABTExperimentsToClearFromPayloads(
   });
 }
 
-- (void)updateExperimentsWithServiceOrigin:(NSString *)origin
-                                    events:(FIRLifecycleEvents *)events
-                                    policy:(ABTExperimentPayloadExperimentOverflowPolicy)policy
-                             lastStartTime:(NSTimeInterval)lastStartTime
-                                  payloads:(NSArray<NSData *> *)payloads {
-  [self updateExperimentsWithServiceOrigin:origin
-                                    events:events
-                                    policy:policy
-                             lastStartTime:lastStartTime
-                                  payloads:payloads
-                         completionHandler:nil];
-}
-
 - (void)
     updateExperimentConditionalUserPropertiesWithServiceOrigin:(NSString *)origin
                                                         events:(FIRLifecycleEvents *)events
@@ -218,7 +191,7 @@ NSArray *ABTExperimentsToClearFromPayloads(
   ABTConditionalUserPropertyController *controller =
       [ABTConditionalUserPropertyController sharedInstanceWithAnalytics:_analytics];
 
-  // Get the list of expriments from Firebase Analytics.
+  // Get the list of experiments from Firebase Analytics.
   NSArray *experiments = [controller experimentsWithOrigin:origin];
   if (!experiments) {
     NSString *errorDescription =

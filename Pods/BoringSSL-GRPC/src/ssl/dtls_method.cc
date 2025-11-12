@@ -77,31 +77,50 @@ static void dtls1_on_handshake_complete(SSL *ssl) {
   }
 }
 
-static bool dtls1_set_read_state(SSL *ssl, UniquePtr<SSLAEADContext> aead_ctx) {
+static bool dtls1_set_read_state(SSL *ssl, ssl_encryption_level_t level,
+                                 UniquePtr<SSLAEADContext> aead_ctx,
+                                 Span<const uint8_t> secret_for_quic) {
+  assert(secret_for_quic.empty());  // QUIC does not use DTLS.
   // Cipher changes are forbidden if the current epoch has leftover data.
   if (dtls_has_unprocessed_handshake_data(ssl)) {
-    OPENSSL_PUT_ERROR(SSL, SSL_R_BUFFERED_MESSAGES_ON_CIPHER_CHANGE);
+    OPENSSL_PUT_ERROR(SSL, SSL_R_EXCESS_HANDSHAKE_DATA);
     ssl_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_UNEXPECTED_MESSAGE);
     return false;
   }
 
-  ssl->d1->r_epoch++;
-  OPENSSL_memset(&ssl->d1->bitmap, 0, sizeof(ssl->d1->bitmap));
-  OPENSSL_memset(ssl->s3->read_sequence, 0, sizeof(ssl->s3->read_sequence));
+  if (ssl_protocol_version(ssl) > TLS1_2_VERSION) {
+    // TODO(crbug.com/boringssl/715): Handle the additional epochs used for key
+    // update.
+    // TODO(crbug.com/boringssl/715): If we want to gracefully handle packet
+    // reordering around KeyUpdate (i.e. accept records from both epochs), we'll
+    // need a separate bitmap for each epoch.
+    ssl->d1->r_epoch = level;
+  } else {
+    ssl->d1->r_epoch++;
+  }
+  ssl->d1->bitmap = DTLS1_BITMAP();
+  ssl->s3->read_sequence = 0;
 
   ssl->s3->aead_read_ctx = std::move(aead_ctx);
+  ssl->s3->read_level = level;
+  ssl->d1->has_change_cipher_spec = false;
   return true;
 }
 
-static bool dtls1_set_write_state(SSL *ssl,
-                                  UniquePtr<SSLAEADContext> aead_ctx) {
+static bool dtls1_set_write_state(SSL *ssl, ssl_encryption_level_t level,
+                                  UniquePtr<SSLAEADContext> aead_ctx,
+                                  Span<const uint8_t> secret_for_quic) {
+  assert(secret_for_quic.empty());  // QUIC does not use DTLS.
   ssl->d1->w_epoch++;
-  OPENSSL_memcpy(ssl->d1->last_write_sequence, ssl->s3->write_sequence,
-                 sizeof(ssl->s3->write_sequence));
-  OPENSSL_memset(ssl->s3->write_sequence, 0, sizeof(ssl->s3->write_sequence));
+  ssl->d1->last_write_sequence = ssl->s3->write_sequence;
+  ssl->s3->write_sequence = 0;
 
+  if (ssl_protocol_version(ssl) > TLS1_2_VERSION) {
+    ssl->d1->w_epoch = level;
+  }
   ssl->d1->last_aead_write_ctx = std::move(ssl->s3->aead_write_ctx);
   ssl->s3->aead_write_ctx = std::move(aead_ctx);
+  ssl->s3->write_level = level;
   return true;
 }
 
@@ -111,6 +130,7 @@ static const SSL_PROTOCOL_METHOD kDTLSProtocolMethod = {
     dtls1_free,
     dtls1_get_message,
     dtls1_next_message,
+    dtls_has_unprocessed_handshake_data,
     dtls1_open_handshake,
     dtls1_open_change_cipher_spec,
     dtls1_open_app_data,

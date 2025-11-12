@@ -16,21 +16,38 @@
 
 #import "FirebaseRemoteConfig/Sources/FIRRemoteConfigComponent.h"
 
-#import "FirebaseCore/Sources/Private/FirebaseCoreInternal.h"
+#import "FirebaseCore/Extension/FirebaseCoreInternal.h"
 #import "FirebaseRemoteConfig/Sources/Private/FIRRemoteConfig_Private.h"
 #import "FirebaseRemoteConfig/Sources/RCNConfigContent.h"
 #import "FirebaseRemoteConfig/Sources/RCNConfigDBManager.h"
 #import "Interop/Analytics/Public/FIRAnalyticsInterop.h"
 
-#ifndef FIRRemoteConfig_VERSION
-#error "FIRRemoteConfig_VERSION is not defined: \
-add -DFIRRemoteConfig_VERSION=... to the build invocation"
-#endif
-
-#define STR(x) STR_EXPAND(x)
-#define STR_EXPAND(x) #x
-
 @implementation FIRRemoteConfigComponent
+
+// Because Component now need to register two protocols (provider and interop), we need a way to
+// return the same component instance for both registered protocol, this singleton pattern allow us
+// to return the same component object for both registration callback.
+static NSMutableDictionary<NSString *, FIRRemoteConfigComponent *> *_componentInstances = nil;
+
++ (FIRRemoteConfigComponent *)getComponentForApp:(FIRApp *)app {
+  @synchronized(_componentInstances) {
+    // need to init the dictionary first
+    if (!_componentInstances) {
+      _componentInstances = [[NSMutableDictionary alloc] init];
+    }
+    if (![_componentInstances objectForKey:app.name]) {
+      _componentInstances[app.name] = [[self alloc] initWithApp:app];
+    }
+    return _componentInstances[app.name];
+  }
+  return nil;
+}
+
++ (void)clearAllComponentInstances {
+  @synchronized(_componentInstances) {
+    [_componentInstances removeAllObjects];
+  }
+}
 
 /// Default method for retrieving a Remote Config instance, or creating one if it doesn't exist.
 - (FIRRemoteConfig *)remoteConfigForNamespace:(NSString *)remoteConfigNamespace {
@@ -46,9 +63,12 @@ add -DFIRRemoteConfig_VERSION=... to the build invocation"
     errorPropertyName = @"googleAppID";
   } else if (options.GCMSenderID.length == 0) {
     errorPropertyName = @"GCMSenderID";
+  } else if (options.projectID.length == 0) {
+    errorPropertyName = @"projectID";
   }
 
   if (errorPropertyName) {
+    NSString *const kFirebaseConfigErrorDomain = @"com.firebase.config";
     [NSException
          raise:kFirebaseConfigErrorDomain
         format:@"%@",
@@ -92,26 +112,40 @@ add -DFIRRemoteConfig_VERSION=... to the build invocation"
 + (void)load {
   // Register as an internal library to be part of the initialization process. The name comes from
   // go/firebase-sdk-platform-info.
-  [FIRApp registerInternalLibrary:self
-                         withName:@"fire-rc"
-                      withVersion:[NSString stringWithUTF8String:STR(FIRRemoteConfig_VERSION)]];
+  [FIRApp registerInternalLibrary:self withName:@"fire-rc"];
 }
 
 #pragma mark - Interoperability
 
 + (NSArray<FIRComponent *> *)componentsToRegister {
-  FIRDependency *analyticsDep = [FIRDependency dependencyWithProtocol:@protocol(FIRAnalyticsInterop)
-                                                           isRequired:NO];
   FIRComponent *rcProvider = [FIRComponent
       componentWithProtocol:@protocol(FIRRemoteConfigProvider)
         instantiationTiming:FIRInstantiationTimingAlwaysEager
-               dependencies:@[ analyticsDep ]
               creationBlock:^id _Nullable(FIRComponentContainer *container, BOOL *isCacheable) {
                 // Cache the component so instances of Remote Config are cached.
                 *isCacheable = YES;
-                return [[FIRRemoteConfigComponent alloc] initWithApp:container.app];
+                return [FIRRemoteConfigComponent getComponentForApp:container.app];
               }];
-  return @[ rcProvider ];
+
+  // Unlike provider needs to setup a hard dependency on remote config, interop allows an optional
+  // dependency on RC
+  FIRComponent *rcInterop = [FIRComponent
+      componentWithProtocol:@protocol(FIRRemoteConfigInterop)
+        instantiationTiming:FIRInstantiationTimingAlwaysEager
+              creationBlock:^id _Nullable(FIRComponentContainer *container, BOOL *isCacheable) {
+                // Cache the component so instances of Remote Config are cached.
+                *isCacheable = YES;
+                return [FIRRemoteConfigComponent getComponentForApp:container.app];
+              }];
+  return @[ rcProvider, rcInterop ];
+}
+
+#pragma mark - Remote Config Interop Protocol
+
+- (void)registerRolloutsStateSubscriber:(id<FIRRolloutsStateSubscriber>)subscriber
+                                    for:(NSString * _Nonnull)namespace {
+  FIRRemoteConfig *instance = [self remoteConfigForNamespace:namespace];
+  [instance addRemoteConfigInteropSubscriber:subscriber];
 }
 
 @end
