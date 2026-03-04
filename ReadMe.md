@@ -382,7 +382,7 @@ Please make sure to add [the link](https://github.com/devMEremenko/XcodeBenchmar
 
 ## Contribution
 
-**Since Oct 1st, 2023, XcodeBenchmark must be used with Xcode 15.0 or above.**
+**Since Feb 2026, XcodeBenchmark must be used with Xcode 26.3 or above.**
 
 - **If you have any non-Apple hardware components - submit your results to the `Custom Hardware` table.**
 - [Submit a pull request](https://github.com/devMEremenko/XcodeBenchmark/pulls).  
