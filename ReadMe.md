@@ -13,8 +13,9 @@ If a device you are looking for is not listed below, check out open [issues](htt
 
 |        Device        |           CPU           | RAM | SSD | Xcode |   macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:-----:|:--------:|:---------:|
+| Mac Studio 2023      |      M2 Ultra 24-core   | 64  | 2TB | 26.2  |  26.2    |    93     |
 | Macbook Pro 16" 2024 |      M4 Pro 14c         | 48  | 1TB | 26.1  |  15.7.1  |    104    |
-| Macbook Pro 16" 2024 |      M2 Pro 12c         | 16  | 1TB | 26.1  |  26.1    |    158    |
+| Mac Studio 2022      |      M1 Ultra 20-core   | 128 | 1TB | 26.1.1|  26.1    |    112    |
 | MacBook Pro 14" 2024 |      M4 Pro 12c         | 24  | 512 | 26.3  |  26.3    |    164    |
 | Mac Mini 2023        |      M2 Pro 10c         | 16  | 512 | 26.1  |  26.1    |    185    |
 | Macbook Air 13" 2024 |      M4 10c (10c GPU)   | 16  | 256 | 26.1  |  26.1    |    188    |
@@ -384,7 +385,7 @@ Please make sure to add [the link](https://github.com/devMEremenko/XcodeBenchmar
 
 ## Contribution
 
-**Since Oct 1st, 2023, XcodeBenchmark must be used with Xcode 15.0 or above.**
+**Since Feb 2026, XcodeBenchmark must be used with Xcode 26.3 or above.**
 
 - **If you have any non-Apple hardware components - submit your results to the `Custom Hardware` table.**
 - [Submit a pull request](https://github.com/devMEremenko/XcodeBenchmark/pulls).  
