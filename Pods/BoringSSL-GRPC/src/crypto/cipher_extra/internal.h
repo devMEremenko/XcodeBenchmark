@@ -57,11 +57,10 @@
 #ifndef OPENSSL_HEADER_CIPHER_EXTRA_INTERNAL_H
 #define OPENSSL_HEADER_CIPHER_EXTRA_INTERNAL_H
 
+#include <assert.h>
 #include <stdlib.h>
 
 #include <openssl_grpc/base.h>
-#include <openssl_grpc/cpu.h>
-#include <openssl_grpc/type_check.h>
 
 #include "../internal.h"
 
@@ -109,6 +108,14 @@ int EVP_tls_cbc_record_digest_supported(const EVP_MD *md);
 OPENSSL_EXPORT int EVP_sha1_final_with_secret_suffix(
     SHA_CTX *ctx, uint8_t out[SHA_DIGEST_LENGTH], const uint8_t *in, size_t len,
     size_t max_len);
+
+// EVP_sha256_final_with_secret_suffix acts like
+// |EVP_sha1_final_with_secret_suffix|, but for SHA-256.
+//
+// This function is exported for unit tests.
+OPENSSL_EXPORT int EVP_sha256_final_with_secret_suffix(
+    SHA256_CTX *ctx, uint8_t out[SHA256_DIGEST_LENGTH], const uint8_t *in,
+    size_t len, size_t max_len);
 
 // EVP_tls_cbc_digest_record computes the MAC of a decrypted, padded TLS
 // record.
@@ -164,39 +171,86 @@ union chacha20_poly1305_seal_data {
   } out;
 };
 
-#if defined(OPENSSL_X86_64) && !defined(OPENSSL_NO_ASM)
+#if (defined(OPENSSL_X86_64) || defined(OPENSSL_AARCH64)) &&  \
+    !defined(OPENSSL_NO_ASM)
 
-OPENSSL_STATIC_ASSERT(sizeof(union chacha20_poly1305_open_data) == 48,
-                      "wrong chacha20_poly1305_open_data size");
-OPENSSL_STATIC_ASSERT(sizeof(union chacha20_poly1305_seal_data) == 48 + 8 + 8,
-                      "wrong chacha20_poly1305_seal_data size");
+static_assert(sizeof(union chacha20_poly1305_open_data) == 48,
+              "wrong chacha20_poly1305_open_data size");
+static_assert(sizeof(union chacha20_poly1305_seal_data) == 48 + 8 + 8,
+              "wrong chacha20_poly1305_seal_data size");
 
 OPENSSL_INLINE int chacha20_poly1305_asm_capable(void) {
-  const int sse41_capable = (OPENSSL_ia32cap_P[1] & (1 << 19)) != 0;
-  return sse41_capable;
+#if defined(OPENSSL_X86_64)
+  return CRYPTO_is_SSE4_1_capable();
+#elif defined(OPENSSL_AARCH64)
+  return CRYPTO_is_NEON_capable();
+#endif
 }
 
-// chacha20_poly1305_open is defined in chacha20_poly1305_x86_64.pl. It decrypts
+// chacha20_poly1305_open is defined in chacha20_poly1305_*.pl. It decrypts
 // |plaintext_len| bytes from |ciphertext| and writes them to |out_plaintext|.
 // Additional input parameters are passed in |aead_data->in|. On exit, it will
 // write calculated tag value to |aead_data->out.tag|, which the caller must
 // check.
+#if defined(OPENSSL_X86_64)
+extern void chacha20_poly1305_open_nohw(
+    uint8_t *out_plaintext, const uint8_t *ciphertext, size_t plaintext_len,
+    const uint8_t *ad, size_t ad_len, union chacha20_poly1305_open_data *data);
+extern void chacha20_poly1305_open_avx2(
+    uint8_t *out_plaintext, const uint8_t *ciphertext, size_t plaintext_len,
+    const uint8_t *ad, size_t ad_len, union chacha20_poly1305_open_data *data);
+OPENSSL_INLINE void chacha20_poly1305_open(uint8_t *out_plaintext,
+                                   const uint8_t *ciphertext,
+                                   size_t plaintext_len, const uint8_t *ad,
+                                   size_t ad_len,
+                                   union chacha20_poly1305_open_data *data) {
+  if (CRYPTO_is_AVX2_capable() && CRYPTO_is_BMI2_capable()) {
+    chacha20_poly1305_open_avx2(out_plaintext, ciphertext, plaintext_len, ad,
+                                ad_len, data);
+  } else {
+    chacha20_poly1305_open_nohw(out_plaintext, ciphertext, plaintext_len, ad,
+                                ad_len, data);
+  }
+}
+#else
 extern void chacha20_poly1305_open(uint8_t *out_plaintext,
                                    const uint8_t *ciphertext,
                                    size_t plaintext_len, const uint8_t *ad,
                                    size_t ad_len,
                                    union chacha20_poly1305_open_data *data);
+#endif
 
-// chacha20_poly1305_open is defined in chacha20_poly1305_x86_64.pl. It encrypts
+// chacha20_poly1305_open is defined in chacha20_poly1305_*.pl. It encrypts
 // |plaintext_len| bytes from |plaintext| and writes them to |out_ciphertext|.
 // Additional input parameters are passed in |aead_data->in|. The calculated tag
 // value is over the computed ciphertext concatenated with |extra_ciphertext|
 // and written to |aead_data->out.tag|.
+#if defined(OPENSSL_X86_64)
+extern void chacha20_poly1305_seal_nohw(
+    uint8_t *out_ciphertext, const uint8_t *plaintext, size_t plaintext_len,
+    const uint8_t *ad, size_t ad_len, union chacha20_poly1305_seal_data *data);
+extern void chacha20_poly1305_seal_avx2(
+    uint8_t *out_ciphertext, const uint8_t *plaintext, size_t plaintext_len,
+    const uint8_t *ad, size_t ad_len, union chacha20_poly1305_seal_data *data);
+OPENSSL_INLINE void chacha20_poly1305_seal(
+    uint8_t *out_ciphertext, const uint8_t *plaintext, size_t plaintext_len,
+    const uint8_t *ad, size_t ad_len, union chacha20_poly1305_seal_data *data) {
+  if (CRYPTO_is_AVX2_capable() && CRYPTO_is_BMI2_capable()) {
+    chacha20_poly1305_seal_avx2(out_ciphertext, plaintext, plaintext_len, ad,
+                                ad_len, data);
+  } else {
+    chacha20_poly1305_seal_nohw(out_ciphertext, plaintext, plaintext_len, ad,
+                                ad_len, data);
+  }
+}
+#else
 extern void chacha20_poly1305_seal(uint8_t *out_ciphertext,
                                    const uint8_t *plaintext,
                                    size_t plaintext_len, const uint8_t *ad,
                                    size_t ad_len,
                                    union chacha20_poly1305_seal_data *data);
+#endif
+
 #else
 
 OPENSSL_INLINE int chacha20_poly1305_asm_capable(void) { return 0; }

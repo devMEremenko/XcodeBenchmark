@@ -46,7 +46,7 @@ typedef NS_ENUM(NSInteger, GIDSignInButtonColorScheme) {
 /// control to an `IBAction`, or something similar, that calls
 /// signInWithPresentingViewController:completion: on `GIDSignIn` and add it to your view
 /// hierarchy.
-@interface GIDSignInButton : UIControl
+@interface GIDSignInButton : UIControl <NSSecureCoding>
 
 /// The layout style for the sign-in button.
 /// Possible values:

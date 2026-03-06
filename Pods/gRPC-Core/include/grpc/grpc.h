@@ -19,17 +19,15 @@
 #ifndef GRPC_GRPC_H
 #define GRPC_GRPC_H
 
-#include <grpc/support/port_platform.h>
-
-#include <stddef.h>
-
 #include <grpc/byte_buffer.h>
-#include <grpc/impl/codegen/connectivity_state.h>  // IWYU pragma: export
-#include <grpc/impl/codegen/grpc_types.h>          // IWYU pragma: export
-#include <grpc/impl/codegen/propagation_bits.h>
+#include <grpc/impl/connectivity_state.h>  // IWYU pragma: export
+#include <grpc/impl/grpc_types.h>          // IWYU pragma: export
+#include <grpc/impl/propagation_bits.h>
 #include <grpc/slice.h>
 #include <grpc/status.h>
+#include <grpc/support/port_platform.h>
 #include <grpc/support/time.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,16 +45,6 @@ GRPCAPI void grpc_metadata_array_destroy(grpc_metadata_array* array);
 
 GRPCAPI void grpc_call_details_init(grpc_call_details* details);
 GRPCAPI void grpc_call_details_destroy(grpc_call_details* details);
-
-/** Registers a plugin to be initialized and destroyed with the library.
-
-    The \a init and \a destroy functions will be invoked as part of
-    \a grpc_init() and \a grpc_shutdown(), respectively.
-    Note that these functions can be invoked an arbitrary number of times
-    (and hence so will \a init and \a destroy).
-    It is safe to pass NULL to either argument. Plugins are destroyed in
-    the reverse order they were initialized. */
-GRPCAPI void grpc_register_plugin(void (*init)(void), void (*destroy)(void));
 
 /** Initialize the grpc library.
 
@@ -186,12 +174,6 @@ GRPCAPI int grpc_completion_queue_thread_local_cache_flush(
 /** Check the connectivity state of a channel. */
 GRPCAPI grpc_connectivity_state grpc_channel_check_connectivity_state(
     grpc_channel* channel, int try_to_connect);
-
-/** Number of active "external connectivity state watchers" attached to a
- * channel.
- * Useful for testing. **/
-GRPCAPI int grpc_channel_num_external_connectivity_watchers(
-    grpc_channel* channel);
 
 /** Watch for a change in connectivity state.
     Once the channel connectivity state is different from last_observed_state,
@@ -377,6 +359,13 @@ GRPCAPI void grpc_call_ref(grpc_call* call);
 /** Unref a call.
     THREAD SAFETY: grpc_call_unref is thread-compatible */
 GRPCAPI void grpc_call_unref(grpc_call* call);
+
+typedef struct grpc_call_credentials grpc_call_credentials;
+
+/** Sets a credentials to a call. Can only be called on the client side before
+   grpc_call_start_batch. */
+GRPCAPI grpc_call_error grpc_call_set_credentials(grpc_call* call,
+                                                  grpc_call_credentials* creds);
 
 /** Request notification of a new call.
     Once a call is received, a notification tagged with \a tag_new is added to

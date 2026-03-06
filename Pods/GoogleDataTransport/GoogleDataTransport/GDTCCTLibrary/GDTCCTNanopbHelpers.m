@@ -160,7 +160,30 @@ gdt_cct_LogEvent GDTCCTConstructLogEvent(GDTCOREvent *event) {
     return logEvent;
   }
   logEvent.source_extension = GDTCCTEncodeData(extensionBytes);  // read bytes from the file.
+  if (event.productData) {
+    logEvent.compliance_data = GDTCCTConstructComplianceData(event.productData);
+    logEvent.has_compliance_data = 1;
+  }
   return logEvent;
+}
+
+gdt_cct_ComplianceData GDTCCTConstructComplianceData(GDTCORProductData *productData) {
+  privacy_context_external_ExternalPRequestContext prequest =
+      privacy_context_external_ExternalPRequestContext_init_default;
+  prequest.origin_associated_product_id = productData.productID;
+  prequest.has_origin_associated_product_id = 1;
+
+  privacy_context_external_ExternalPrivacyContext privacy_context =
+      privacy_context_external_ExternalPrivacyContext_init_default;
+  privacy_context.prequest = prequest;
+  privacy_context.has_prequest = 1;
+
+  gdt_cct_ComplianceData complianceData = gdt_cct_ComplianceData_init_default;
+  complianceData.privacy_context = privacy_context;
+  complianceData.has_privacy_context = 1;
+  complianceData.product_id_origin = gdt_cct_ComplianceData_ProductIdOrigin_EVENT_OVERRIDE;
+  complianceData.has_product_id_origin = 1;
+  return complianceData;
 }
 
 gdt_cct_ClientInfo GDTCCTConstructClientInfo(void) {

@@ -48,15 +48,29 @@ typedef void (^GADInterstitialAdLoadCompletionHandler)(GADInterstitialAd *_Nulla
                  request:(nullable GADRequest *)request
        completionHandler:(nonnull GADInterstitialAdLoadCompletionHandler)completionHandler;
 
-/// Returns whether the interstitial ad can be presented from the provided root view
-/// controller. Sets the error out parameter if the ad can't be presented. Must be called on the
-/// main thread.
-- (BOOL)canPresentFromRootViewController:(nonnull UIViewController *)rootViewController
+/// Loads an interstitial ad.
+///
+/// @param adResponseString A server-to-server ad response string.
+/// @param completionHandler A handler to execute when the load operation finishes or times out.
++ (void)loadWithAdResponseString:(nonnull NSString *)adResponseString
+               completionHandler:(nonnull GADInterstitialAdLoadCompletionHandler)completionHandler;
+
+/// Indicates whether the interstitial ad can be presented from the provided root view controller.
+/// Must be called on the main thread.
+///
+/// - Parameters:
+///   - rootViewController: The root view controller to present the ad from. If `rootViewController`
+/// is `nil`, uses the top view controller of the application's main window.
+///   - error: Sets the error out parameter if the ad can't be presented.
+/// - Returns: `YES` if the interstitial ad can be presented from the provided root view controller,
+/// `NO` otherwise.
+- (BOOL)canPresentFromRootViewController:(nullable UIViewController *)rootViewController
                                    error:(NSError *_Nullable __autoreleasing *_Nullable)error;
 
 /// Presents the interstitial ad. Must be called on the main thread.
 ///
-/// @param rootViewController A view controller to present the ad.
-- (void)presentFromRootViewController:(nonnull UIViewController *)rootViewController;
+/// @param rootViewController A view controller to present the ad. If nil, attempts to present from
+/// the top view controller of the application's main window.
+- (void)presentFromRootViewController:(nullable UIViewController *)rootViewController;
 
 @end

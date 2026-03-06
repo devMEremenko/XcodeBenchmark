@@ -1,31 +1,32 @@
-/*
- *
- * Copyright 2015 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+//
+//
+// Copyright 2015 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 
 #ifndef GRPCPP_SECURITY_SERVER_CREDENTIALS_H
 #define GRPCPP_SECURITY_SERVER_CREDENTIALS_H
 
-#include <memory>
-#include <vector>
-
 #include <grpc/grpc_security_constants.h>
+#include <grpcpp/impl/grpc_library.h>
 #include <grpcpp/security/auth_metadata_processor.h>
 #include <grpcpp/security/tls_credentials_options.h>
 #include <grpcpp/support/config.h>
+
+#include <memory>
+#include <vector>
 
 struct grpc_server;
 
@@ -33,7 +34,7 @@ namespace grpc {
 
 class Server;
 class ServerCredentials;
-class SecureServerCredentials;
+
 /// Options to create ServerCredentials with SSL
 struct SslServerCredentialsOptions {
   /// \warning Deprecated
@@ -64,31 +65,26 @@ struct SslServerCredentialsOptions {
 std::shared_ptr<ServerCredentials> XdsServerCredentials(
     const std::shared_ptr<ServerCredentials>& fallback_credentials);
 
-namespace experimental {
-GRPC_DEPRECATED(
-    "Use grpc::XdsServerCredentials instead. The experimental version will be "
-    "deleted after the 1.41 release.")
-std::shared_ptr<ServerCredentials> XdsServerCredentials(
-    const std::shared_ptr<ServerCredentials>& fallback_credentials);
-}  // namespace experimental
-
 /// Wrapper around \a grpc_server_credentials, a way to authenticate a server.
-class ServerCredentials : private grpc::GrpcLibraryCodegen {
+class ServerCredentials : private grpc::internal::GrpcLibrary {
  public:
-  ServerCredentials();
   ~ServerCredentials() override;
 
   /// This method is not thread-safe and has to be called before the server is
   /// started. The last call to this function wins.
   virtual void SetAuthMetadataProcessor(
-      const std::shared_ptr<grpc::AuthMetadataProcessor>& processor) = 0;
+      const std::shared_ptr<grpc::AuthMetadataProcessor>& processor);
+
+ protected:
+  explicit ServerCredentials(grpc_server_credentials* creds);
+
+  grpc_server_credentials* c_creds() const { return c_creds_; }
 
  private:
+  // Needed for access to AddPortToServer.
   friend class Server;
-
-  // We need this friend declaration for access to Insecure() and
-  // AsSecureServerCredentials(). When these two functions are no longer
-  // necessary, this friend declaration can be removed too.
+  // Needed for access to c_creds_.
+  friend class ServerBuilder;
   friend std::shared_ptr<ServerCredentials> grpc::XdsServerCredentials(
       const std::shared_ptr<ServerCredentials>& fallback_credentials);
 
@@ -97,18 +93,9 @@ class ServerCredentials : private grpc::GrpcLibraryCodegen {
   ///
   /// \return bound port number on success, 0 on failure.
   // TODO(dgq): the "port" part seems to be a misnomer.
-  virtual int AddPortToServer(const std::string& addr, grpc_server* server) = 0;
+  virtual int AddPortToServer(const std::string& addr, grpc_server* server);
 
-  // TODO(yashykt): This is a hack since InsecureServerCredentials() cannot use
-  // grpc_insecure_server_credentials_create() and should be removed after
-  // insecure builds are removed from gRPC.
-  virtual bool IsInsecure() const { return false; }
-
-  // TODO(yashkt): This is a hack that should be removed once we remove insecure
-  // builds and the indirect method of adding ports to a server.
-  virtual SecureServerCredentials* AsSecureServerCredentials() {
-    return nullptr;
-  }
+  grpc_server_credentials* c_creds_;
 };
 
 /// Builds SSL ServerCredentials given SSL specific options
@@ -129,9 +116,6 @@ std::shared_ptr<ServerCredentials> AltsServerCredentials(
     const AltsServerCredentialsOptions& options);
 
 /// Builds Local ServerCredentials.
-std::shared_ptr<ServerCredentials> AltsServerCredentials(
-    const AltsServerCredentialsOptions& options);
-
 std::shared_ptr<ServerCredentials> LocalServerCredentials(
     grpc_local_connect_type type);
 

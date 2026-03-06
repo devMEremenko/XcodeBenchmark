@@ -44,7 +44,25 @@ static NSString *const kOldIOSSystemName = @"iPhone OS";
 // New UIDevice system name for iOS.
 static NSString *const kNewIOSSystemName = @"iOS";
 
+// The error key in the server response.
+static NSString *const kErrorKey = @"error";
+
+// Optional separator between error prefix and the payload.
+static NSString *const kErrorPayloadSeparator = @":";
+
+// A list for recognized error codes.
+typedef NS_ENUM(NSInteger, ErrorCode) {
+  ErrorCodeNone = 0,
+  ErrorCodeDeviceNotCompliant,
+  ErrorCodeScreenlockRequired,
+  ErrorCodeAppVerificationRequired,
+};
+
 @implementation GIDEMMSupport
+
+- (instancetype)init {
+  return [super init];
+}
 
 + (void)handleTokenFetchEMMError:(nullable NSError *)error
                       completion:(void (^)(NSError *_Nullable))completion {
@@ -92,6 +110,22 @@ static NSString *const kNewIOSSystemName = @"iOS";
     allParameters[kEMMPasscodeInfoParameterName] = [GIDMDMPasscodeState passcodeState].info;
   }
   return allParameters;
+}
+
+#pragma mark - GTMAuthSessionDelegate
+
+- (nullable NSDictionary<NSString *,NSString *> *)
+additionalTokenRefreshParametersForAuthSession:(GTMAuthSession *)authSession {
+  return [GIDEMMSupport updatedEMMParametersWithParameters:
+          authSession.authState.lastTokenResponse.additionalParameters];
+}
+
+- (void)updateErrorForAuthSession:(GTMAuthSession *)authSession
+                    originalError:(NSError *)originalError
+                       completion:(void (^)(NSError * _Nullable))completion {
+  [GIDEMMSupport handleTokenFetchEMMError:originalError completion:^(NSError *_Nullable error) {
+    completion(error);
+  }];
 }
 
 @end

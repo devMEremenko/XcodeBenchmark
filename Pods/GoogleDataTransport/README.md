@@ -36,7 +36,7 @@ After the CI is green:
     <summary>Push to <b>SpecsStaging</b></summary>
 
     ```console
-    pod repo push --skip-tests staging GoogleDataTransport.podspec
+    pod repo push --skip-tests --use-json staging GoogleDataTransport.podspec
     ```
 
     If the command fails with `Unable to find the 'staging' repo.`, add the staging repo with:
@@ -49,7 +49,7 @@ After the CI is green:
     <summary>Push to <b>SpecsDev</b></summary>
 
     ```console
-    pod repo push --skip-tests dev GoogleDataTransport.podspec
+    pod repo push --skip-tests --use-json dev GoogleDataTransport.podspec
     ```
 
     If the command fails with `Unable to find the 'dev' repo.`, add the dev repo with:
@@ -88,8 +88,13 @@ The release process is as follows:
 * Publish the newly versioned pod to CocoaPods
 
   It's recommended to point to the `GoogleDataTransport.podspec` in `staging` to make sure the correct spec is being published.
+
+  > [!WARNING]
+  > Manually update your local SpecsStaging clone or run `pod repo update`
+  > before proceeding.
+
   ```console
-  pod trunk push ~/.cocoapods/repos/staging/GoogleDataTransport/{version}/GoogleDataTransport.podspec --skip-tests
+  pod trunk push ~/.cocoapods/repos/staging/GoogleDataTransport/{version}/GoogleDataTransport.podspec.json --skip-tests
   ```
 
   The pod push was successful if the above command logs: `🚀  GoogleDataTransport ({version}) successfully published`.
@@ -202,14 +207,14 @@ Alternatively disable signing in each target:
 ### Code Formatting
 
 To ensure that the code is formatted consistently, run the script
-[./scripts/check.sh](https://github.com/firebase/firebase-ios-sdk/blob/master/scripts/check.sh)
+[./scripts/check.sh](https://github.com/firebase/firebase-ios-sdk/blob/main/scripts/check.sh)
 before creating a PR.
 
 GitHub Actions will verify that any code changes are done in a style compliant
 way. Install `clang-format` and `mint`:
 
 ```console
-brew install clang-format@16
+brew install clang-format@18
 brew install mint
 ```
 

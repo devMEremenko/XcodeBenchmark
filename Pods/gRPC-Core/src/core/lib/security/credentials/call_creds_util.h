@@ -14,14 +14,14 @@
 // limitations under the License.
 //
 
-#ifndef GRPC_CORE_LIB_SECURITY_CREDENTIALS_CALL_CREDS_UTIL_H
-#define GRPC_CORE_LIB_SECURITY_CREDENTIALS_CALL_CREDS_UTIL_H
+#ifndef GRPC_SRC_CORE_LIB_SECURITY_CREDENTIALS_CALL_CREDS_UTIL_H
+#define GRPC_SRC_CORE_LIB_SECURITY_CREDENTIALS_CALL_CREDS_UTIL_H
 
+#include <grpc/credentials.h>
+#include <grpc/grpc_security.h>
 #include <grpc/support/port_platform.h>
 
 #include <string>
-
-#include <grpc/grpc_security.h>
 
 #include "src/core/lib/security/credentials/credentials.h"
 #include "src/core/lib/transport/transport.h"
@@ -40,4 +40,4 @@ grpc_auth_metadata_context MakePluginAuthMetadataContext(
 
 }  // namespace grpc_core
 
-#endif /* GRPC_CORE_LIB_SECURITY_CREDENTIALS_CALL_CREDS_UTIL_H */
+#endif  // GRPC_SRC_CORE_LIB_SECURITY_CREDENTIALS_CALL_CREDS_UTIL_H

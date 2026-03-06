@@ -30,13 +30,14 @@ const gdt_cct_QosTierConfiguration_QosTier gdt_cct_LogRequest_qos_tier_default =
 const int32_t gdt_cct_QosTierConfiguration_log_source_default = 0;
 
 
-const pb_field_t gdt_cct_LogEvent_fields[7] = {
+const pb_field_t gdt_cct_LogEvent_fields[8] = {
     PB_FIELD(  1, INT64   , OPTIONAL, STATIC  , FIRST, gdt_cct_LogEvent, event_time_ms, event_time_ms, 0),
     PB_FIELD(  6, BYTES   , OPTIONAL, POINTER , OTHER, gdt_cct_LogEvent, source_extension, event_time_ms, 0),
     PB_FIELD( 11, INT32   , OPTIONAL, STATIC  , OTHER, gdt_cct_LogEvent, event_code, source_extension, 0),
     PB_FIELD( 15, SINT64  , OPTIONAL, STATIC  , OTHER, gdt_cct_LogEvent, timezone_offset_seconds, event_code, 0),
     PB_FIELD( 17, INT64   , OPTIONAL, STATIC  , OTHER, gdt_cct_LogEvent, event_uptime_ms, timezone_offset_seconds, 0),
     PB_FIELD( 23, MESSAGE , OPTIONAL, STATIC  , OTHER, gdt_cct_LogEvent, network_connection_info, event_uptime_ms, &gdt_cct_NetworkConnectionInfo_fields),
+    PB_FIELD( 33, MESSAGE , OPTIONAL, STATIC  , OTHER, gdt_cct_LogEvent, compliance_data, network_connection_info, &gdt_cct_ComplianceData_fields),
     PB_LAST_FIELD
 };
 
@@ -119,7 +120,7 @@ const pb_field_t gdt_cct_LogResponse_fields[3] = {
  * numbers or field sizes that are larger than what can fit in 8 or 16 bit
  * field descriptors.
  */
-PB_STATIC_ASSERT((pb_membersize(gdt_cct_LogEvent, network_connection_info) < 65536 && pb_membersize(gdt_cct_ClientInfo, ios_client_info) < 65536 && pb_membersize(gdt_cct_ClientInfo, mac_client_info) < 65536 && pb_membersize(gdt_cct_LogRequest, client_info) < 65536 && pb_membersize(gdt_cct_LogResponse, qos_tier) < 65536), YOU_MUST_DEFINE_PB_FIELD_32BIT_FOR_MESSAGES_gdt_cct_LogEvent_gdt_cct_NetworkConnectionInfo_gdt_cct_MacClientInfo_gdt_cct_IosClientInfo_gdt_cct_ClientInfo_gdt_cct_BatchedLogRequest_gdt_cct_LogRequest_gdt_cct_QosTierConfiguration_gdt_cct_QosTiersOverride_gdt_cct_LogResponse)
+PB_STATIC_ASSERT((pb_membersize(gdt_cct_LogEvent, network_connection_info) < 65536 && pb_membersize(gdt_cct_LogEvent, compliance_data) < 65536 && pb_membersize(gdt_cct_ClientInfo, ios_client_info) < 65536 && pb_membersize(gdt_cct_ClientInfo, mac_client_info) < 65536 && pb_membersize(gdt_cct_LogRequest, client_info) < 65536 && pb_membersize(gdt_cct_LogResponse, qos_tier) < 65536), YOU_MUST_DEFINE_PB_FIELD_32BIT_FOR_MESSAGES_gdt_cct_LogEvent_gdt_cct_NetworkConnectionInfo_gdt_cct_MacClientInfo_gdt_cct_IosClientInfo_gdt_cct_ClientInfo_gdt_cct_BatchedLogRequest_gdt_cct_LogRequest_gdt_cct_QosTierConfiguration_gdt_cct_QosTiersOverride_gdt_cct_LogResponse)
 #endif
 
 #if !defined(PB_FIELD_16BIT) && !defined(PB_FIELD_32BIT)
@@ -130,7 +131,7 @@ PB_STATIC_ASSERT((pb_membersize(gdt_cct_LogEvent, network_connection_info) < 655
  * numbers or field sizes that are larger than what can fit in the default
  * 8 bit descriptors.
  */
-PB_STATIC_ASSERT((pb_membersize(gdt_cct_LogEvent, network_connection_info) < 256 && pb_membersize(gdt_cct_ClientInfo, ios_client_info) < 256 && pb_membersize(gdt_cct_ClientInfo, mac_client_info) < 256 && pb_membersize(gdt_cct_LogRequest, client_info) < 256 && pb_membersize(gdt_cct_LogResponse, qos_tier) < 256), YOU_MUST_DEFINE_PB_FIELD_16BIT_FOR_MESSAGES_gdt_cct_LogEvent_gdt_cct_NetworkConnectionInfo_gdt_cct_MacClientInfo_gdt_cct_IosClientInfo_gdt_cct_ClientInfo_gdt_cct_BatchedLogRequest_gdt_cct_LogRequest_gdt_cct_QosTierConfiguration_gdt_cct_QosTiersOverride_gdt_cct_LogResponse)
+PB_STATIC_ASSERT((pb_membersize(gdt_cct_LogEvent, network_connection_info) < 256 && pb_membersize(gdt_cct_LogEvent, compliance_data) < 256 && pb_membersize(gdt_cct_ClientInfo, ios_client_info) < 256 && pb_membersize(gdt_cct_ClientInfo, mac_client_info) < 256 && pb_membersize(gdt_cct_LogRequest, client_info) < 256 && pb_membersize(gdt_cct_LogResponse, qos_tier) < 256), YOU_MUST_DEFINE_PB_FIELD_16BIT_FOR_MESSAGES_gdt_cct_LogEvent_gdt_cct_NetworkConnectionInfo_gdt_cct_MacClientInfo_gdt_cct_IosClientInfo_gdt_cct_ClientInfo_gdt_cct_BatchedLogRequest_gdt_cct_LogRequest_gdt_cct_QosTierConfiguration_gdt_cct_QosTiersOverride_gdt_cct_LogResponse)
 #endif
 
 

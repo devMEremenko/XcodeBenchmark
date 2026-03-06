@@ -19,12 +19,10 @@
 #ifndef GRPC_COMPRESSION_H
 #define GRPC_COMPRESSION_H
 
-#include <grpc/impl/codegen/port_platform.h>
-
-#include <stdlib.h>
-
-#include <grpc/impl/codegen/compression_types.h>  // IWYU pragma: export
+#include <grpc/impl/compression_types.h>  // IWYU pragma: export
 #include <grpc/slice.h>
+#include <grpc/support/port_platform.h>
+#include <stdlib.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -162,9 +162,6 @@ inline int128::operator long double() const {
 }
 
 #else  // Clang on PowerPC
-// Forward declaration for conversion operators to floating point types.
-constexpr int128 operator-(int128 v);
-constexpr bool operator!=(int128 lhs, int128 rhs);
 
 inline int128::operator float() const {
   // We must convert the absolute value and then negate as needed, because
@@ -222,6 +219,20 @@ constexpr bool operator<=(int128 lhs, int128 rhs) {
 constexpr bool operator>=(int128 lhs, int128 rhs) {
   return static_cast<__int128>(lhs) >= static_cast<__int128>(rhs);
 }
+
+#ifdef __cpp_impl_three_way_comparison
+constexpr absl::strong_ordering operator<=>(int128 lhs, int128 rhs) {
+  if (auto lhs_128 = static_cast<__int128>(lhs),
+      rhs_128 = static_cast<__int128>(rhs);
+      lhs_128 < rhs_128) {
+    return absl::strong_ordering::less;
+  } else if (lhs_128 > rhs_128) {
+    return absl::strong_ordering::greater;
+  } else {
+    return absl::strong_ordering::equal;
+  }
+}
+#endif
 
 // Unary operators.
 

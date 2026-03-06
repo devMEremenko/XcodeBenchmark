@@ -1,70 +1,90 @@
-/*
- *
- * Copyright 2018 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
-
-#include <grpc/support/port_platform.h>
+//
+//
+// Copyright 2018 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 
 #include "src/core/lib/security/credentials/tls/tls_credentials.h"
 
+#include <grpc/grpc.h>
+#include <grpc/grpc_security_constants.h>
+#include <grpc/impl/channel_arg_names.h>
+#include <grpc/support/port_platform.h>
+
+#include <memory>
 #include <string>
 #include <utility>
 
-#include "absl/strings/string_view.h"
+#include "absl/log/log.h"
 #include "absl/types/optional.h"
-
-#include <grpc/grpc.h>
-#include <grpc/grpc_security_constants.h>
-#include <grpc/impl/codegen/grpc_types.h>
-#include <grpc/support/log.h>
-
 #include "src/core/lib/channel/channel_args.h"
-#include "src/core/lib/gpr/useful.h"
 #include "src/core/lib/security/credentials/tls/grpc_tls_certificate_verifier.h"
 #include "src/core/lib/security/credentials/tls/grpc_tls_credentials_options.h"
 #include "src/core/lib/security/security_connector/tls/tls_security_connector.h"
 #include "src/core/tsi/ssl/session_cache/ssl_session_cache.h"
+#include "src/core/util/useful.h"
 
 namespace {
 
 bool CredentialOptionSanityCheck(grpc_tls_credentials_options* options,
                                  bool is_client) {
   if (options == nullptr) {
-    gpr_log(GPR_ERROR, "TLS credentials options is nullptr.");
+    LOG(ERROR) << "TLS credentials options is nullptr.";
     return false;
+  }
+  // In this case, there will be non-retriable handshake errors.
+  if (options->min_tls_version() > options->max_tls_version()) {
+    LOG(ERROR) << "TLS min version must not be higher than max version.";
+    grpc_tls_credentials_options_destroy(options);
+    return false;
+  }
+  if (options->max_tls_version() > grpc_tls_version::TLS1_3) {
+    LOG(ERROR) << "TLS max version must not be higher than v1.3.";
+    grpc_tls_credentials_options_destroy(options);
+    return false;
+  }
+  if (options->min_tls_version() < grpc_tls_version::TLS1_2) {
+    LOG(ERROR) << "TLS min version must not be lower than v1.2.";
+    grpc_tls_credentials_options_destroy(options);
+    return false;
+  }
+  if (!options->crl_directory().empty() && options->crl_provider() != nullptr) {
+    LOG(ERROR) << "Setting crl_directory and crl_provider not supported. Using "
+                  "the crl_provider.";
+    // TODO(gtcooke94) - Maybe return false here. Right now object lifetime of
+    // this options struct is leaky if false is returned and represents a more
+    // complex fix to handle in another PR.
   }
   // In the following conditions, there won't be any issues, but it might
   // indicate callers are doing something wrong with the API.
   if (is_client && options->cert_request_type() !=
                        GRPC_SSL_DONT_REQUEST_CLIENT_CERTIFICATE) {
-    gpr_log(GPR_ERROR,
-            "Client's credentials options should not set cert_request_type.");
+    LOG(ERROR)
+        << "Client's credentials options should not set cert_request_type.";
   }
   if (!is_client && !options->verify_server_cert()) {
-    gpr_log(GPR_ERROR,
-            "Server's credentials options should not set verify_server_cert.");
+    LOG(ERROR)
+        << "Server's credentials options should not set verify_server_cert.";
   }
   // In the following conditions, there could be severe security issues.
   if (is_client && options->certificate_verifier() == nullptr) {
     // If no verifier is specified on the client side, use the hostname verifier
     // as default. Users who want to bypass all the verifier check should
     // implement an external verifier instead.
-    gpr_log(GPR_INFO,
-            "No verifier specified on the client side. Using default hostname "
-            "verifier");
+    VLOG(2) << "No verifier specified on the client side. Using default "
+               "hostname verifier";
     options->set_certificate_verifier(
         grpc_core::MakeRefCounted<grpc_core::HostNameCertificateVerifier>());
   }
@@ -99,7 +119,7 @@ TlsCredentials::create_security_connector(
   return sc;
 }
 
-grpc_core::UniqueTypeName TlsCredentials::type() const {
+grpc_core::UniqueTypeName TlsCredentials::Type() {
   static grpc_core::UniqueTypeName::Factory kFactory("Tls");
   return kFactory.Create();
 }
@@ -124,12 +144,12 @@ TlsServerCredentials::create_security_connector(
       CreateTlsServerSecurityConnector(this->Ref(), options_);
 }
 
-grpc_core::UniqueTypeName TlsServerCredentials::type() const {
+grpc_core::UniqueTypeName TlsServerCredentials::Type() {
   static grpc_core::UniqueTypeName::Factory kFactory("Tls");
   return kFactory.Create();
 }
 
-/** -- Wrapper APIs declared in grpc_security.h -- **/
+/// -- Wrapper APIs declared in grpc_security.h -- *
 
 grpc_channel_credentials* grpc_tls_credentials_create(
     grpc_tls_credentials_options* options) {

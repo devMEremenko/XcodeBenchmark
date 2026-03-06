@@ -439,7 +439,6 @@ static ssl_open_record_t read_v2_client_hello(SSL *ssl, size_t *out_consumed,
       // No session id.
       !CBB_add_u8(&hello_body, 0) ||
       !CBB_add_u16_length_prefixed(&hello_body, &cipher_suites)) {
-    OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
     return ssl_open_record_error;
   }
 
@@ -660,46 +659,105 @@ void tls_next_message(SSL *ssl) {
   }
 }
 
-// CipherScorer produces a "score" for each possible cipher suite offered by
-// the client.
+namespace {
+
 class CipherScorer {
  public:
-  CipherScorer(uint16_t group_id)
-      : aes_is_fine_(EVP_has_aes_hardware()),
-        security_128_is_fine_(group_id != SSL_CURVE_CECPQ2) {}
+  using Score = int;
+  static constexpr Score kMinScore = 0;
 
-  typedef std::tuple<bool, bool, bool> Score;
+  virtual ~CipherScorer() = default;
 
-  // MinScore returns a |Score| that will compare less than the score of all
-  // cipher suites.
-  Score MinScore() const {
-    return Score(false, false, false);
-  }
+  virtual Score Evaluate(const SSL_CIPHER *cipher) const = 0;
+};
 
-  Score Evaluate(const SSL_CIPHER *a) const {
-    return Score(
+// AesHwCipherScorer scores cipher suites based on whether AES is supported in
+// hardware.
+class AesHwCipherScorer : public CipherScorer {
+ public:
+  explicit AesHwCipherScorer(bool has_aes_hw) : aes_is_fine_(has_aes_hw) {}
+
+  virtual ~AesHwCipherScorer() override = default;
+
+  Score Evaluate(const SSL_CIPHER *a) const override {
+    return
         // Something is always preferable to nothing.
-        true,
-        // Either 128-bit is fine, or 256-bit is preferred.
-        security_128_is_fine_ || a->algorithm_enc != SSL_AES128GCM,
+        1 +
         // Either AES is fine, or else ChaCha20 is preferred.
-        aes_is_fine_ || a->algorithm_enc == SSL_CHACHA20POLY1305);
+        ((aes_is_fine_ || a->algorithm_enc == SSL_CHACHA20POLY1305) ? 1 : 0);
   }
 
  private:
   const bool aes_is_fine_;
-  const bool security_128_is_fine_;
 };
 
-const SSL_CIPHER *ssl_choose_tls13_cipher(CBS cipher_suites, uint16_t version,
-                                          uint16_t group_id) {
+// CNsaCipherScorer prefers AES-256-GCM over AES-128-GCM over anything else.
+class CNsaCipherScorer : public CipherScorer {
+ public:
+  virtual ~CNsaCipherScorer() override = default;
+
+  Score Evaluate(const SSL_CIPHER *a) const override {
+    if (a->id == TLS1_3_CK_AES_256_GCM_SHA384) {
+      return 3;
+    } else if (a->id == TLS1_3_CK_AES_128_GCM_SHA256) {
+      return 2;
+    }
+    return 1;
+  }
+};
+
+}
+
+bool ssl_tls13_cipher_meets_policy(uint16_t cipher_id,
+                                   enum ssl_compliance_policy_t policy) {
+  switch (policy) {
+    case ssl_compliance_policy_none:
+    case ssl_compliance_policy_cnsa_202407:
+      return true;
+
+    case ssl_compliance_policy_fips_202205:
+      switch (cipher_id) {
+        case TLS1_3_CK_AES_128_GCM_SHA256 & 0xffff:
+        case TLS1_3_CK_AES_256_GCM_SHA384 & 0xffff:
+          return true;
+        case TLS1_3_CK_CHACHA20_POLY1305_SHA256 & 0xffff:
+          return false;
+        default:
+          assert(false);
+          return false;
+      }
+
+    case ssl_compliance_policy_wpa3_192_202304:
+      switch (cipher_id) {
+        case TLS1_3_CK_AES_256_GCM_SHA384 & 0xffff:
+          return true;
+        case TLS1_3_CK_AES_128_GCM_SHA256 & 0xffff:
+        case TLS1_3_CK_CHACHA20_POLY1305_SHA256 & 0xffff:
+          return false;
+        default:
+          assert(false);
+          return false;
+      }
+  }
+
+  assert(false);
+  return false;
+}
+
+const SSL_CIPHER *ssl_choose_tls13_cipher(CBS cipher_suites, bool has_aes_hw,
+                                          uint16_t version,
+                                          enum ssl_compliance_policy_t policy) {
   if (CBS_len(&cipher_suites) % 2 != 0) {
     return nullptr;
   }
 
   const SSL_CIPHER *best = nullptr;
-  CipherScorer scorer(group_id);
-  CipherScorer::Score best_score = scorer.MinScore();
+  AesHwCipherScorer aes_hw_scorer(has_aes_hw);
+  CNsaCipherScorer cnsa_scorer;
+  CipherScorer *const scorer = (policy == ssl_compliance_policy_cnsa_202407)
+                                   ? static_cast<CipherScorer*>(&cnsa_scorer)
+                                   : static_cast<CipherScorer*>(&aes_hw_scorer);
+  CipherScorer::Score best_score = CipherScorer::kMinScore;
 
   while (CBS_len(&cipher_suites) > 0) {
     uint16_t cipher_suite;
@@ -715,7 +773,12 @@ const SSL_CIPHER *ssl_choose_tls13_cipher(CBS cipher_suites, uint16_t version,
       continue;
     }
 
-    const CipherScorer::Score candidate_score = scorer.Evaluate(candidate);
+    if (!ssl_tls13_cipher_meets_policy(SSL_CIPHER_get_protocol_id(candidate),
+                                       policy)) {
+      continue;
+    }
+
+    const CipherScorer::Score candidate_score = scorer->Evaluate(candidate);
     // |candidate_score| must be larger to displace the current choice. That way
     // the client's order controls between ciphers with an equal score.
     if (candidate_score > best_score) {

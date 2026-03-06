@@ -32,17 +32,8 @@ extern "C" {
 #endif
 
 
-// crypto.h contains functions for initializing the crypto library.
+// crypto.h contains functions for library-wide initialization and properties.
 
-
-// CRYPTO_library_init initializes the crypto library. It must be called if the
-// library is built with BORINGSSL_NO_STATIC_INITIALIZER. Otherwise, it does
-// nothing and a static initializer is used instead. It is safe to call this
-// function multiple times and concurrently from multiple threads.
-//
-// On some ARM configurations, this function may require filesystem access and
-// should be called before entering a sandbox.
-OPENSSL_EXPORT void CRYPTO_library_init(void);
 
 // CRYPTO_is_confidential_build returns one if the linked version of BoringSSL
 // has been built with the BORINGSSL_CONFIDENTIAL define and zero otherwise.
@@ -59,6 +50,12 @@ OPENSSL_EXPORT int CRYPTO_has_asm(void);
 // success and zero on error.
 OPENSSL_EXPORT int BORINGSSL_self_test(void);
 
+// BORINGSSL_integrity_test triggers the module's integrity test where the code
+// and data of the module is matched against a hash injected at build time. It
+// returns one on success or zero if there's a mismatch. This function only
+// exists if the module was built in FIPS mode without ASAN.
+OPENSSL_EXPORT int BORINGSSL_integrity_test(void);
+
 // CRYPTO_pre_sandbox_init initializes the crypto library, pre-acquiring some
 // unusual resources to aid running in sandboxed environments. It is safe to
 // call this function multiple times and concurrently from multiple threads.
@@ -66,6 +63,13 @@ OPENSSL_EXPORT int BORINGSSL_self_test(void);
 // For more details on using BoringSSL in a sandboxed environment, see
 // SANDBOXING.md in the source tree.
 OPENSSL_EXPORT void CRYPTO_pre_sandbox_init(void);
+
+#if defined(OPENSSL_ARM) && defined(OPENSSL_LINUX) && \
+    !defined(OPENSSL_STATIC_ARMCAP)
+// CRYPTO_needs_hwcap2_workaround returns one if the ARMv8 AArch32 AT_HWCAP2
+// workaround was needed. See https://crbug.com/boringssl/46.
+OPENSSL_EXPORT int CRYPTO_needs_hwcap2_workaround(void);
+#endif  // OPENSSL_ARM && OPENSSL_LINUX && !OPENSSL_STATIC_ARMCAP
 
 
 // FIPS monitoring
@@ -149,8 +153,9 @@ OPENSSL_EXPORT void OPENSSL_load_builtin_modules(void);
 #define OPENSSL_INIT_NO_ADD_ALL_DIGESTS 0
 #define OPENSSL_INIT_LOAD_CONFIG 0
 #define OPENSSL_INIT_NO_LOAD_CONFIG 0
+#define OPENSSL_INIT_NO_ATEXIT 0
 
-// OPENSSL_init_crypto calls |CRYPTO_library_init| and returns one.
+// OPENSSL_init_crypto returns one.
 OPENSSL_EXPORT int OPENSSL_init_crypto(uint64_t opts,
                                        const OPENSSL_INIT_SETTINGS *settings);
 
@@ -160,6 +165,34 @@ OPENSSL_EXPORT void OPENSSL_cleanup(void);
 // FIPS_mode_set returns one if |on| matches whether BoringSSL was built with
 // |BORINGSSL_FIPS| and zero otherwise.
 OPENSSL_EXPORT int FIPS_mode_set(int on);
+
+// FIPS_module_name returns the name of the FIPS module.
+OPENSSL_EXPORT const char *FIPS_module_name(void);
+
+// FIPS_module_hash returns the 32-byte hash of the FIPS module.
+OPENSSL_EXPORT const uint8_t* FIPS_module_hash(void);
+
+// FIPS_version returns the version of the FIPS module, or zero if the build
+// isn't exactly at a verified version. The version, expressed in base 10, will
+// be a date in the form yyyymmddXX where XX is often "00", but can be
+// incremented if multiple versions are defined on a single day.
+//
+// (This format exceeds a |uint32_t| in the year 4294.)
+OPENSSL_EXPORT uint32_t FIPS_version(void);
+
+// FIPS_query_algorithm_status returns one if |algorithm| is FIPS validated in
+// the current BoringSSL and zero otherwise.
+OPENSSL_EXPORT int FIPS_query_algorithm_status(const char *algorithm);
+
+#if defined(OPENSSL_ARM) && defined(OPENSSL_LINUX) && \
+    !defined(OPENSSL_STATIC_ARMCAP)
+// CRYPTO_has_broken_NEON returns zero.
+OPENSSL_EXPORT int CRYPTO_has_broken_NEON(void);
+#endif
+
+// CRYPTO_library_init does nothing. Historically, it was needed in some build
+// configurations to initialization the library. This is no longer necessary.
+OPENSSL_EXPORT void CRYPTO_library_init(void);
 
 
 #if defined(__cplusplus)

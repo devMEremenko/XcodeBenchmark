@@ -15,8 +15,9 @@
 #ifndef GRPC_EVENT_ENGINE_SLICE_H
 #define GRPC_EVENT_ENGINE_SLICE_H
 
+#include <grpc/event_engine/internal/slice_cast.h>
+#include <grpc/slice.h>
 #include <grpc/support/port_platform.h>
-
 #include <string.h>
 
 #include <cstdint>
@@ -24,9 +25,6 @@
 #include <utility>
 
 #include "absl/strings/string_view.h"
-
-#include <grpc/slice.h>
-#include <grpc/support/log.h>
 
 // This public slice definition largely based of the internal grpc_core::Slice
 // implementation. Changes to this implementation might warrant changes to the
@@ -168,6 +166,11 @@ struct CopyConstructors {
     return Out(grpc_slice_from_copied_buffer(p, len));
   }
 
+  static Out FromCopiedBuffer(const uint8_t* p, size_t len) {
+    return Out(
+        grpc_slice_from_copied_buffer(reinterpret_cast<const char*>(p), len));
+  }
+
   template <typename Buffer>
   static Out FromCopiedBuffer(const Buffer& buffer) {
     return FromCopiedBuffer(reinterpret_cast<const char*>(buffer.data()),
@@ -177,8 +180,9 @@ struct CopyConstructors {
 
 }  // namespace slice_detail
 
-class MutableSlice : public slice_detail::BaseSlice,
-                     public slice_detail::CopyConstructors<MutableSlice> {
+class GPR_MSVC_EMPTY_BASE_CLASS_WORKAROUND MutableSlice
+    : public slice_detail::BaseSlice,
+      public slice_detail::CopyConstructors<MutableSlice> {
  public:
   MutableSlice() = default;
   explicit MutableSlice(const grpc_slice& slice);
@@ -212,8 +216,9 @@ class MutableSlice : public slice_detail::BaseSlice,
   uint8_t& operator[](size_t i) { return mutable_data()[i]; }
 };
 
-class Slice : public slice_detail::BaseSlice,
-              public slice_detail::CopyConstructors<Slice> {
+class GPR_MSVC_EMPTY_BASE_CLASS_WORKAROUND Slice
+    : public slice_detail::BaseSlice,
+      public slice_detail::CopyConstructors<Slice> {
  public:
   Slice() = default;
   ~Slice();
@@ -279,6 +284,23 @@ class Slice : public slice_detail::BaseSlice,
   static Slice FromRefcountAndBytes(grpc_slice_refcount* r,
                                     const uint8_t* begin, const uint8_t* end);
 };
+
+namespace internal {
+template <>
+struct SliceCastable<Slice, grpc_slice> {};
+template <>
+struct SliceCastable<grpc_slice, Slice> {};
+
+template <>
+struct SliceCastable<MutableSlice, grpc_slice> {};
+template <>
+struct SliceCastable<grpc_slice, MutableSlice> {};
+
+template <>
+struct SliceCastable<MutableSlice, Slice> {};
+template <>
+struct SliceCastable<Slice, MutableSlice> {};
+}  // namespace internal
 
 }  // namespace experimental
 }  // namespace grpc_event_engine

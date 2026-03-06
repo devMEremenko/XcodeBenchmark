@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#ifndef FIREBASECORE_FIRCOMPONENTTYPE_H
+#define FIREBASECORE_FIRCOMPONENTTYPE_H
+
 #import <Foundation/Foundation.h>
 
 @class FIRComponentContainer;
@@ -27,8 +30,11 @@ NS_SWIFT_NAME(ComponentType)
 
 /// Do not use directly. A factory method to retrieve an instance that provides a specific
 /// functionality.
-+ (T)instanceForProtocol:(Protocol *)protocol inContainer:(FIRComponentContainer *)container;
++ (nullable T)instanceForProtocol:(Protocol *)protocol
+                      inContainer:(FIRComponentContainer *)container;
 
 @end
 
 NS_ASSUME_NONNULL_END
+
+#endif  // FIREBASECORE_FIRCOMPONENTTYPE_H

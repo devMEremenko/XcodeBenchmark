@@ -18,6 +18,13 @@ required minor version, `100.x`, e.g.:
 If a breaking change is ever required, it should be done by renaming the library to a new name in
 this repo.
 
+## Support
+
+Please file issues or request support for the following SDKs rather than directly in this
+repository:
+- `RecaptchaInterop`:
+  [reCAPTCHA Enterprise](https://cloud.google.com/recaptcha-enterprise/docs/getting-support)
+
 ## Contributing
 
 See [Contributing](CONTRIBUTING.md) for more information on contributing to the project.

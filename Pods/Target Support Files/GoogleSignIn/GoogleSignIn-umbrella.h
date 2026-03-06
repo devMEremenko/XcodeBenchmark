@@ -10,6 +10,7 @@
 #endif
 #endif
 
+#import "GIDAppCheckError.h"
 #import "GIDConfiguration.h"
 #import "GIDGoogleUser.h"
 #import "GIDProfileData.h"

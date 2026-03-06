@@ -129,19 +129,13 @@ GDTCORNetworkMobileSubtype GDTCORNetworkMobileSubTypeMessage(void) {
   if (networkCurrentRadioAccessTechnologyDict.count) {
     networkCurrentRadioAccessTechnology = networkCurrentRadioAccessTechnologyDict.allValues[0];
   }
-#else  // TARGET_OS_MACCATALYST
-  if (@available(iOS 12.0, *)) {
-    NSDictionary<NSString *, NSString *> *networkCurrentRadioAccessTechnologyDict =
-        networkInfo.serviceCurrentRadioAccessTechnology;
-    if (networkCurrentRadioAccessTechnologyDict.count) {
-      // In iOS 12, multiple radio technologies can be captured. We prefer not particular radio
-      // tech to another, so we'll just return the first value in the dictionary.
-      networkCurrentRadioAccessTechnology = networkCurrentRadioAccessTechnologyDict.allValues[0];
-    }
-  } else {
-#if TARGET_OS_IOS && __IPHONE_OS_VERSION_MIN_REQUIRED < 120000
-    networkCurrentRadioAccessTechnology = networkInfo.currentRadioAccessTechnology;
-#endif  // TARGET_OS_IOS && __IPHONE_OS_VERSION_MIN_REQUIRED < 120000
+#else   // TARGET_OS_MACCATALYST
+  NSDictionary<NSString *, NSString *> *networkCurrentRadioAccessTechnologyDict =
+      networkInfo.serviceCurrentRadioAccessTechnology;
+  if (networkCurrentRadioAccessTechnologyDict.count) {
+    // In iOS 12, multiple radio technologies can be captured. We prefer not particular radio
+    // tech to another, so we'll just return the first value in the dictionary.
+    networkCurrentRadioAccessTechnology = networkCurrentRadioAccessTechnologyDict.allValues[0];
   }
 #endif  // TARGET_OS_MACCATALYST
   if (networkCurrentRadioAccessTechnology) {
@@ -197,50 +191,23 @@ NSData *_Nullable GDTCOREncodeArchive(id<NSSecureCoding> obj,
     }
   }
   NSData *resultData;
-  if (@available(macOS 10.13, iOS 11.0, tvOS 11.0, watchOS 4, *)) {
-    resultData = [NSKeyedArchiver archivedDataWithRootObject:obj
-                                       requiringSecureCoding:YES
-                                                       error:error];
-    if (resultData == nil || (error != NULL && *error != nil)) {
-      GDTCORLogDebug(@"Encoding an object failed: %@", *error);
-      return nil;
-    }
-    if (filePath.length > 0) {
-      result = [resultData writeToFile:filePath options:NSDataWritingAtomic error:error];
-      if (result == NO || (error != NULL && *error != nil)) {
-        if (error != NULL && *error != nil) {
-          GDTCORLogDebug(@"Attempt to write archive failed: path:%@ error:%@", filePath, *error);
-        } else {
-          GDTCORLogDebug(@"Attempt to write archive failed: path:%@", filePath);
-        }
+  resultData = [NSKeyedArchiver archivedDataWithRootObject:obj
+                                     requiringSecureCoding:YES
+                                                     error:error];
+  if (resultData == nil || (error != NULL && *error != nil)) {
+    GDTCORLogDebug(@"Encoding an object failed: %@", *error);
+    return nil;
+  }
+  if (filePath.length > 0) {
+    result = [resultData writeToFile:filePath options:NSDataWritingAtomic error:error];
+    if (result == NO || (error != NULL && *error != nil)) {
+      if (error != NULL && *error != nil) {
+        GDTCORLogDebug(@"Attempt to write archive failed: path:%@ error:%@", filePath, *error);
       } else {
-        GDTCORLogDebug(@"Writing archive succeeded: %@", filePath);
+        GDTCORLogDebug(@"Attempt to write archive failed: path:%@", filePath);
       }
-    }
-  } else {
-    @try {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-      resultData = [NSKeyedArchiver archivedDataWithRootObject:obj];
-#pragma clang diagnostic pop
-      if (filePath.length > 0) {
-        result = [resultData writeToFile:filePath options:NSDataWritingAtomic error:error];
-        if (result == NO || *error) {
-          GDTCORLogDebug(@"Attempt to write archive failed: URL:%@ error:%@", filePath, *error);
-        } else {
-          GDTCORLogDebug(@"Writing archive succeeded: %@", filePath);
-        }
-      }
-    } @catch (NSException *exception) {
-      NSString *errorString =
-          [NSString stringWithFormat:@"An exception was thrown during encoding: %@", exception];
-      *error = [NSError errorWithDomain:NSCocoaErrorDomain
-                                   code:-1
-                               userInfo:@{NSLocalizedFailureReasonErrorKey : errorString}];
-    }
-    if (filePath.length > 0) {
-      GDTCORLogDebug(@"Attempt to write archive. successful:%@ URL:%@ error:%@",
-                     result ? @"YES" : @"NO", filePath, *error);
+    } else {
+      GDTCORLogDebug(@"Writing archive succeeded: %@", filePath);
     }
   }
   return resultData;
@@ -261,26 +228,7 @@ id<NSSecureCoding> _Nullable GDTCORDecodeArchiveAtPath(Class archiveClass,
 id<NSSecureCoding> _Nullable GDTCORDecodeArchive(Class archiveClass,
                                                  NSData *_Nonnull archiveData,
                                                  NSError **_Nonnull error) {
-  id<NSSecureCoding> unarchivedObject = nil;
-  if (@available(macOS 10.13, iOS 11.0, tvOS 11.0, watchOS 4, *)) {
-    unarchivedObject = [NSKeyedUnarchiver unarchivedObjectOfClass:archiveClass
-                                                         fromData:archiveData
-                                                            error:error];
-  } else {
-    @try {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-      unarchivedObject = [NSKeyedUnarchiver unarchiveObjectWithData:archiveData];
-#pragma clang diagnostic pop
-    } @catch (NSException *exception) {
-      NSString *errorString =
-          [NSString stringWithFormat:@"An exception was thrown during encoding: %@", exception];
-      *error = [NSError errorWithDomain:NSCocoaErrorDomain
-                                   code:-1
-                               userInfo:@{NSLocalizedFailureReasonErrorKey : errorString}];
-    }
-  }
-  return unarchivedObject;
+  return [NSKeyedUnarchiver unarchivedObjectOfClass:archiveClass fromData:archiveData error:error];
 }
 
 BOOL GDTCORWriteDataToFile(NSData *data, NSString *filePath, NSError *_Nullable *outError) {

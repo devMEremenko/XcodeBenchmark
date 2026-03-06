@@ -20,7 +20,7 @@
 @interface GADAdLoader : NSObject
 
 /// Object notified when an ad request succeeds or fails. Must conform to requested ad types'
-/// delegate protocols.
+/// delegate protocol. This property must be set before initiating ad requests.
 @property(nonatomic, weak, nullable) id<GADAdLoaderDelegate> delegate;
 
 /// The ad loader's ad unit ID.

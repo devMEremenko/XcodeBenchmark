@@ -12,29 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef GRPC_CORE_TSI_SSL_KEY_LOGGING_SSL_KEY_LOGGING_H
-#define GRPC_CORE_TSI_SSL_KEY_LOGGING_SSL_KEY_LOGGING_H
+#ifndef GRPC_SRC_CORE_TSI_SSL_KEY_LOGGING_SSL_KEY_LOGGING_H
+#define GRPC_SRC_CORE_TSI_SSL_KEY_LOGGING_SSL_KEY_LOGGING_H
 
+#include <grpc/grpc_security.h>
+#include <grpc/slice.h>
 #include <grpc/support/port_platform.h>
-
-#include <iostream>
-#include <map>
-
+#include <grpc/support/sync.h>
 #if COCOAPODS==1
   #include <openssl_grpc/ssl.h>
 #else
   #include <openssl/ssl.h>
 #endif
 
+#include <iostream>
+#include <map>
+
 #include "absl/base/thread_annotations.h"
-
-#include <grpc/grpc_security.h>
-#include <grpc/slice.h>
-#include <grpc/support/sync.h>
-
-#include "src/core/lib/gprpp/memory.h"
-#include "src/core/lib/gprpp/ref_counted.h"
-#include "src/core/lib/gprpp/sync.h"
+#include "src/core/util/memory.h"
+#include "src/core/util/ref_counted.h"
+#include "src/core/util/sync.h"
 
 namespace tsi {
 
@@ -82,4 +79,4 @@ class TlsSessionKeyLoggerCache
 
 }  // namespace tsi
 
-#endif  // GRPC_CORE_TSI_SSL_KEY_LOGGING_SSL_KEY_LOGGING_H
+#endif  // GRPC_SRC_CORE_TSI_SSL_KEY_LOGGING_SSL_KEY_LOGGING_H

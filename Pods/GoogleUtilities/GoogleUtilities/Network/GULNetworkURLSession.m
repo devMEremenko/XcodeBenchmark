@@ -35,14 +35,11 @@
   /// Session ID generated randomly with a fixed prefix.
   NSString *_sessionID;
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunguarded-availability"
-  /// The session configuration. NSURLSessionConfiguration' is only available on iOS 7.0 or newer.
+  /// The session configuration.
   NSURLSessionConfiguration *_sessionConfig;
 
   /// The current NSURLSession.
   NSURLSession *__weak _Nullable _URLSession;
-#pragma clang diagnostic pop
 
   /// The path to the directory where all temporary files are stored before uploading.
   NSURL *_networkDirectoryURL;
@@ -96,20 +93,19 @@
   if (fetcher != nil) {
     [fetcher addSystemCompletionHandler:systemCompletionHandler forSession:sessionID];
   } else {
-    GULLogError(kGULLoggerNetwork, NO,
-                [NSString stringWithFormat:@"I-NET%06ld", (long)kGULNetworkMessageCodeNetwork003],
-                @"Failed to retrieve background session with ID %@ after app is relaunched.",
-                sessionID);
+    GULOSLogError(kGULLogSubsystem, kGULLoggerNetwork, NO,
+                  [NSString stringWithFormat:@"I-NET%06ld", (long)kGULNetworkMessageCodeNetwork003],
+                  @"Failed to retrieve background session with ID %@ after app is relaunched.",
+                  sessionID);
   }
 }
 
 #pragma mark - External Methods
 
-/// Sends an async POST request using NSURLSession for iOS >= 7.0, and returns an ID of the
-/// connection.
+/// Sends an async POST request using `NSURLSession`, and returns an ID of the connection.
 - (nullable NSString *)sessionIDFromAsyncPOSTRequest:(NSURLRequest *)request
-                                   completionHandler:(GULNetworkURLSessionCompletionHandler)handler
-    API_AVAILABLE(ios(7.0)) {
+                                   completionHandler:
+                                       (GULNetworkURLSessionCompletionHandler)handler {
   // NSURLSessionUploadTask does not work with NSData in the background.
   // To avoid this issue, write the data to a temporary file to upload it.
   // Make a temporary file with the data subset.
@@ -145,25 +141,25 @@
     [self excludeFromBackupForURL:_uploadingFileURL];
 
     _sessionConfig = [self backgroundSessionConfigWithSessionID:_sessionID];
-    [self populateSessionConfig:_sessionConfig withRequest:request];
-    session = [NSURLSession sessionWithConfiguration:_sessionConfig
-                                            delegate:self
-                                       delegateQueue:[NSOperationQueue mainQueue]];
-    postRequestTask = [session uploadTaskWithRequest:request fromFile:_uploadingFileURL];
   } else {
     // If we cannot write to file, just send it in the foreground.
     _sessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
-    [self populateSessionConfig:_sessionConfig withRequest:request];
-    session = [NSURLSession sessionWithConfiguration:_sessionConfig
-                                            delegate:self
-                                       delegateQueue:[NSOperationQueue mainQueue]];
-    // To avoid a runtime warning in Xcode 15 Beta 4, the given `URLRequest`
-    // should have a nil `HTTPBody`. To workaround this, the given `URLRequest`
-    // is copied and the `HTTPBody` data is removed.
-    NSData *givenRequestHTTPBody = [request.HTTPBody copy];
-    NSMutableURLRequest *requestWithoutHTTPBody = [request mutableCopy];
-    requestWithoutHTTPBody.HTTPBody = nil;
+  }
+  [self populateSessionConfig:_sessionConfig withRequest:request];
+  session = [NSURLSession sessionWithConfiguration:_sessionConfig
+                                          delegate:self
+                                     delegateQueue:[NSOperationQueue mainQueue]];
+  // To avoid a runtime warning in Xcode 15 Beta 4, the given `URLRequest`
+  // should have a nil `HTTPBody`. To workaround this, the given `URLRequest`
+  // is copied and the `HTTPBody` data is removed.
+  NSData *givenRequestHTTPBody = [request.HTTPBody copy];
+  NSMutableURLRequest *requestWithoutHTTPBody = [request mutableCopy];
+  requestWithoutHTTPBody.HTTPBody = nil;
 
+  if (didWriteFile) {
+    postRequestTask = [session uploadTaskWithRequest:requestWithoutHTTPBody
+                                            fromFile:_uploadingFileURL];
+  } else {
     postRequestTask = [session uploadTaskWithRequest:requestWithoutHTTPBody
                                             fromData:givenRequestHTTPBody];
   }
@@ -192,10 +188,9 @@
   return _sessionID;
 }
 
-/// Sends an async GET request using NSURLSession for iOS >= 7.0, and returns an ID of the session.
+/// Sends an async GET request using `NSURLSession`, and returns an ID of the session.
 - (nullable NSString *)sessionIDFromAsyncGETRequest:(NSURLRequest *)request
-                                  completionHandler:(GULNetworkURLSessionCompletionHandler)handler
-    API_AVAILABLE(ios(7.0)) {
+                                  completionHandler:(GULNetworkURLSessionCompletionHandler)handler {
   if (_backgroundNetworkEnabled) {
     _sessionConfig = [self backgroundSessionConfigWithSessionID:_sessionID];
   } else {
@@ -260,7 +255,7 @@
 /// be called with the downloaded data.
 - (void)URLSession:(NSURLSession *)session
                  downloadTask:(NSURLSessionDownloadTask *)task
-    didFinishDownloadingToURL:(NSURL *)url API_AVAILABLE(ios(7.0)) {
+    didFinishDownloadingToURL:(NSURL *)url {
   if (!url.path) {
     [_loggerDelegate
         GULNetwork_logWithLevel:kGULNetworkLogLevelError
@@ -283,8 +278,7 @@
 }
 
 #if TARGET_OS_IOS || TARGET_OS_TV
-- (void)URLSessionDidFinishEventsForBackgroundURLSession:(NSURLSession *)session
-    API_AVAILABLE(ios(7.0)) {
+- (void)URLSessionDidFinishEventsForBackgroundURLSession:(NSURLSession *)session {
   [_loggerDelegate GULNetwork_logWithLevel:kGULNetworkLogLevelDebug
                                messageCode:kGULNetworkMessageCodeURLSession003
                                    message:@"Background session finished"
@@ -295,7 +289,7 @@
 
 - (void)URLSession:(NSURLSession *)session
                     task:(NSURLSessionTask *)task
-    didCompleteWithError:(NSError *)error API_AVAILABLE(ios(7.0)) {
+    didCompleteWithError:(NSError *)error {
   // Avoid any chance of recursive behavior leading to it being used repeatedly.
   GULNetworkURLSessionCompletionHandler handler = _completionHandler;
   _completionHandler = nil;
@@ -340,8 +334,7 @@
                    task:(NSURLSessionTask *)task
     didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
       completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition,
-                                  NSURLCredential *credential))completionHandler
-    API_AVAILABLE(ios(7.0)) {
+                                  NSURLCredential *credential))completionHandler {
   // The handling is modeled after GTMSessionFetcher.
   if ([challenge.protectionSpace.authenticationMethod
           isEqualToString:NSURLAuthenticationMethodServerTrust]) {
@@ -394,28 +387,20 @@
         dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 
     dispatch_async(evaluateBackgroundQueue, ^{
-      SecTrustResultType trustEval = kSecTrustResultInvalid;
       BOOL shouldAllow;
-      OSStatus trustError;
+      CFErrorRef errorRef = NULL;
 
       @synchronized([GULNetworkURLSession class]) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-        trustError = SecTrustEvaluate(serverTrust, &trustEval);
-#pragma clang diagnostic pop
+        shouldAllow = SecTrustEvaluateWithError(serverTrust, &errorRef);
       }
 
-      if (trustError != errSecSuccess) {
-        [self->_loggerDelegate GULNetwork_logWithLevel:kGULNetworkLogLevelError
-                                           messageCode:kGULNetworkMessageCodeURLSession008
-                                               message:@"Cannot evaluate server trust. Error, host"
-                                              contexts:@[ @(trustError), self->_request.URL ]];
-        shouldAllow = NO;
-      } else {
-        // Having a trust level "unspecified" by the user is the usual result, described at
-        // https://developer.apple.com/library/mac/qa/qa1360
-        shouldAllow =
-            (trustEval == kSecTrustResultUnspecified || trustEval == kSecTrustResultProceed);
+      if (errorRef) {
+        [self->_loggerDelegate
+            GULNetwork_logWithLevel:kGULNetworkLogLevelError
+                        messageCode:kGULNetworkMessageCodeURLSession008
+                            message:@"Cannot evaluate server trust. Error, host"
+                           contexts:@[ @((int)CFErrorGetCode(errorRef)), self->_request.URL ]];
+        CFRelease(errorRef);
       }
 
       // Call the call back with the permission.
@@ -662,7 +647,7 @@
                           task:(NSURLSessionTask *)task
     willPerformHTTPRedirection:(NSHTTPURLResponse *)response
                     newRequest:(NSURLRequest *)request
-             completionHandler:(void (^)(NSURLRequest *))completionHandler API_AVAILABLE(ios(7.0)) {
+             completionHandler:(void (^)(NSURLRequest *))completionHandler {
   NSArray *nonAllowedRedirectionCodes = @[
     @(kGULNetworkHTTPStatusCodeFound), @(kGULNetworkHTTPStatusCodeMovedPermanently),
     @(kGULNetworkHTTPStatusCodeMovedTemporarily), @(kGULNetworkHTTPStatusCodeMultipleChoices)
@@ -734,7 +719,7 @@
 
 // Always use the request parameters even if the default session configuration is more restrictive.
 - (void)populateSessionConfig:(NSURLSessionConfiguration *)sessionConfig
-                  withRequest:(NSURLRequest *)request API_AVAILABLE(ios(7.0)) {
+                  withRequest:(NSURLRequest *)request {
   sessionConfig.HTTPAdditionalHeaders = request.allHTTPHeaderFields;
   sessionConfig.timeoutIntervalForRequest = request.timeoutInterval;
   sessionConfig.timeoutIntervalForResource = request.timeoutInterval;

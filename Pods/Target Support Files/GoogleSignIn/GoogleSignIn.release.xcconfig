@@ -2,10 +2,10 @@ CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = NO
 COMBINE_HIDPI_IMAGES = NO
 CONFIGURATION_BUILD_DIR = ${PODS_CONFIGURATION_BUILD_DIR}/GoogleSignIn
 DEFINES_MODULE = YES
-FRAMEWORK_SEARCH_PATHS = $(inherited) "${PODS_CONFIGURATION_BUILD_DIR}/AppAuth" "${PODS_CONFIGURATION_BUILD_DIR}/GTMAppAuth" "${PODS_CONFIGURATION_BUILD_DIR}/GTMSessionFetcher"
-GCC_PREPROCESSOR_DEFINITIONS = $(inherited) COCOAPODS=1 GID_SDK_VERSION=7.0.0
+FRAMEWORK_SEARCH_PATHS = $(inherited) "${PODS_CONFIGURATION_BUILD_DIR}/AppAuth" "${PODS_CONFIGURATION_BUILD_DIR}/AppCheckCore" "${PODS_CONFIGURATION_BUILD_DIR}/GTMAppAuth" "${PODS_CONFIGURATION_BUILD_DIR}/GTMSessionFetcher" "${PODS_CONFIGURATION_BUILD_DIR}/GoogleUtilities" "${PODS_CONFIGURATION_BUILD_DIR}/PromisesObjC"
+GCC_PREPROCESSOR_DEFINITIONS = $(inherited) COCOAPODS=1 GID_SDK_VERSION=8.0.0
 HEADER_SEARCH_PATHS = $(inherited) "${PODS_TARGET_SRCROOT}"
-OTHER_LDFLAGS = $(inherited) -framework "AppAuth" -framework "CoreGraphics" -framework "CoreText" -framework "Foundation" -framework "GTMAppAuth" -framework "GTMSessionFetcher" -framework "LocalAuthentication" -framework "SafariServices" -framework "Security" -framework "UIKit" -weak_framework "AuthenticationServices"
+OTHER_LDFLAGS = $(inherited) -framework "AppAuth" -framework "AppCheckCore" -framework "CoreGraphics" -framework "CoreText" -framework "Foundation" -framework "GTMAppAuth" -framework "GTMSessionFetcher" -framework "LocalAuthentication" -framework "SafariServices" -framework "Security" -framework "UIKit" -weak_framework "AuthenticationServices" -weak_framework "DeviceCheck"
 PODS_BUILD_DIR = ${BUILD_DIR}
 PODS_CONFIGURATION_BUILD_DIR = ${PODS_BUILD_DIR}/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)
 PODS_DEVELOPMENT_LANGUAGE = ${DEVELOPMENT_LANGUAGE}

@@ -163,7 +163,6 @@ static UniquePtr<hm_fragment> dtls1_hm_fragment_new(
   frag->data =
       (uint8_t *)OPENSSL_malloc(DTLS1_HM_HEADER_LENGTH + msg_hdr->msg_len);
   if (frag->data == NULL) {
-    OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
     return nullptr;
   }
 
@@ -174,7 +173,6 @@ static UniquePtr<hm_fragment> dtls1_hm_fragment_new(
       !CBB_add_u24(cbb.get(), 0 /* frag_off */) ||
       !CBB_add_u24(cbb.get(), msg_hdr->msg_len) ||
       !CBB_finish(cbb.get(), NULL, NULL)) {
-    OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
     return nullptr;
   }
 
@@ -186,12 +184,10 @@ static UniquePtr<hm_fragment> dtls1_hm_fragment_new(
       return nullptr;
     }
     size_t bitmask_len = (msg_hdr->msg_len + 7) / 8;
-    frag->reassembly = (uint8_t *)OPENSSL_malloc(bitmask_len);
+    frag->reassembly = (uint8_t *)OPENSSL_zalloc(bitmask_len);
     if (frag->reassembly == NULL) {
-      OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
       return nullptr;
     }
-    OPENSSL_memset(frag->reassembly, 0, bitmask_len);
   }
 
   return frag;
@@ -487,10 +483,7 @@ ssl_open_record_t dtls1_open_change_cipher_spec(SSL *ssl, size_t *out_consumed,
 
 // Sending handshake messages.
 
-void DTLS_OUTGOING_MESSAGE::Clear() {
-  OPENSSL_free(data);
-  data = nullptr;
-}
+void DTLS_OUTGOING_MESSAGE::Clear() { data.Reset(); }
 
 void dtls_clear_outgoing_messages(SSL *ssl) {
   for (size_t i = 0; i < ssl->d1->outgoing_messages_len; i++) {
@@ -578,9 +571,7 @@ static bool add_outgoing(SSL *ssl, bool is_ccs, Array<uint8_t> data) {
 
   DTLS_OUTGOING_MESSAGE *msg =
       &ssl->d1->outgoing_messages[ssl->d1->outgoing_messages_len];
-  size_t len;
-  data.Release(&msg->data, &len);
-  msg->len = len;
+  msg->data = std::move(data);
   msg->epoch = ssl->d1->w_epoch;
   msg->is_ccs = is_ccs;
 
@@ -593,6 +584,11 @@ bool dtls1_add_message(SSL *ssl, Array<uint8_t> data) {
 }
 
 bool dtls1_add_change_cipher_spec(SSL *ssl) {
+  // DTLS 1.3 disables compatibility mode, which means that DTLS 1.3 never sends
+  // a ChangeCipherSpec message.
+  if (ssl_protocol_version(ssl) > TLS1_2_VERSION) {
+    return true;
+  }
   return add_outgoing(ssl, true /* ChangeCipherSpec */, Array<uint8_t>());
 }
 
@@ -633,16 +629,8 @@ static enum seal_result_t seal_next_message(SSL *ssl, uint8_t *out,
   assert(ssl->d1->outgoing_written < ssl->d1->outgoing_messages_len);
   assert(msg == &ssl->d1->outgoing_messages[ssl->d1->outgoing_written]);
 
-  enum dtls1_use_epoch_t use_epoch = dtls1_use_current_epoch;
-  if (ssl->d1->w_epoch >= 1 && msg->epoch == ssl->d1->w_epoch - 1) {
-    use_epoch = dtls1_use_previous_epoch;
-  } else if (msg->epoch != ssl->d1->w_epoch) {
-    OPENSSL_PUT_ERROR(SSL, ERR_R_INTERNAL_ERROR);
-    return seal_error;
-  }
-
-  size_t overhead = dtls_max_seal_overhead(ssl, use_epoch);
-  size_t prefix = dtls_seal_prefix_len(ssl, use_epoch);
+  size_t overhead = dtls_max_seal_overhead(ssl, msg->epoch);
+  size_t prefix = dtls_seal_prefix_len(ssl, msg->epoch);
 
   if (msg->is_ccs) {
     // Check there is room for the ChangeCipherSpec.
@@ -653,7 +641,7 @@ static enum seal_result_t seal_next_message(SSL *ssl, uint8_t *out,
 
     if (!dtls_seal_record(ssl, out, out_len, max_out,
                           SSL3_RT_CHANGE_CIPHER_SPEC, kChangeCipherSpec,
-                          sizeof(kChangeCipherSpec), use_epoch)) {
+                          sizeof(kChangeCipherSpec), msg->epoch)) {
       return seal_error;
     }
 
@@ -665,7 +653,7 @@ static enum seal_result_t seal_next_message(SSL *ssl, uint8_t *out,
   // DTLS messages are serialized as a single fragment in |msg|.
   CBS cbs, body;
   struct hm_header_st hdr;
-  CBS_init(&cbs, msg->data, msg->len);
+  CBS_init(&cbs, msg->data.data(), msg->data.size());
   if (!dtls1_parse_fragment(&cbs, &hdr, &body) ||
       hdr.frag_off != 0 ||
       hdr.frag_len != CBS_len(&body) ||
@@ -687,6 +675,7 @@ static enum seal_result_t seal_next_message(SSL *ssl, uint8_t *out,
 
   // Assemble a fragment, to be sealed in-place.
   ScopedCBB cbb;
+  CBB child;
   uint8_t *frag = out + prefix;
   size_t max_frag = max_out - prefix, frag_len;
   if (!CBB_init_fixed(cbb.get(), frag, max_frag) ||
@@ -694,8 +683,8 @@ static enum seal_result_t seal_next_message(SSL *ssl, uint8_t *out,
       !CBB_add_u24(cbb.get(), hdr.msg_len) ||
       !CBB_add_u16(cbb.get(), hdr.seq) ||
       !CBB_add_u24(cbb.get(), ssl->d1->outgoing_offset) ||
-      !CBB_add_u24(cbb.get(), todo) ||
-      !CBB_add_bytes(cbb.get(), CBS_data(&body), todo) ||
+      !CBB_add_u24_length_prefixed(cbb.get(), &child) ||
+      !CBB_add_bytes(&child, CBS_data(&body), todo) ||
       !CBB_finish(cbb.get(), NULL, &frag_len)) {
     OPENSSL_PUT_ERROR(SSL, ERR_R_INTERNAL_ERROR);
     return seal_error;
@@ -705,7 +694,7 @@ static enum seal_result_t seal_next_message(SSL *ssl, uint8_t *out,
                       MakeSpan(frag, frag_len));
 
   if (!dtls_seal_record(ssl, out, out_len, max_out, SSL3_RT_HANDSHAKE,
-                        out + prefix, frag_len, use_epoch)) {
+                        out + prefix, frag_len, msg->epoch)) {
     return seal_error;
   }
 

@@ -100,11 +100,6 @@ NS_ASSUME_NONNULL_BEGIN
 /// Equivalent to -[... setObject:nil forKey:defaultName]
 - (void)removeObjectForKey:(NSString *)defaultName;
 
-#pragma mark - Save data
-
-/// Blocks the calling thread until all in-progress set operations have completed.
-- (void)synchronize;
-
 @end
 
 NS_ASSUME_NONNULL_END

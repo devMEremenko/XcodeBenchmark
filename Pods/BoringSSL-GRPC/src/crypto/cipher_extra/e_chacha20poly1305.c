@@ -14,6 +14,7 @@
 
 #include <openssl_grpc/aead.h>
 
+#include <assert.h>
 #include <string.h>
 
 #include <openssl_grpc/chacha.h>
@@ -21,7 +22,6 @@
 #include <openssl_grpc/err.h>
 #include <openssl_grpc/mem.h>
 #include <openssl_grpc/poly1305.h>
-#include <openssl_grpc/type_check.h>
 
 #include "internal.h"
 #include "../chacha/internal.h"
@@ -32,17 +32,22 @@ struct aead_chacha20_poly1305_ctx {
   uint8_t key[32];
 };
 
-OPENSSL_STATIC_ASSERT(sizeof(((EVP_AEAD_CTX *)NULL)->state) >=
-                          sizeof(struct aead_chacha20_poly1305_ctx),
-                      "AEAD state is too small");
-#if defined(__GNUC__) || defined(__clang__)
-OPENSSL_STATIC_ASSERT(alignof(union evp_aead_ctx_st_state) >=
-                          alignof(struct aead_chacha20_poly1305_ctx),
-                      "AEAD state has insufficient alignment");
-#endif
+static_assert(sizeof(((EVP_AEAD_CTX *)NULL)->state) >=
+                  sizeof(struct aead_chacha20_poly1305_ctx),
+              "AEAD state is too small");
+static_assert(alignof(union evp_aead_ctx_st_state) >=
+                  alignof(struct aead_chacha20_poly1305_ctx),
+              "AEAD state has insufficient alignment");
 
 static int aead_chacha20_poly1305_init(EVP_AEAD_CTX *ctx, const uint8_t *key,
                                        size_t key_len, size_t tag_len) {
+  // TODO(crbug.com/42290548): The x86_64 assembly depends on initializing
+  // |OPENSSL_ia32cap_P|. Move the dispatch to C. While we're here, it may be
+  // worth adjusting the assembly calling convention. The assembly functions do
+  // too much work right now. For now, explicitly initialize |OPENSSL_ia32cap_P|
+  // first.
+  OPENSSL_init_cpuid();
+
   struct aead_chacha20_poly1305_ctx *c20_ctx =
       (struct aead_chacha20_poly1305_ctx *)&ctx->state;
 
@@ -147,7 +152,7 @@ static int chacha20_poly1305_seal_scatter(
   // encrypted byte-by-byte first.
   if (extra_in_len) {
     static const size_t kChaChaBlockSize = 64;
-    uint32_t block_counter = 1 + (in_len / kChaChaBlockSize);
+    uint32_t block_counter = (uint32_t)(1 + (in_len / kChaChaBlockSize));
     size_t offset = in_len % kChaChaBlockSize;
     uint8_t block[64 /* kChaChaBlockSize */];
 

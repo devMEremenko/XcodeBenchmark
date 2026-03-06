@@ -21,7 +21,18 @@ FOUNDATION_EXPORT GADMaxAdContentRating _Nonnull const GADMaxAdContentRatingTeen
 FOUNDATION_EXPORT GADMaxAdContentRating _Nonnull const GADMaxAdContentRatingMatureAudience;
 
 /// Add this constant to the testDevices property's array to receive test ads on the simulator.
-FOUNDATION_EXPORT NSString *_Nonnull const GADSimulatorID;
+FOUNDATION_EXPORT NSString *_Nonnull const GADSimulatorID GAD_DEPRECATED_MSG_ATTRIBUTE(
+    "Deprecated. Simulators are already in test mode by default.");
+
+/// Publisher privacy treatment personalization states.
+typedef NS_ENUM(NSInteger, GADPublisherPrivacyPersonalizationState) {
+  /// Indicates that ad requests should receive the default publisher privacy treatment.
+  GADPublisherPrivacyPersonalizationStateDefault = 0,
+  /// Indicates that ad requests should receive personalized publisher privacy treatment.
+  GADPublisherPrivacyPersonalizationStateEnabled = 1,
+  /// Indicates that ad requests should receive non-personalized publisher privacy treatment.
+  GADPublisherPrivacyPersonalizationStateDisabled = 2,
+};
 
 /// Request configuration. The settings in this class will apply to all ad requests.
 @interface GADRequestConfiguration : NSObject
@@ -69,41 +80,14 @@ FOUNDATION_EXPORT NSString *_Nonnull const GADSimulatorID;
 /// in termination of your Google account.
 @property(nonatomic, nullable, copy) NSNumber *tagForChildDirectedTreatment;
 
-/// Controls whether the Google Mobile Ads SDK Same App Key is enabled. The value set persists
-/// across app sessions. The key is enabled by default.
-- (void)setSameAppKeyEnabled:(BOOL)enabled;
+/// Controls whether the Google Mobile Ads SDK publisher first-party ID, formerly known as the same
+/// app key, is enabled. The value set persists across app sessions. The key is enabled by default.
+- (void)setPublisherFirstPartyIDEnabled:(BOOL)enabled;
 
-#pragma mark - Deprecated
+#pragma mark - Publisher Privacy Treatment
 
-/// This method lets you specify whether the user is under the age of consent.
-/// https://developers.google.com/admob/ios/targeting#users_under_the_age_of_consent.
-///
-/// If you call this method with YES, a TFUA parameter will be included in all ad requests. This
-/// parameter disables personalized advertising, including remarketing, for all ad requests. It also
-/// disables requests to third-party ad vendors, such as ad measurement pixels and third-party ad
-/// servers.
-- (void)tagForUnderAgeOfConsent:(BOOL)underAgeOfConsent
-    GAD_DEPRECATED_MSG_ATTRIBUTE(
-        "This method is deprecated. Use the tagForUnderAgeOfConsent property instead. Calling this "
-        "method internally sets the property.");
-
-/// [Optional] This method lets you specify whether you would like your app to be treated as
-/// child-directed for purposes of the Children’s Online Privacy Protection Act (COPPA),
-/// https://www.ftc.gov/business-guidance/privacy-security/childrens-privacy.
-///
-/// If you call this method with YES, you are indicating that your app should be treated as
-/// child-directed for purposes of the Children’s Online Privacy Protection Act (COPPA). If you call
-/// this method with NO, you are indicating that your app should not be treated as child-directed
-/// for purposes of the Children’s Online Privacy Protection Act (COPPA). If you do not call this
-/// method, ad requests will include no indication of how you would like your app treated with
-/// respect to COPPA.
-///
-/// By setting this method, you certify that this notification is accurate and you are authorized to
-/// act on behalf of the owner of the app. You understand that abuse of this setting may result in
-/// termination of your Google account.
-- (void)tagForChildDirectedTreatment:(BOOL)childDirectedTreatment
-    GAD_DEPRECATED_MSG_ATTRIBUTE(
-        "This method is deprecated. Use the tagForChildDirectedTreatment property instead. "
-        "PCalling this method internally sets the property.");
+/// This property lets you specify the personalization treatment that applies to subsequent ad
+/// requests.
+@property(nonatomic) GADPublisherPrivacyPersonalizationState publisherPrivacyPersonalizationState;
 
 @end

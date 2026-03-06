@@ -1,11 +1,10 @@
-CLANG_CXX_LANGUAGE_STANDARD = c++14
 CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = NO
 CONFIGURATION_BUILD_DIR = ${PODS_CONFIGURATION_BUILD_DIR}/FirebaseFirestore
-FRAMEWORK_SEARCH_PATHS = $(inherited) "${PODS_CONFIGURATION_BUILD_DIR}/BoringSSL-GRPC" "${PODS_CONFIGURATION_BUILD_DIR}/FirebaseCore" "${PODS_CONFIGURATION_BUILD_DIR}/FirebaseCoreInternal" "${PODS_CONFIGURATION_BUILD_DIR}/GoogleUtilities" "${PODS_CONFIGURATION_BUILD_DIR}/PromisesObjC" "${PODS_CONFIGURATION_BUILD_DIR}/abseil" "${PODS_CONFIGURATION_BUILD_DIR}/gRPC-C++" "${PODS_CONFIGURATION_BUILD_DIR}/gRPC-Core" "${PODS_CONFIGURATION_BUILD_DIR}/leveldb-library" "${PODS_CONFIGURATION_BUILD_DIR}/nanopb"
-GCC_C_LANGUAGE_STANDARD = c99
-GCC_PREPROCESSOR_DEFINITIONS = $(inherited) COCOAPODS=1 FIRFirestore_VERSION=10.16.0 PB_FIELD_32BIT=1 PB_NO_PACKED_STRUCTS=1 PB_ENABLE_MALLOC=1
-HEADER_SEARCH_PATHS = $(inherited) "${PODS_TARGET_SRCROOT}" "${PODS_TARGET_SRCROOT}/Firestore/Source/Public/FirebaseFirestore" "${PODS_ROOT}/nanopb" "${PODS_TARGET_SRCROOT}/Firestore/Protos/nanopb"
-OTHER_LDFLAGS = $(inherited) -l"c++" -framework "FirebaseCore" -framework "Foundation" -framework "SystemConfiguration" -framework "UIKit" -framework "absl" -framework "grpcpp" -framework "leveldb" -framework "nanopb"
+FRAMEWORK_SEARCH_PATHS = $(inherited) "${PODS_CONFIGURATION_BUILD_DIR}/BoringSSL-GRPC" "${PODS_CONFIGURATION_BUILD_DIR}/FirebaseAppCheckInterop" "${PODS_CONFIGURATION_BUILD_DIR}/FirebaseCore" "${PODS_CONFIGURATION_BUILD_DIR}/FirebaseCoreExtension" "${PODS_CONFIGURATION_BUILD_DIR}/FirebaseCoreInternal" "${PODS_CONFIGURATION_BUILD_DIR}/FirebaseFirestoreInternal" "${PODS_CONFIGURATION_BUILD_DIR}/FirebaseSharedSwift" "${PODS_CONFIGURATION_BUILD_DIR}/GoogleUtilities" "${PODS_CONFIGURATION_BUILD_DIR}/abseil" "${PODS_CONFIGURATION_BUILD_DIR}/gRPC-C++" "${PODS_CONFIGURATION_BUILD_DIR}/gRPC-Core" "${PODS_CONFIGURATION_BUILD_DIR}/leveldb-library" "${PODS_CONFIGURATION_BUILD_DIR}/nanopb"
+GCC_PREPROCESSOR_DEFINITIONS = $(inherited) COCOAPODS=1
+LIBRARY_SEARCH_PATHS = $(inherited) "${TOOLCHAIN_DIR}/usr/lib/swift/${PLATFORM_NAME}" /usr/lib/swift
+OTHER_LDFLAGS = $(inherited) -framework "FirebaseCore" -framework "FirebaseCoreExtension" -framework "FirebaseFirestoreInternal" -framework "FirebaseSharedSwift" -framework "Foundation" -framework "SystemConfiguration" -framework "UIKit" -weak_framework "FirebaseFirestoreInternal"
+OTHER_SWIFT_FLAGS = $(inherited) -D COCOAPODS -suppress-warnings
 PODS_BUILD_DIR = ${BUILD_DIR}
 PODS_CONFIGURATION_BUILD_DIR = ${PODS_BUILD_DIR}/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)
 PODS_DEVELOPMENT_LANGUAGE = ${DEVELOPMENT_LANGUAGE}

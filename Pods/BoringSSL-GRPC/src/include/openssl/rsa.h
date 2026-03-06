@@ -79,7 +79,22 @@ extern "C" {
 // documented, functions which take a |const| pointer are non-mutating and
 // functions which take a non-|const| pointer are mutating.
 
-// RSA_new returns a new, empty |RSA| object or NULL on error.
+// RSA_new_public_key returns a new |RSA| object containing a public key with
+// the specified parameters, or NULL on error or invalid input.
+OPENSSL_EXPORT RSA *RSA_new_public_key(const BIGNUM *n, const BIGNUM *e);
+
+// RSA_new_private_key returns a new |RSA| object containing a private key with
+// the specified parameters, or NULL on error or invalid input. All parameters
+// are mandatory and may not be NULL.
+//
+// This function creates standard RSA private keys with CRT parameters.
+OPENSSL_EXPORT RSA *RSA_new_private_key(const BIGNUM *n, const BIGNUM *e,
+                                        const BIGNUM *d, const BIGNUM *p,
+                                        const BIGNUM *q, const BIGNUM *dmp1,
+                                        const BIGNUM *dmq1, const BIGNUM *iqmp);
+
+// RSA_new returns a new, empty |RSA| object or NULL on error. Prefer using
+// |RSA_new_public_key| or |RSA_new_private_key| to import an RSA key.
 OPENSSL_EXPORT RSA *RSA_new(void);
 
 // RSA_new_method acts the same as |RSA_new| but takes an explicit |ENGINE|.
@@ -148,6 +163,20 @@ OPENSSL_EXPORT void RSA_get0_crt_params(const RSA *rsa, const BIGNUM **out_dmp1,
                                         const BIGNUM **out_dmq1,
                                         const BIGNUM **out_iqmp);
 
+
+// Setting individual properties.
+//
+// These functions allow setting individual properties of an |RSA| object. This
+// is typically used with |RSA_new| to construct an RSA key field by field.
+// Prefer instead to use |RSA_new_public_key| and |RSA_new_private_key|. These
+// functions defer some initialization to the first use of an |RSA| object. This
+// means invalid inputs may be caught late.
+//
+// TODO(crbug.com/boringssl/316): This deferred initialization also causes
+// performance problems in multi-threaded applications. The preferred APIs
+// currently have the same issues, but they will initialize eagerly in the
+// future.
+
 // RSA_set0_key sets |rsa|'s modulus, public exponent, and private exponent to
 // |n|, |e|, and |d| respectively, if non-NULL. On success, it takes ownership
 // of each argument and returns one. Otherwise, it returns zero.
@@ -207,6 +236,13 @@ OPENSSL_EXPORT int RSA_generate_key_fips(RSA *rsa, int bits, BN_GENCB *cb);
 
 // RSA_PKCS1_PADDING denotes PKCS#1 v1.5 padding. When used with encryption,
 // this is RSAES-PKCS1-v1_5. When used with signing, this is RSASSA-PKCS1-v1_5.
+//
+// WARNING: The RSAES-PKCS1-v1_5 encryption scheme is vulnerable to a
+// chosen-ciphertext attack. Decrypting attacker-supplied ciphertext with
+// RSAES-PKCS1-v1_5 may give the attacker control over your private key. This
+// does not impact the RSASSA-PKCS1-v1_5 signature scheme. See "Chosen
+// Ciphertext Attacks Against Protocols Based on the RSA Encryption Standard
+// PKCS #1", Daniel Bleichenbacher, Advances in Cryptology (Crypto '98).
 #define RSA_PKCS1_PADDING 1
 
 // RSA_NO_PADDING denotes a raw RSA operation.
@@ -227,8 +263,7 @@ OPENSSL_EXPORT int RSA_generate_key_fips(RSA *rsa, int bits, BN_GENCB *cb);
 // It returns 1 on success or zero on error.
 //
 // The |padding| argument must be one of the |RSA_*_PADDING| values. If in
-// doubt, use |RSA_PKCS1_OAEP_PADDING| for new protocols but
-// |RSA_PKCS1_PADDING| is most common.
+// doubt, use |RSA_PKCS1_OAEP_PADDING| for new protocols.
 OPENSSL_EXPORT int RSA_encrypt(RSA *rsa, size_t *out_len, uint8_t *out,
                                size_t max_out, const uint8_t *in, size_t in_len,
                                int padding);
@@ -242,12 +277,16 @@ OPENSSL_EXPORT int RSA_encrypt(RSA *rsa, size_t *out_len, uint8_t *out,
 // The |padding| argument must be one of the |RSA_*_PADDING| values. If in
 // doubt, use |RSA_PKCS1_OAEP_PADDING| for new protocols.
 //
-// Passing |RSA_PKCS1_PADDING| into this function is deprecated and insecure. If
-// implementing a protocol using RSAES-PKCS1-V1_5, use |RSA_NO_PADDING| and then
-// check padding in constant-time combined with a swap to a random session key
-// or other mitigation. See "Chosen Ciphertext Attacks Against Protocols Based
-// on the RSA Encryption Standard PKCS #1", Daniel Bleichenbacher, Advances in
-// Cryptology (Crypto '98).
+// WARNING: Passing |RSA_PKCS1_PADDING| into this function is deprecated and
+// insecure. RSAES-PKCS1-v1_5 is vulnerable to a chosen-ciphertext attack.
+// Decrypting attacker-supplied ciphertext with RSAES-PKCS1-v1_5 may give the
+// attacker control over your private key. See "Chosen Ciphertext Attacks
+// Against Protocols Based on the RSA Encryption Standard PKCS #1", Daniel
+// Bleichenbacher, Advances in Cryptology (Crypto '98).
+//
+// In some limited cases, such as TLS RSA key exchange, it is possible to
+// mitigate this flaw with custom, protocol-specific padding logic. This
+// should be implemented with |RSA_NO_PADDING|, not |RSA_PKCS1_PADDING|.
 OPENSSL_EXPORT int RSA_decrypt(RSA *rsa, size_t *out_len, uint8_t *out,
                                size_t max_out, const uint8_t *in, size_t in_len,
                                int padding);
@@ -256,8 +295,7 @@ OPENSSL_EXPORT int RSA_decrypt(RSA *rsa, size_t *out_len, uint8_t *out,
 // |rsa| and writes the encrypted data to |to|. The |to| buffer must have at
 // least |RSA_size| bytes of space. It returns the number of bytes written, or
 // -1 on error. The |padding| argument must be one of the |RSA_*_PADDING|
-// values. If in doubt, use |RSA_PKCS1_OAEP_PADDING| for new protocols but
-// |RSA_PKCS1_PADDING| is most common.
+// values. If in doubt, use |RSA_PKCS1_OAEP_PADDING| for new protocols.
 //
 // WARNING: this function is dangerous because it breaks the usual return value
 // convention. Use |RSA_encrypt| instead.
@@ -298,8 +336,8 @@ OPENSSL_EXPORT int RSA_private_decrypt(size_t flen, const uint8_t *from,
 // |hash_nid|. Passing unhashed inputs will not result in a secure signature
 // scheme.
 OPENSSL_EXPORT int RSA_sign(int hash_nid, const uint8_t *digest,
-                            unsigned digest_len, uint8_t *out,
-                            unsigned *out_len, RSA *rsa);
+                            size_t digest_len, uint8_t *out, unsigned *out_len,
+                            RSA *rsa);
 
 // RSA_sign_pss_mgf1 signs |digest_len| bytes from |digest| with the public key
 // from |rsa| using RSASSA-PSS with MGF1 as the mask generation function. It
@@ -570,6 +608,48 @@ OPENSSL_EXPORT int RSA_private_key_to_bytes(uint8_t **out_bytes,
                                             size_t *out_len, const RSA *rsa);
 
 
+// Obscure RSA variants.
+//
+// These functions allow creating RSA keys with obscure combinations of
+// parameters.
+
+// RSA_new_private_key_no_crt behaves like |RSA_new_private_key| but constructs
+// an RSA key without CRT coefficients.
+//
+// Keys created by this function will be less performant and cannot be
+// serialized.
+OPENSSL_EXPORT RSA *RSA_new_private_key_no_crt(const BIGNUM *n, const BIGNUM *e,
+                                               const BIGNUM *d);
+
+// RSA_new_private_key_no_e behaves like |RSA_new_private_key| but constructs an
+// RSA key without CRT parameters or public exponent.
+//
+// Keys created by this function will be less performant, cannot be serialized,
+// and lack hardening measures that protect against side channels and fault
+// attacks.
+OPENSSL_EXPORT RSA *RSA_new_private_key_no_e(const BIGNUM *n, const BIGNUM *d);
+
+// RSA_new_public_key_large_e behaves like |RSA_new_public_key| but allows any
+// |e| up to |n|.
+//
+// BoringSSL typically bounds public exponents as a denial-of-service
+// mitigation. Keys created by this function may perform worse than those
+// created by |RSA_new_public_key|.
+OPENSSL_EXPORT RSA *RSA_new_public_key_large_e(const BIGNUM *n,
+                                               const BIGNUM *e);
+
+// RSA_new_private_key_large_e behaves like |RSA_new_private_key| but allows any
+// |e| up to |n|.
+//
+// BoringSSL typically bounds public exponents as a denial-of-service
+// mitigation. Keys created by this function may perform worse than those
+// created by |RSA_new_private_key|.
+OPENSSL_EXPORT RSA *RSA_new_private_key_large_e(
+    const BIGNUM *n, const BIGNUM *e, const BIGNUM *d, const BIGNUM *p,
+    const BIGNUM *q, const BIGNUM *dmp1, const BIGNUM *dmq1,
+    const BIGNUM *iqmp);
+
+
 // ex_data functions.
 //
 // See |ex_data.h| for details.
@@ -600,6 +680,17 @@ OPENSSL_EXPORT void *RSA_get_ex_data(const RSA *rsa, int idx);
 // RSA_FLAG_EXT_PKEY is deprecated and ignored.
 #define RSA_FLAG_EXT_PKEY 0x20
 
+// RSA_FLAG_NO_PUBLIC_EXPONENT indicates that private keys without a public
+// exponent are allowed. This is an internal constant. Use
+// |RSA_new_private_key_no_e| to construct such keys.
+#define RSA_FLAG_NO_PUBLIC_EXPONENT 0x40
+
+// RSA_FLAG_LARGE_PUBLIC_EXPONENT indicates that keys with a large public
+// exponent are allowed. This is an internal constant. Use
+// |RSA_new_public_key_large_e| and |RSA_new_private_key_large_e| to construct
+// such keys.
+#define RSA_FLAG_LARGE_PUBLIC_EXPONENT 0x80
+
 
 // RSA public exponent values.
 
@@ -615,6 +706,9 @@ OPENSSL_EXPORT void *RSA_get_ex_data(const RSA *rsa, int idx);
 // constants.
 OPENSSL_EXPORT int RSA_flags(const RSA *rsa);
 
+// RSA_test_flags returns the subset of flags in |flags| which are set in |rsa|.
+OPENSSL_EXPORT int RSA_test_flags(const RSA *rsa, int flags);
+
 // RSA_blinding_on returns one.
 OPENSSL_EXPORT int RSA_blinding_on(RSA *rsa, BN_CTX *ctx);
 
@@ -622,7 +716,7 @@ OPENSSL_EXPORT int RSA_blinding_on(RSA *rsa, BN_CTX *ctx);
 // should use instead. It returns NULL on error, or a newly-allocated |RSA| on
 // success. This function is provided for compatibility only. The |callback|
 // and |cb_arg| parameters must be NULL.
-OPENSSL_EXPORT RSA *RSA_generate_key(int bits, unsigned long e, void *callback,
+OPENSSL_EXPORT RSA *RSA_generate_key(int bits, uint64_t e, void *callback,
                                      void *cb_arg);
 
 // d2i_RSAPublicKey parses a DER-encoded RSAPublicKey structure (RFC 8017) from
@@ -685,6 +779,14 @@ OPENSSL_EXPORT int RSA_print(BIO *bio, const RSA *rsa, int indent);
 // the id-RSASSA-PSS key encoding.
 OPENSSL_EXPORT const RSA_PSS_PARAMS *RSA_get0_pss_params(const RSA *rsa);
 
+// RSA_new_method_no_e returns a newly-allocated |RSA| object backed by
+// |engine|, with a public modulus of |n| and no known public exponent.
+//
+// Do not use this function. It exists only to support Conscrypt, whose use
+// should be replaced with a more sound mechanism. See
+// https://crbug.com/boringssl/602.
+OPENSSL_EXPORT RSA *RSA_new_method_no_e(const ENGINE *engine, const BIGNUM *n);
+
 
 struct rsa_meth_st {
   struct openssl_method_common_st common;
@@ -722,67 +824,6 @@ struct rsa_meth_st {
                            size_t len);
 
   int flags;
-};
-
-
-// Private functions.
-
-typedef struct bn_blinding_st BN_BLINDING;
-
-struct rsa_st {
-  RSA_METHOD *meth;
-
-  // Access to the following fields was historically allowed, but
-  // deprecated. Use |RSA_get0_*| and |RSA_set0_*| instead. Access to all other
-  // fields is forbidden and will cause threading errors.
-  BIGNUM *n;
-  BIGNUM *e;
-  BIGNUM *d;
-  BIGNUM *p;
-  BIGNUM *q;
-  BIGNUM *dmp1;
-  BIGNUM *dmq1;
-  BIGNUM *iqmp;
-
-  // be careful using this if the RSA structure is shared
-  CRYPTO_EX_DATA ex_data;
-  CRYPTO_refcount_t references;
-  int flags;
-
-  CRYPTO_MUTEX lock;
-
-  // Used to cache montgomery values. The creation of these values is protected
-  // by |lock|.
-  BN_MONT_CTX *mont_n;
-  BN_MONT_CTX *mont_p;
-  BN_MONT_CTX *mont_q;
-
-  // The following fields are copies of |d|, |dmp1|, and |dmq1|, respectively,
-  // but with the correct widths to prevent side channels. These must use
-  // separate copies due to threading concerns caused by OpenSSL's API
-  // mistakes. See https://github.com/openssl/openssl/issues/5158 and
-  // the |freeze_private_key| implementation.
-  BIGNUM *d_fixed, *dmp1_fixed, *dmq1_fixed;
-
-  // inv_small_mod_large_mont is q^-1 mod p in Montgomery form, using |mont_p|,
-  // if |p| >= |q|. Otherwise, it is p^-1 mod q in Montgomery form, using
-  // |mont_q|.
-  BIGNUM *inv_small_mod_large_mont;
-
-  // num_blindings contains the size of the |blindings| and |blindings_inuse|
-  // arrays. This member and the |blindings_inuse| array are protected by
-  // |lock|.
-  unsigned num_blindings;
-  // blindings is an array of BN_BLINDING structures that can be reserved by a
-  // thread by locking |lock| and changing the corresponding element in
-  // |blindings_inuse| from 0 to 1.
-  BN_BLINDING **blindings;
-  unsigned char *blindings_inuse;
-  uint64_t blinding_fork_generation;
-
-  // private_key_frozen is one if the key has been used for a private key
-  // operation and may no longer be mutated.
-  unsigned private_key_frozen:1;
 };
 
 

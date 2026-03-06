@@ -60,7 +60,7 @@
 #include <openssl_grpc/base.h>
 
 #include <openssl_grpc/bytestring.h>
-#include <openssl_grpc/nid.h>
+#include <openssl_grpc/nid.h>  // IWYU pragma: export
 
 #if defined(__cplusplus)
 extern "C" {
@@ -148,6 +148,10 @@ OPENSSL_EXPORT int OBJ_txt2nid(const char *s);
 // a non-const pointer and manage ownership.
 OPENSSL_EXPORT ASN1_OBJECT *OBJ_nid2obj(int nid);
 
+// OBJ_get_undef returns the object for |NID_undef|. Prefer this function over
+// |OBJ_nid2obj| to avoid pulling in the full OID table.
+OPENSSL_EXPORT const ASN1_OBJECT *OBJ_get_undef(void);
+
 // OBJ_nid2sn returns the short name for |nid|, or NULL if |nid| is unknown.
 OPENSSL_EXPORT const char *OBJ_nid2sn(int nid);
 
@@ -183,8 +187,15 @@ OPENSSL_EXPORT int OBJ_obj2txt(char *out, int out_len, const ASN1_OBJECT *obj,
 
 // Adding objects at runtime.
 
-// OBJ_create adds a known object and returns the nid of the new object, or
+// OBJ_create adds a known object and returns the NID of the new object, or
 // NID_undef on error.
+//
+// WARNING: This function modifies global state. The table cannot contain
+// duplicate OIDs, short names, or long names. If two callers in the same
+// address space add conflicting values, only one registration will take effect.
+// Avoid this function if possible. Instead, callers can process OIDs unknown to
+// BoringSSL by acting on the byte representation directly. See
+// |ASN1_OBJECT_create|, |OBJ_get0_data|, and |OBJ_length|.
 OPENSSL_EXPORT int OBJ_create(const char *oid, const char *short_name,
                               const char *long_name);
 

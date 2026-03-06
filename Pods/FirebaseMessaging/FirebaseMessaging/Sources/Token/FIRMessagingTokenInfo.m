@@ -26,7 +26,7 @@
  *              created from a dictionary. The same keys are used
  *              when decoding/encoding an archive.
  */
-/// Specifies a dictonary key whose value represents the authorized entity, or
+/// Specifies a dictionary key whose value represents the authorized entity, or
 /// Sender ID for the token.
 static NSString *const kFIRInstanceIDAuthorizedEntityKey = @"authorized_entity";
 /// Specifies a dictionary key whose value represents the scope of the token,
@@ -133,65 +133,66 @@ static const NSTimeInterval kDefaultFetchTokenInterval = 7 * 24 * 60 * 60;  // 7
   return [self.scope isEqualToString:kFIRMessagingDefaultTokenScope];
 }
 
-#pragma mark - NSCoding
+#pragma mark - NSSecureCoding
+
++ (BOOL)supportsSecureCoding {
+  return YES;
+}
 
 - (nullable instancetype)initWithCoder:(NSCoder *)aDecoder {
+  BOOL needsMigration = NO;
   // These value cannot be nil
 
-  id authorizedEntity = [aDecoder decodeObjectForKey:kFIRInstanceIDAuthorizedEntityKey];
-  if (![authorizedEntity isKindOfClass:[NSString class]]) {
+  NSString *authorizedEntity = [aDecoder decodeObjectOfClass:[NSString class]
+                                                      forKey:kFIRInstanceIDAuthorizedEntityKey];
+  if (!authorizedEntity) {
     return nil;
   }
 
-  id scope = [aDecoder decodeObjectForKey:kFIRInstanceIDScopeKey];
-  if (![scope isKindOfClass:[NSString class]]) {
+  NSString *scope = [aDecoder decodeObjectOfClass:[NSString class] forKey:kFIRInstanceIDScopeKey];
+  if (!scope) {
     return nil;
   }
 
-  id token = [aDecoder decodeObjectForKey:kFIRInstanceIDTokenKey];
-  if (![token isKindOfClass:[NSString class]]) {
+  NSString *token = [aDecoder decodeObjectOfClass:[NSString class] forKey:kFIRInstanceIDTokenKey];
+  if (!token) {
     return nil;
   }
 
-  // These values are nullable, so only fail the decode if the type does not match
+  // These values are nullable, so don't fail on nil.
 
-  id appVersion = [aDecoder decodeObjectForKey:kFIRInstanceIDAppVersionKey];
-  if (appVersion && ![appVersion isKindOfClass:[NSString class]]) {
-    return nil;
-  }
+  NSString *appVersion = [aDecoder decodeObjectOfClass:[NSString class]
+                                                forKey:kFIRInstanceIDAppVersionKey];
+  NSString *firebaseAppID = [aDecoder decodeObjectOfClass:[NSString class]
+                                                   forKey:kFIRInstanceIDFirebaseAppIDKey];
 
-  id firebaseAppID = [aDecoder decodeObjectForKey:kFIRInstanceIDFirebaseAppIDKey];
-  if (firebaseAppID && ![firebaseAppID isKindOfClass:[NSString class]]) {
-    return nil;
-  }
-
-  id rawAPNSInfo = [aDecoder decodeObjectForKey:kFIRInstanceIDAPNSInfoKey];
-  if (rawAPNSInfo && ![rawAPNSInfo isKindOfClass:[NSData class]]) {
-    return nil;
-  }
-
-  FIRMessagingAPNSInfo *APNSInfo = nil;
-  if (rawAPNSInfo) {
-    // TODO(chliangGoogle: Use the new API and secureCoding protocol.
+  NSSet *classes = [[NSSet alloc] initWithArray:@[ FIRMessagingAPNSInfo.class ]];
+  FIRMessagingAPNSInfo *rawAPNSInfo = [aDecoder decodeObjectOfClasses:classes
+                                                               forKey:kFIRInstanceIDAPNSInfoKey];
+  if (rawAPNSInfo && ![rawAPNSInfo isKindOfClass:[FIRMessagingAPNSInfo class]]) {
+    // If the decoder fails to decode a FIRMessagingAPNSInfo, check if this was archived by a
+    // FirebaseMessaging 10.18.0 or earlier.
+    // TODO(#12246) This block may be replaced with `rawAPNSInfo = nil` once we're confident all
+    // users have upgraded to at least 10.19.0. Perhaps, after privacy manifests have been required
+    // for awhile?
     @try {
-      [NSKeyedUnarchiver setClass:[FIRMessagingAPNSInfo class]
-                     forClassName:@"FIRInstanceIDAPNSInfo"];
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-      APNSInfo = [NSKeyedUnarchiver unarchiveObjectWithData:rawAPNSInfo];
-#pragma clang diagnostic pop
+      NSKeyedUnarchiver *unarchiver =
+          [[NSKeyedUnarchiver alloc] initForReadingFromData:(NSData *)rawAPNSInfo error:nil];
+      unarchiver.requiresSecureCoding = NO;
+      [unarchiver setClass:[FIRMessagingAPNSInfo class] forClassName:@"FIRInstanceIDAPNSInfo"];
+      rawAPNSInfo = [unarchiver decodeObjectForKey:NSKeyedArchiveRootObjectKey];
+      [unarchiver finishDecoding];
+      needsMigration = YES;
     } @catch (NSException *exception) {
       FIRMessagingLoggerInfo(kFIRMessagingMessageCodeTokenInfoBadAPNSInfo,
                              @"Could not parse raw APNS Info while parsing archived token info.");
-      APNSInfo = nil;
+      rawAPNSInfo = nil;
     } @finally {
     }
   }
 
-  id cacheTime = [aDecoder decodeObjectForKey:kFIRInstanceIDCacheTimeKey];
-  if (cacheTime && ![cacheTime isKindOfClass:[NSDate class]]) {
-    return nil;
-  }
+  NSDate *cacheTime = [aDecoder decodeObjectOfClass:[NSDate class]
+                                             forKey:kFIRInstanceIDCacheTimeKey];
 
   self = [super init];
   if (self) {
@@ -200,8 +201,9 @@ static const NSTimeInterval kDefaultFetchTokenInterval = 7 * 24 * 60 * 60;  // 7
     _token = [token copy];
     _appVersion = [appVersion copy];
     _firebaseAppID = [firebaseAppID copy];
-    _APNSInfo = [APNSInfo copy];
+    _APNSInfo = [rawAPNSInfo copy];
     _cacheTime = cacheTime;
+    _needsMigration = needsMigration;
   }
   return self;
 }
@@ -212,16 +214,8 @@ static const NSTimeInterval kDefaultFetchTokenInterval = 7 * 24 * 60 * 60;  // 7
   [aCoder encodeObject:self.token forKey:kFIRInstanceIDTokenKey];
   [aCoder encodeObject:self.appVersion forKey:kFIRInstanceIDAppVersionKey];
   [aCoder encodeObject:self.firebaseAppID forKey:kFIRInstanceIDFirebaseAppIDKey];
-  NSData *rawAPNSInfo;
   if (self.APNSInfo) {
-    // TODO(chliangGoogle: Use the new API and secureCoding protocol.
-    [NSKeyedArchiver setClassName:@"FIRInstanceIDAPNSInfo" forClass:[FIRMessagingAPNSInfo class]];
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    rawAPNSInfo = [NSKeyedArchiver archivedDataWithRootObject:self.APNSInfo];
-#pragma clang diagnostic pop
-
-    [aCoder encodeObject:rawAPNSInfo forKey:kFIRInstanceIDAPNSInfoKey];
+    [aCoder encodeObject:self.APNSInfo forKey:kFIRInstanceIDAPNSInfoKey];
   }
   [aCoder encodeObject:self.cacheTime forKey:kFIRInstanceIDCacheTimeKey];
 }

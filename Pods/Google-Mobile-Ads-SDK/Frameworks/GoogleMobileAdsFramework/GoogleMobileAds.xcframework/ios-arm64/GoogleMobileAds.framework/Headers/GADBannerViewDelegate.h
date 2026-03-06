@@ -22,7 +22,7 @@
 - (void)bannerViewDidReceiveAd:(nonnull GADBannerView *)bannerView;
 
 /// Tells the delegate that an ad request failed. The failure is normally due to network
-/// connectivity or ad availablility (for example, no fill).
+/// connectivity or ad availability (for example, no fill).
 - (void)bannerView:(nonnull GADBannerView *)bannerView
     didFailToReceiveAdWithError:(nonnull NSError *)error;
 

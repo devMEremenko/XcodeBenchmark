@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef GRPC_CORE_LIB_SECURITY_AUTHORIZATION_AUTHORIZATION_ENGINE_H
-#define GRPC_CORE_LIB_SECURITY_AUTHORIZATION_AUTHORIZATION_ENGINE_H
+#ifndef GRPC_SRC_CORE_LIB_SECURITY_AUTHORIZATION_AUTHORIZATION_ENGINE_H
+#define GRPC_SRC_CORE_LIB_SECURITY_AUTHORIZATION_AUTHORIZATION_ENGINE_H
 
 #include <grpc/support/port_platform.h>
 
 #include <string>
 
-#include "src/core/lib/gprpp/ref_counted.h"
 #include "src/core/lib/security/authorization/evaluate_args.h"
+#include "src/core/util/ref_counted.h"
 
 namespace grpc_core {
 
@@ -41,4 +41,4 @@ class AuthorizationEngine : public RefCounted<AuthorizationEngine> {
 
 }  // namespace grpc_core
 
-#endif  // GRPC_CORE_LIB_SECURITY_AUTHORIZATION_AUTHORIZATION_ENGINE_H
+#endif  // GRPC_SRC_CORE_LIB_SECURITY_AUTHORIZATION_AUTHORIZATION_ENGINE_H

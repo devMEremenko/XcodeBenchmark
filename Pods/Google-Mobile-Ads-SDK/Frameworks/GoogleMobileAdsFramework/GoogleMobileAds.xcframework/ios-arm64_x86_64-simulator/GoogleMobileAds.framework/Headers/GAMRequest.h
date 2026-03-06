@@ -17,7 +17,4 @@
 /// Array of strings used to exclude specified categories in ad results.
 @property(nonatomic, copy, nullable) NSArray<NSString *> *categoryExclusions;
 
-/// Key-value pairs used for custom targeting.
-@property(nonatomic, copy, nullable) NSDictionary<NSString *, NSString *> *customTargeting;
-
 @end

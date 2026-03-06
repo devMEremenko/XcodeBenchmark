@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ABSL_STRINGS_CORDZ_INFO_H_
-#define ABSL_STRINGS_CORDZ_INFO_H_
+#ifndef ABSL_STRINGS_INTERNAL_CORDZ_INFO_H_
+#define ABSL_STRINGS_INTERNAL_CORDZ_INFO_H_
 
 #include <atomic>
 #include <cstdint>
@@ -60,7 +60,8 @@ class ABSL_LOCKABLE CordzInfo : public CordzHandle {
   // and/or deleted. `method` identifies the Cord public API method initiating
   // the cord to be sampled.
   // Requires `cord` to hold a tree, and `cord.cordz_info()` to be null.
-  static void TrackCord(InlineData& cord, MethodIdentifier method);
+  static void TrackCord(InlineData& cord, MethodIdentifier method,
+                        int64_t sampling_stride);
 
   // Identical to TrackCord(), except that this function fills the
   // `parent_stack` and `parent_method` properties of the returned CordzInfo
@@ -181,6 +182,8 @@ class ABSL_LOCKABLE CordzInfo : public CordzHandle {
   // or RemovePrefix.
   CordzStatistics GetCordzStatistics() const;
 
+  int64_t sampling_stride() const { return sampling_stride_; }
+
  private:
   using SpinLock = absl::base_internal::SpinLock;
   using SpinLockHolder = ::absl::base_internal::SpinLockHolder;
@@ -196,10 +199,10 @@ class ABSL_LOCKABLE CordzInfo : public CordzHandle {
     std::atomic<CordzInfo*> head ABSL_GUARDED_BY(mutex){nullptr};
   };
 
-  static constexpr int kMaxStackDepth = 64;
+  static constexpr size_t kMaxStackDepth = 64;
 
   explicit CordzInfo(CordRep* rep, const CordzInfo* src,
-                     MethodIdentifier method);
+                     MethodIdentifier method, int64_t weight);
   ~CordzInfo() override;
 
   // Sets `rep_` without holding a lock.
@@ -216,7 +219,7 @@ class ABSL_LOCKABLE CordzInfo : public CordzHandle {
   // `stack_` depending on `parent_stack_` being empty, returning the size of
   // the parent stack.
   // Returns 0 if `src` is null.
-  static int FillParentStack(const CordzInfo* src, void** stack);
+  static size_t FillParentStack(const CordzInfo* src, void** stack);
 
   void ODRCheck() const {
 #ifndef NDEBUG
@@ -244,18 +247,20 @@ class ABSL_LOCKABLE CordzInfo : public CordzHandle {
 
   void* stack_[kMaxStackDepth];
   void* parent_stack_[kMaxStackDepth];
-  const int stack_depth_;
-  const int parent_stack_depth_;
+  const size_t stack_depth_;
+  const size_t parent_stack_depth_;
   const MethodIdentifier method_;
   const MethodIdentifier parent_method_;
   CordzUpdateTracker update_tracker_;
   const absl::Time create_time_;
+  const int64_t sampling_stride_;
 };
 
 inline ABSL_ATTRIBUTE_ALWAYS_INLINE void CordzInfo::MaybeTrackCord(
     InlineData& cord, MethodIdentifier method) {
-  if (ABSL_PREDICT_FALSE(cordz_should_profile())) {
-    TrackCord(cord, method);
+  auto stride = cordz_should_profile();
+  if (ABSL_PREDICT_FALSE(stride > 0)) {
+    TrackCord(cord, method, stride);
   }
 }
 
@@ -295,4 +300,4 @@ inline CordRep* CordzInfo::RefCordRep() const ABSL_LOCKS_EXCLUDED(mutex_) {
 ABSL_NAMESPACE_END
 }  // namespace absl
 
-#endif  // ABSL_STRINGS_CORDZ_INFO_H_
+#endif  // ABSL_STRINGS_INTERNAL_CORDZ_INFO_H_
