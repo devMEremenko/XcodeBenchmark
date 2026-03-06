@@ -18,6 +18,7 @@ If a device you are looking for is not listed below, check out open [issues](htt
 | Macbook Pro 16" 2024 |      M2 Pro 12c         | 16  | 1TB | 26.1  |  26.1    |    158    |
 | Mac Mini 2023        |      M2 Pro 10c         | 16  | 512 | 26.1  |  26.1    |    185    |
 | Macbook Air 13" 2024 |      M4 10c (10c GPU)   | 16  | 256 | 26.1  |  26.1    |    188    | 
+| Macbook Pro 14" 2024 |      M4 Pro 10c (10c GPU)   | 24  | 512 | 26.0  |  26.1    |    126.634    | 
 
 
 ## Xcode 16 
