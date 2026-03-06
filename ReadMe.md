@@ -15,6 +15,10 @@ If a device you are looking for is not listed below, check out open [issues](htt
 |:--------------------:|:-----------------------:|:---:|:---:|:-----:|:--------:|:---------:|
 | Mac Studio 2023      |      M2 Ultra 24-core   | 64  | 2TB | 26.2  |  26.2    |    93     |
 | Macbook Pro 16" 2024 |      M4 Pro 14c         | 48  | 1TB | 26.1  |  15.7.1  |    104    |
+| Macbook Pro 16" 2024 |      M2 Pro 12c         | 16  | 1TB | 26.1  |  26.1    |    158    |
+| Mac Mini 2023        |      M2 Pro 10c         | 16  | 512 | 26.1  |  26.1    |    185    |
+| Macbook Air 13" 2024 |      M4 10c (10c GPU)   | 16  | 256 | 26.1  |  26.1    |    188    | 
+| Macbook Air 13" 2024 |      M3 8 core          | 16  | 512 | 26.2  |  26.2    |    240    | 
 | Mac Studio 2022      |      M1 Ultra 20-core   | 128 | 1TB | 26.1.1|  26.1    |    112    |
 | MacBook Pro 14" 2024 |      M4 Pro 12c         | 24  | 512 | 26.3  |  26.3    |    164    |
 | Macbook Air 13" 2024 |      M4 10c (10c GPU)   | 16  | 256 | 26.1  |  26.1    |    188    |
@@ -61,7 +65,9 @@ _XcodeBenchmark has been updated to support Xcode 16.3, and new submissions must
 | MacBook Air 13" 2024 |      M3 8-core          | 16  | 256 | 16.2  |   14.6   |    184    |
 | MacBook Air 13" 2022 |      M2 8-core          | 16  | 512 | 16.1  |   15.1   |    202    |
 | MacBook Air 13" 2020 |      M1 8c (7c GPU)     |  8  | 256 | 16.2  |   15.3.2 |    242    |
+| MacBook Air 13" 2024 |      M3 8-core          | 16  | 512 | 16.4  |   26.2   |    247    |
 | MacBook Pro 13" 2020 |      M1 8c (8c GPU)     | 16  | 256 | 16.1  |   15.1   |    258    |
+| MacBook Air 13" 2022 |      M2 8c (8c GPU)     | 8   | 256 | 16.4  |   26.1   |    288    |
 | iMac19,2 21.5" 2019  |      i7 3.2 GHz         | 16  | 512 | 16.2  |   14.7.5 |    349    |
 | Mac Mini 2018        |      i7 3.2 GHz         | 64  | 512 | 16.1  |   15.1   |    490    |
 | MacBook Pro 15" 2014 |      i7 2.8 GHz 4-core  | 16  | 1TB | 16.4  |   15.6   |    1003   |
