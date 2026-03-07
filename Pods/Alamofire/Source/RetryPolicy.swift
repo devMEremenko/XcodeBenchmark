@@ -56,7 +56,7 @@ open class RetryPolicy: RequestInterceptor {
     ]
 
     /// The default URL error codes to retry.
-    public static let defaultRetryableURLErrorCodes: Set<URLError.Code> = [// [Security] App Transport Security disallowed a connection because there is no secure network connection.
+    public static let defaultRetryableURLErrorCodes: Set<URLError.Code> = [ // [Security] App Transport Security disallowed a connection because there is no secure network connection.
         //   - [Disabled] ATS settings do not change at runtime.
         // .appTransportSecurityRequiresSecureConnection,
 
@@ -64,7 +64,7 @@ open class RetryPolicy: RequestInterceptor {
         // process.
         //   - [Enabled] The other process could release the background session.
         .backgroundSessionInUseByAnotherProcess,
-                                                                           
+
         // [System] The shared container identifier of the URL session configuration is needed but has not been set.
         //   - [Disabled] Cannot change at runtime.
         // .backgroundSessionRequiresSharedContainer,
@@ -72,11 +72,11 @@ open class RetryPolicy: RequestInterceptor {
         // [System] The app is suspended or exits while a background data task is processing.
         //   - [Enabled] App can be foregrounded or launched to recover.
         .backgroundSessionWasDisconnected,
-                                                                           
+
         // [Network] The URL Loading system received bad data from the server.
         //   - [Enabled] Server could return valid data when retrying.
         .badServerResponse,
-                                                                           
+
         // [Resource] A malformed URL prevented a URL request from being initiated.
         //   - [Disabled] URL was most likely constructed incorrectly.
         // .badURL,
@@ -85,7 +85,7 @@ open class RetryPolicy: RequestInterceptor {
         // simultaneous phone and data communication (EDGE or GPRS).
         //   - [Enabled] Phone call could be ended to allow request to recover.
         .callIsActive,
-                                                                           
+
         // [Client] An asynchronous load has been canceled.
         //   - [Disabled] Request was cancelled by the client.
         // .cancelled,
@@ -97,7 +97,7 @@ open class RetryPolicy: RequestInterceptor {
         // [Network] An attempt to connect to a host failed.
         //   - [Enabled] Server or DNS lookup could recover during retry.
         .cannotConnectToHost,
-                                                                           
+
         // [File System] A download task couldn’t create the downloaded file on disk because of an I/O failure.
         //   - [Disabled] File system error is unlikely to recover with retry.
         // .cannotCreateFile,
@@ -113,11 +113,11 @@ open class RetryPolicy: RequestInterceptor {
         // [Network] The host name for a URL could not be resolved.
         //   - [Enabled] Server or DNS lookup could recover during retry.
         .cannotFindHost,
-                                                                           
+
         // [Network] A request to load an item only from the cache could not be satisfied.
         //   - [Enabled] Cache could be populated during a retry.
         .cannotLoadFromNetwork,
-                                                                           
+
         // [File System] A download task was unable to move a downloaded file on disk.
         //   - [Disabled] File system error is unlikely to recover with retry.
         // .cannotMoveFile,
@@ -153,19 +153,19 @@ open class RetryPolicy: RequestInterceptor {
         // [System] The cellular network disallowed a connection.
         //   - [Enabled] WiFi connection could be established during retry.
         .dataNotAllowed,
-                                                                           
+
         // [Network] The host address could not be found via DNS lookup.
         //   - [Enabled] DNS lookup could succeed during retry.
         .dnsLookupFailed,
-                                                                           
+
         // [Data] A download task failed to decode an encoded file during the download.
         //   - [Enabled] Server could correct the decoding issue with retry.
         .downloadDecodingFailedMidStream,
-                                                                           
+
         // [Data] A download task failed to decode an encoded file after downloading.
         //   - [Enabled] Server could correct the decoding issue with retry.
         .downloadDecodingFailedToComplete,
-                                                                           
+
         // [File System] A file does not exist.
         //   - [Disabled] File system error is unlikely to recover with retry.
         // .fileDoesNotExist,
@@ -184,11 +184,11 @@ open class RetryPolicy: RequestInterceptor {
         // is disabled.
         //   - [Enabled] WiFi connection could be established during retry.
         .internationalRoamingOff,
-                                                                           
+
         // [Connectivity] A client or server connection was severed in the middle of an in-progress load.
         //   - [Enabled] A network connection could be established during retry.
         .networkConnectionLost,
-                                                                           
+
         // [File System] A resource couldn’t be read because of insufficient permissions.
         //   - [Disabled] Permissions are unlikely to be granted during retry.
         // .noPermissionsToReadFile,
@@ -197,7 +197,7 @@ open class RetryPolicy: RequestInterceptor {
         // cannot be established automatically.
         //   - [Enabled] A network connection could be established during retry.
         .notConnectedToInternet,
-                                                                           
+
         // [Resource] A redirect was specified by way of server response code, but the server did not accompany this
         // code with a redirect URL.
         //   - [Disabled] The redirect URL is unlikely to be supplied during a retry.
@@ -216,11 +216,11 @@ open class RetryPolicy: RequestInterceptor {
         //   - [Enabled] The secure connection could be established during a retry given the lack of specificity
         //     provided by the error.
         .secureConnectionFailed,
-                                                                           
+
         // [Security] A server certificate had a date which indicates it has expired, or is not yet valid.
         //   - [Enabled] The server certificate could become valid within the retry window.
         .serverCertificateHasBadDate,
-                                                                           
+
         // [Security] A server certificate was not signed by any root server.
         //   - [Disabled] The server certificate is unlikely to change during the retry window.
         // .serverCertificateHasUnknownRoot,
@@ -228,7 +228,7 @@ open class RetryPolicy: RequestInterceptor {
         // [Security] A server certificate is not yet valid.
         //   - [Enabled] The server certificate could become valid within the retry window.
         .serverCertificateNotYetValid,
-                                                                           
+
         // [Security] A server certificate was signed by a root server that isn’t trusted.
         //   - [Disabled] The server certificate is unlikely to become trusted within the retry window.
         // .serverCertificateUntrusted,
@@ -277,7 +277,7 @@ open class RetryPolicy: RequestInterceptor {
     /// The URL error codes that are automatically retried by the policy.
     public let retryableURLErrorCodes: Set<URLError.Code>
 
-    /// Creates an `ExponentialBackoffRetryPolicy` from the specified parameters.
+    /// Creates a `RetryPolicy` from the specified parameters.
     ///
     /// - Parameters:
     ///   - retryLimit:               The total number of times the request is allowed to be retried. `2` by default.
@@ -339,6 +339,39 @@ open class RetryPolicy: RequestInterceptor {
     }
 }
 
+extension RequestInterceptor where Self == RetryPolicy {
+    /// Provides a default `RetryPolicy` instance.
+    public static var retryPolicy: RetryPolicy { RetryPolicy() }
+
+    /// Creates an `RetryPolicy` from the specified parameters.
+    ///
+    /// - Parameters:
+    ///   - retryLimit:               The total number of times the request is allowed to be retried. `2` by default.
+    ///   - exponentialBackoffBase:   The base of the exponential backoff policy. `2` by default.
+    ///   - exponentialBackoffScale:  The scale of the exponential backoff. `0.5` by default.
+    ///   - retryableHTTPMethods:     The HTTP methods that are allowed to be retried.
+    ///                               `RetryPolicy.defaultRetryableHTTPMethods` by default.
+    ///   - retryableHTTPStatusCodes: The HTTP status codes that are automatically retried by the policy.
+    ///                               `RetryPolicy.defaultRetryableHTTPStatusCodes` by default.
+    ///   - retryableURLErrorCodes:   The URL error codes that are automatically retried by the policy.
+    ///                               `RetryPolicy.defaultRetryableURLErrorCodes` by default.
+    ///
+    /// - Returns:                    The `RetryPolicy`
+    public static func retryPolicy(retryLimit: UInt = RetryPolicy.defaultRetryLimit,
+                                   exponentialBackoffBase: UInt = RetryPolicy.defaultExponentialBackoffBase,
+                                   exponentialBackoffScale: Double = RetryPolicy.defaultExponentialBackoffScale,
+                                   retryableHTTPMethods: Set<HTTPMethod> = RetryPolicy.defaultRetryableHTTPMethods,
+                                   retryableHTTPStatusCodes: Set<Int> = RetryPolicy.defaultRetryableHTTPStatusCodes,
+                                   retryableURLErrorCodes: Set<URLError.Code> = RetryPolicy.defaultRetryableURLErrorCodes) -> RetryPolicy {
+        RetryPolicy(retryLimit: retryLimit,
+                    exponentialBackoffBase: exponentialBackoffBase,
+                    exponentialBackoffScale: exponentialBackoffScale,
+                    retryableHTTPMethods: retryableHTTPMethods,
+                    retryableHTTPStatusCodes: retryableHTTPStatusCodes,
+                    retryableURLErrorCodes: retryableURLErrorCodes)
+    }
+}
+
 // MARK: -
 
 /// A retry policy that automatically retries idempotent requests for network connection lost errors. For more
@@ -366,5 +399,32 @@ open class ConnectionLostRetryPolicy: RetryPolicy {
                    retryableHTTPMethods: retryableHTTPMethods,
                    retryableHTTPStatusCodes: [],
                    retryableURLErrorCodes: [.networkConnectionLost])
+    }
+}
+
+extension RequestInterceptor where Self == ConnectionLostRetryPolicy {
+    /// Provides a default `ConnectionLostRetryPolicy` instance.
+    public static var connectionLostRetryPolicy: ConnectionLostRetryPolicy { ConnectionLostRetryPolicy() }
+
+    /// Creates a `ConnectionLostRetryPolicy` instance from the specified parameters.
+    ///
+    /// - Parameters:
+    ///   - retryLimit:              The total number of times the request is allowed to be retried.
+    ///                              `RetryPolicy.defaultRetryLimit` by default.
+    ///   - exponentialBackoffBase:  The base of the exponential backoff policy.
+    ///                              `RetryPolicy.defaultExponentialBackoffBase` by default.
+    ///   - exponentialBackoffScale: The scale of the exponential backoff.
+    ///                              `RetryPolicy.defaultExponentialBackoffScale` by default.
+    ///   - retryableHTTPMethods:    The idempotent http methods to retry.
+    ///
+    /// - Returns:                   The `ConnectionLostRetryPolicy`.
+    public static func connectionLostRetryPolicy(retryLimit: UInt = RetryPolicy.defaultRetryLimit,
+                                                 exponentialBackoffBase: UInt = RetryPolicy.defaultExponentialBackoffBase,
+                                                 exponentialBackoffScale: Double = RetryPolicy.defaultExponentialBackoffScale,
+                                                 retryableHTTPMethods: Set<HTTPMethod> = RetryPolicy.defaultRetryableHTTPMethods) -> ConnectionLostRetryPolicy {
+        ConnectionLostRetryPolicy(retryLimit: retryLimit,
+                                  exponentialBackoffBase: exponentialBackoffBase,
+                                  exponentialBackoffScale: exponentialBackoffScale,
+                                  retryableHTTPMethods: retryableHTTPMethods)
     }
 }

@@ -27,7 +27,7 @@ import Foundation
 
 /// `AnomalyHandler` protocol serves as interface for various anomaly handlers.
 /// - SeeAlso: `MemoryStorageAnomaly`, `DTTableViewManagerAnomaly`, `DTCollectionViewManagerAnomaly`.
-public protocol AnomalyHandler: class {
+public protocol AnomalyHandler: AnyObject {
     associatedtype Anomaly : Equatable, CustomDebugStringConvertible
     var anomalyAction : (Anomaly) -> Void { get set }
     func reportAnomaly(_ anomaly: Anomaly)

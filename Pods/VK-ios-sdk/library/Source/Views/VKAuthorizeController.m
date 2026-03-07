@@ -171,9 +171,11 @@ NSString *VK_AUTHORIZE_URL_STRING = @"vkauthorize://authorize";
     }
 }
 
-- (void)didRotateFromInterfaceOrientation:(UIInterfaceOrientation)fromInterfaceOrientation {
-    [super didRotateFromInterfaceOrientation:fromInterfaceOrientation];
-    [self makeViewport];
+- (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
+    [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
+    [coordinator animateAlongsideTransition:nil completion:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
+        [self makeViewport];
+    }];
 }
 
 - (instancetype)initWith:(NSString *)appId andPermissions:(NSArray *)permissions revokeAccess:(BOOL)revoke displayType:(VKDisplayType)display {
@@ -233,7 +235,7 @@ NSString *VK_AUTHORIZE_URL_STRING = @"vkauthorize://authorize";
     if ([error code] != NSURLErrorCancelled) {
         self.warningLabel.hidden = NO;
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t) (500 * NSEC_PER_MSEC)), dispatch_get_main_queue(), ^(void) {
-            [webView loadRequest:_lastRequest];
+            [webView loadRequest:self->_lastRequest];
             if (!self.navigationItem.rightBarButtonItem)
                 [self setRightBarButtonActivity];
         });
@@ -251,7 +253,7 @@ NSString *VK_AUTHORIZE_URL_STRING = @"vkauthorize://authorize";
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation {
     [self makeViewport];
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t) (300 * NSEC_PER_MSEC)), dispatch_get_main_queue(), ^(void) {
-        _warningLabel.hidden = YES;
+        self->_warningLabel.hidden = YES;
         webView.hidden = NO;
         self.navigationItem.rightBarButtonItem = nil;
     });
@@ -266,11 +268,11 @@ NSString *VK_AUTHORIZE_URL_STRING = @"vkauthorize://authorize";
 
 - (void)cancelAuthorization:(id)sender {
     [self dismissWithCompletion:^{
-        if (!_validationError) {
+        if (!self->_validationError) {
             //Silent cancel
             [VKSdk processOpenInternalURL:[NSURL URLWithString:@"#"] validation:NO];
         } else {
-            [_validationError.request cancel];
+            [self->_validationError.request cancel];
         }
     }];
     if (_validationError) {
@@ -281,7 +283,7 @@ NSString *VK_AUTHORIZE_URL_STRING = @"vkauthorize://authorize";
     }
 }
 
-- (void)dismissWithCompletion:(void (^)())completion {
+- (void)dismissWithCompletion:(void (^)(void))completion {
     _finished = YES;
 
     if (_internalNavigationController.isBeingDismissed) {

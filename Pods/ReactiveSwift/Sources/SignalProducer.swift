@@ -61,12 +61,47 @@ public struct SignalProducer<Value, Error: Swift.Error> {
 	/// sent to the input `Observer`; or (2) when the produced `Signal` is
 	/// interrupted via the disposable yielded at the starting call.
 	///
+	/// - note: The provided input observer is thread safe.
+	///
 	/// - parameters:
 	///   - startHandler: The starting side effect.
 	public init(_ startHandler: @escaping (Signal<Value, Error>.Observer, Lifetime) -> Void) {
 		self.init(SignalCore {
 			let disposable = CompositeDisposable()
 			let (signal, observer) = Signal<Value, Error>.pipe(disposable: disposable)
+			let observerDidSetup = { startHandler(observer, Lifetime(disposable)) }
+			let interruptHandle = AnyDisposable(observer.sendInterrupted)
+
+			return SignalProducerCore.Instance(signal: signal,
+			                                   observerDidSetup: observerDidSetup,
+			                                   interruptHandle: interruptHandle)
+		})
+	}
+
+	/// Initialize a `SignalProducer` which invokes the supplied starting side
+	/// effect once upon the creation of every produced `Signal`, or in other
+	/// words, for every invocation of `startWithSignal(_:)`, `start(_:)` and
+	/// their convenience shorthands.
+	///
+	/// The supplied starting side effect would be given (1) an input `Observer`
+	/// to emit events to the produced `Signal`; and (2) a `Lifetime` to bind
+	/// resources to the lifetime of the produced `Signal`.
+	///
+	/// The `Lifetime` of a produced `Signal` ends when: (1) a terminal event is
+	/// sent to the input `Observer`; or (2) when the produced `Signal` is
+	/// interrupted via the disposable yielded at the starting call.
+	///
+	/// - warning: Like `Signal.unserialized(_:)`, the provided input observer **is not thread safe**.
+	///            Mutual exclusion is assumed to be enforced among the callers.
+	///
+	/// - parameters:
+	///   - startHandler: The starting side effect.
+	public static func unserialized(
+		_ startHandler: @escaping (Signal<Value, Error>.Observer, Lifetime) -> Void
+	) -> SignalProducer<Value, Error> {
+		return self.init(SignalCore {
+			let disposable = CompositeDisposable()
+			let (signal, observer) = Signal<Value, Error>.unserializedPipe(disposable: disposable)
 			let observerDidSetup = { startHandler(observer, Lifetime(disposable)) }
 			let interruptHandle = AnyDisposable(observer.sendInterrupted)
 
@@ -346,7 +381,7 @@ private final class TransformerCore<Value, Error: Swift.Error, SourceValue, Sour
 
 			// Wrap the output sink to enforce the "no event beyond the terminal
 			// event" contract, and the disposal upon termination.
-			let wrappedOutput: Signal<Value, Error>.Observer.Action = { event in
+			let wrappedOutput = Signal<Value, Error>.Observer { event in
 				if !hasDeliveredTerminalEvent {
 					output.send(event)
 
@@ -368,7 +403,7 @@ private final class TransformerCore<Value, Error: Swift.Error, SourceValue, Sour
 			let input = transform(wrappedOutput, Lifetime(disposables))
 
 			// Return the input sink to the source producer core.
-			return Signal<SourceValue, SourceError>.Observer(input)
+			return input.assumeUnboundDemand()
 		}
 
 		// Manual interruption disposes of `disposables`, which in turn notifies
@@ -384,7 +419,10 @@ private final class TransformerCore<Value, Error: Swift.Error, SourceValue, Sour
 
 	internal override func makeInstance() -> Instance {
 		let disposable = SerialDisposable()
-		let (signal, observer) = Signal<Value, Error>.pipe(disposable: disposable)
+
+		// The Event contract requires that event is serial, which `SignalProducer` adheres to. So it is unnecessary for
+		// us to add another level of serialization, since we would have "inherited" serialization as an observer.
+		let (signal, observer) = Signal<Value, Error>.unserializedPipe(disposable: disposable)
 
 		func observerDidSetup() {
 			start { interrupter in
@@ -500,6 +538,19 @@ extension SignalProducer where Error == Swift.Error {
 	}
 }
 
+#if swift(>=5.7)
+/// Represents reactive primitives that can be represented by `SignalProducer`.
+public protocol SignalProducerConvertible<Value, Error> {
+	/// The type of values being sent by `self`.
+	associatedtype Value
+
+	/// The type of error that can occur on `self`.
+	associatedtype Error: Swift.Error
+
+	/// The `SignalProducer` representation of `self`.
+	var producer: SignalProducer<Value, Error> { get }
+}
+#else
 /// Represents reactive primitives that can be represented by `SignalProducer`.
 public protocol SignalProducerConvertible {
 	/// The type of values being sent by `self`.
@@ -511,7 +562,21 @@ public protocol SignalProducerConvertible {
 	/// The `SignalProducer` representation of `self`.
 	var producer: SignalProducer<Value, Error> { get }
 }
+#endif
 
+#if swift(>=5.7)
+/// A protocol for constraining associated types to `SignalProducer`.
+public protocol SignalProducerProtocol<Value, Error> {
+	/// The type of values being sent by `self`.
+	associatedtype Value
+
+	/// The type of error that can occur on `self`.
+	associatedtype Error: Swift.Error
+
+	/// The materialized `self`.
+	var producer: SignalProducer<Value, Error> { get }
+}
+#else
 /// A protocol for constraining associated types to `SignalProducer`.
 public protocol SignalProducerProtocol {
 	/// The type of values being sent by `self`.
@@ -523,6 +588,7 @@ public protocol SignalProducerProtocol {
 	/// The materialized `self`.
 	var producer: SignalProducer<Value, Error> { get }
 }
+#endif
 
 extension SignalProducer: SignalProducerConvertible, SignalProducerProtocol {
 	public var producer: SignalProducer {
@@ -663,10 +729,12 @@ extension SignalProducer {
 	/// - returns: A signal producer that applies signal's operator to every
 	///            created signal.
 	public func lift<U, F>(_ transform: @escaping (Signal<Value, Error>) -> Signal<U, F>) -> SignalProducer<U, F> {
-		return SignalProducer<U, F> { observer, lifetime in
+		// The Event contract requires that event is serial, which `Signal` adheres to. So it is unnecessary for us to
+		// add another level of serialization, since we would have "inherited" serialization as an observer.
+		return SignalProducer<U, F>.unserialized { observer, lifetime in
 			self.startWithSignal { signal, interrupter in
 				lifetime += interrupter
-				transform(signal).observe(observer)
+				lifetime += transform(signal).observe(observer)
 			}
 		}
 	}
@@ -679,7 +747,7 @@ extension SignalProducer {
 	/// - returns: A factory that creates a SignalProducer with the given operator
 	///            applied. `self` would be the LHS, and the factory input would
 	///            be the RHS.
-	fileprivate func liftLeft<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
+	internal func liftLeft<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
 		return { right in
 			return SignalProducer<V, G> { observer, lifetime in
 				right.startWithSignal { rightSignal, rightInterrupter in
@@ -687,7 +755,7 @@ extension SignalProducer {
 
 					self.startWithSignal { leftSignal, leftInterrupter in
 						lifetime += leftInterrupter
-						transform(leftSignal)(rightSignal).observe(observer)
+						lifetime += transform(leftSignal)(rightSignal).observe(observer)
 					}
 				}
 			}
@@ -702,7 +770,7 @@ extension SignalProducer {
 	/// - returns: A factory that creates a SignalProducer with the given operator
 	///            applied. `self` would be the LHS, and the factory input would
 	///            be the RHS.
-	fileprivate func liftRight<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
+	internal func liftRight<U, F, V, G>(_ transform: @escaping (Signal<Value, Error>) -> (Signal<U, F>) -> Signal<V, G>) -> (SignalProducer<U, F>) -> SignalProducer<V, G> {
 		return { right in
 			return SignalProducer<V, G> { observer, lifetime in
 				self.startWithSignal { leftSignal, leftInterrupter in
@@ -710,7 +778,7 @@ extension SignalProducer {
 
 					right.startWithSignal { rightSignal, rightInterrupter in
 						lifetime += rightInterrupter
-						transform(leftSignal)(rightSignal).observe(observer)
+						lifetime += transform(leftSignal)(rightSignal).observe(observer)
 					}
 				}
 			}
@@ -1591,6 +1659,19 @@ extension SignalProducer {
 	}
 
 	/// Forward any values from `self` until `shouldContinue` returns `false`, at which
+	/// point the returned signal forwards the last value and then it completes.
+	/// This is equivalent to `take(while:)`, except it also forwards the last value that failed the check.
+	///
+	/// - parameters:
+	///   - shouldContinue: A closure to determine whether the forwarding of values should
+	///                     continue.
+	///
+	/// - returns: A signal which conditionally forwards values from `self`.
+	public func take(until shouldContinue: @escaping (Value) -> Bool) -> SignalProducer<Value, Error> {
+		return core.flatMapEvent(Signal.Event.take(until: shouldContinue))
+	}
+	
+	/// Forward any values from `self` until `shouldContinue` returns `false`, at which
 	/// point the produced `Signal` would complete.
 	///
 	/// - parameters:
@@ -2340,9 +2421,10 @@ extension SignalProducer {
 			return producer
 		}
 
-		var retries = count
+		return SignalProducer { observer, lifetime in
+			var retries = count
 
-		return flatMapError { error -> SignalProducer<Value, Error> in
+			lifetime += self.flatMapError { error -> SignalProducer<Value, Error> in
 				// The final attempt shouldn't defer the error if it fails
 				var producer = SignalProducer<Value, Error>(error: error)
 				if retries > 0 {
@@ -2355,6 +2437,8 @@ extension SignalProducer {
 				return producer
 			}
 			.retry(upTo: count)
+			.start(observer)
+		}
 	}
 
 	/// Wait for completion of `self`, *then* forward all events from
@@ -2770,6 +2854,18 @@ extension SignalProducer where Value == Bool {
 	public static func all<BooleansCollection: Collection>(_ booleans: BooleansCollection) -> SignalProducer<Value, Error> where BooleansCollection.Element == SignalProducer<Value, Error> {
 		return combineLatest(booleans, emptySentinel: []).map { $0.reduce(true) { $0 && $1 } }
 	}
+    
+    /// Create a producer that computes a logical AND between the latest values of `booleans`.
+    ///
+    /// If no producer is given in `booleans`, the resulting producer constantly emits `true`.
+    ///
+    /// - parameters:
+    ///   - booleans: Boolean producers to be combined.
+    ///
+    /// - returns: A producer that emits the logical AND results.
+    public static func all(_ booleans: SignalProducer<Value, Error>...) -> SignalProducer<Value, Error> {
+        return .all(booleans)
+    }
 	
 	/// Create a producer that computes a logical AND between the latest values of `booleans`.
     ///
@@ -2816,6 +2912,18 @@ extension SignalProducer where Value == Bool {
 	public static func any<BooleansCollection: Collection>(_ booleans: BooleansCollection) -> SignalProducer<Value, Error> where BooleansCollection.Element == SignalProducer<Value, Error> {
 		return combineLatest(booleans, emptySentinel: []).map { $0.reduce(false) { $0 || $1 } }
 	}
+    
+    /// Create a producer that computes a logical OR between the latest values of `booleans`.
+    ///
+    /// If no producer is given in `booleans`, the resulting producer constantly emits `false`.
+    ///
+    /// - parameters:
+    ///   - booleans: Boolean producers to be combined.
+    ///
+    /// - returns: A producer that emits the logical OR results.
+    public static func any(_ booleans: SignalProducer<Value, Error>...) -> SignalProducer<Value, Error> {
+        return .any(booleans)
+    }
 	
 	/// Create a producer that computes a logical OR between the latest values of `booleans`.
 	///
@@ -3012,5 +3120,71 @@ extension SignalProducer where Value == Date, Error == Never {
 				action: { observer.send(value: scheduler.currentDate) }
 			)
 		}
+	}
+}
+
+extension SignalProducer where Error == Never {
+	/// Creates a producer that will send the values from the given sequence
+	/// separated by the given time interval.
+	///
+	/// - note: If `values` is an infinite sequeence this `SignalProducer` will never complete naturally,
+	///         so all invocations of `start()` must be disposed to avoid leaks.
+	///
+	/// - precondition: `interval` must be non-negative number.
+	///
+	/// - parameters:
+	///   - values: A sequence of values that will be sent as separate
+	///             `value` events and then complete.
+	///   - interval: An interval between value events.
+	///   - scheduler: A scheduler to deliver events on.
+	///
+	/// - returns: A producer that sends the next value from the sequence every `interval` seconds.
+	public static func interval<S: Sequence>(
+		_ values: S,
+		interval: DispatchTimeInterval,
+		on scheduler: DateScheduler
+	) -> SignalProducer<S.Element, Error> where S.Iterator.Element == Value {
+
+		return SignalProducer { observer, lifetime in
+			var iterator = values.makeIterator()
+
+			lifetime += scheduler.schedule(
+				after: scheduler.currentDate.addingTimeInterval(interval),
+				interval: interval,
+				// Apple's "Power Efficiency Guide for Mac Apps" recommends a leeway of
+				// at least 10% of the timer interval.
+				leeway: interval * 0.1,
+				action: {
+					switch iterator.next() {
+					case let .some(value):
+						observer.send(value: value)
+					case .none:
+						observer.sendCompleted()
+					}
+				}
+			)
+		}
+	}
+}
+
+extension SignalProducer where Error == Never, Value == Int {
+	/// Creates a producer that will send the sequence of all integers
+	/// from 0 to infinity, or until disposed.
+	///
+	/// - note: This timer will never complete naturally, so all invocations of
+	///         `start()` must be disposed to avoid leaks.
+	///
+	/// - precondition: `interval` must be non-negative number.
+	///
+	/// - parameters:
+	///   - interval: An interval between value events.
+	///   - scheduler: A scheduler to deliver events on.
+	///
+	/// - returns: A producer that sends a sequential `Int` value every `interval` seconds.
+	public static func interval(
+		_ interval: DispatchTimeInterval,
+		on scheduler: DateScheduler
+	) -> SignalProducer {
+		.interval(0..., interval: interval, on: scheduler)
 	}
 }

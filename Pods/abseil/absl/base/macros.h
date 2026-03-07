@@ -32,6 +32,7 @@
 #include <cstddef>
 
 #include "absl/base/attributes.h"
+#include "absl/base/config.h"
 #include "absl/base/optimization.h"
 #include "absl/base/port.h"
 
@@ -53,115 +54,6 @@ auto ArraySizeHelper(const T (&array)[N]) -> char (&)[N];
 }  // namespace macros_internal
 ABSL_NAMESPACE_END
 }  // namespace absl
-
-// kLinkerInitialized
-//
-// An enum used only as a constructor argument to indicate that a variable has
-// static storage duration, and that the constructor should do nothing to its
-// state. Use of this macro indicates to the reader that it is legal to
-// declare a static instance of the class, provided the constructor is given
-// the absl::base_internal::kLinkerInitialized argument.
-//
-// Normally, it is unsafe to declare a static variable that has a constructor or
-// a destructor because invocation order is undefined. However, if the type can
-// be zero-initialized (which the loader does for static variables) into a valid
-// state and the type's destructor does not affect storage, then a constructor
-// for static initialization can be declared.
-//
-// Example:
-//       // Declaration
-//       explicit MyClass(absl::base_internal:LinkerInitialized x) {}
-//
-//       // Invocation
-//       static MyClass my_global(absl::base_internal::kLinkerInitialized);
-namespace absl {
-ABSL_NAMESPACE_BEGIN
-namespace base_internal {
-enum LinkerInitialized {
-  kLinkerInitialized = 0,
-};
-}  // namespace base_internal
-ABSL_NAMESPACE_END
-}  // namespace absl
-
-// ABSL_FALLTHROUGH_INTENDED
-//
-// Annotates implicit fall-through between switch labels, allowing a case to
-// indicate intentional fallthrough and turn off warnings about any lack of a
-// `break` statement. The ABSL_FALLTHROUGH_INTENDED macro should be followed by
-// a semicolon and can be used in most places where `break` can, provided that
-// no statements exist between it and the next switch label.
-//
-// Example:
-//
-//  switch (x) {
-//    case 40:
-//    case 41:
-//      if (truth_is_out_there) {
-//        ++x;
-//        ABSL_FALLTHROUGH_INTENDED;  // Use instead of/along with annotations
-//                                    // in comments
-//      } else {
-//        return x;
-//      }
-//    case 42:
-//      ...
-//
-// Notes: when compiled with clang in C++11 mode, the ABSL_FALLTHROUGH_INTENDED
-// macro is expanded to the [[clang::fallthrough]] attribute, which is analysed
-// when  performing switch labels fall-through diagnostic
-// (`-Wimplicit-fallthrough`). See clang documentation on language extensions
-// for details:
-// https://clang.llvm.org/docs/AttributeReference.html#fallthrough-clang-fallthrough
-//
-// When used with unsupported compilers, the ABSL_FALLTHROUGH_INTENDED macro
-// has no effect on diagnostics. In any case this macro has no effect on runtime
-// behavior and performance of code.
-#ifdef ABSL_FALLTHROUGH_INTENDED
-#error "ABSL_FALLTHROUGH_INTENDED should not be defined."
-#endif
-
-// TODO(zhangxy): Use c++17 standard [[fallthrough]] macro, when supported.
-#if defined(__clang__) && defined(__has_warning)
-#if __has_feature(cxx_attributes) && __has_warning("-Wimplicit-fallthrough")
-#define ABSL_FALLTHROUGH_INTENDED [[clang::fallthrough]]
-#endif
-#elif defined(__GNUC__) && __GNUC__ >= 7
-#define ABSL_FALLTHROUGH_INTENDED [[gnu::fallthrough]]
-#endif
-
-#ifndef ABSL_FALLTHROUGH_INTENDED
-#define ABSL_FALLTHROUGH_INTENDED \
-  do {                            \
-  } while (0)
-#endif
-
-// ABSL_DEPRECATED()
-//
-// Marks a deprecated class, struct, enum, function, method and variable
-// declarations. The macro argument is used as a custom diagnostic message (e.g.
-// suggestion of a better alternative).
-//
-// Examples:
-//
-//   class ABSL_DEPRECATED("Use Bar instead") Foo {...};
-//
-//   ABSL_DEPRECATED("Use Baz() instead") void Bar() {...}
-//
-//   template <typename T>
-//   ABSL_DEPRECATED("Use DoThat() instead")
-//   void DoThis();
-//
-// Every usage of a deprecated entity will trigger a warning when compiled with
-// clang's `-Wdeprecated-declarations` option. This option is turned off by
-// default, but the warnings will be reported by clang-tidy.
-#if defined(__clang__) && __cplusplus >= 201103L
-#define ABSL_DEPRECATED(message) __attribute__((deprecated(message)))
-#endif
-
-#ifndef ABSL_DEPRECATED
-#define ABSL_DEPRECATED(message)
-#endif
 
 // ABSL_BAD_CALL_IF()
 //
@@ -207,6 +99,35 @@ ABSL_NAMESPACE_END
                              : [] { assert(false && #expr); }())  // NOLINT
 #endif
 
+// `ABSL_INTERNAL_HARDENING_ABORT()` controls how `ABSL_HARDENING_ASSERT()`
+// aborts the program in release mode (when NDEBUG is defined). The
+// implementation should abort the program as quickly as possible and ideally it
+// should not be possible to ignore the abort request.
+#define ABSL_INTERNAL_HARDENING_ABORT()   \
+  do {                                    \
+    ABSL_INTERNAL_IMMEDIATE_ABORT_IMPL(); \
+    ABSL_INTERNAL_UNREACHABLE_IMPL();     \
+  } while (false)
+
+// ABSL_HARDENING_ASSERT()
+//
+// `ABSL_HARDENING_ASSERT()` is like `ABSL_ASSERT()`, but used to implement
+// runtime assertions that should be enabled in hardened builds even when
+// `NDEBUG` is defined.
+//
+// When `NDEBUG` is not defined, `ABSL_HARDENING_ASSERT()` is identical to
+// `ABSL_ASSERT()`.
+//
+// See `ABSL_OPTION_HARDENED` in `absl/base/options.h` for more information on
+// hardened mode.
+#if ABSL_OPTION_HARDENED == 1 && defined(NDEBUG)
+#define ABSL_HARDENING_ASSERT(expr)                 \
+  (ABSL_PREDICT_TRUE((expr)) ? static_cast<void>(0) \
+                             : [] { ABSL_INTERNAL_HARDENING_ABORT(); }())
+#else
+#define ABSL_HARDENING_ASSERT(expr) ABSL_ASSERT(expr)
+#endif
+
 #ifdef ABSL_HAVE_EXCEPTIONS
 #define ABSL_INTERNAL_TRY try
 #define ABSL_INTERNAL_CATCH_ANY catch (...)
@@ -216,5 +137,53 @@ ABSL_NAMESPACE_END
 #define ABSL_INTERNAL_CATCH_ANY else if (false)
 #define ABSL_INTERNAL_RETHROW do {} while (false)
 #endif  // ABSL_HAVE_EXCEPTIONS
+
+// ABSL_DEPRECATE_AND_INLINE()
+//
+// Marks a function or type alias as deprecated and tags it to be picked up for
+// automated refactoring by go/cpp-inliner. It can added to inline function
+// definitions or type aliases. It should only be used within a header file. It
+// differs from `ABSL_DEPRECATED` in the following ways:
+//
+// 1. New uses of the function or type will be discouraged via Tricorder
+//    warnings.
+// 2. If enabled via `METADATA`, automated changes will be sent out inlining the
+//    functions's body or replacing the type where it is used.
+//
+// For example:
+//
+// ABSL_DEPRECATE_AND_INLINE() inline int OldFunc(int x) {
+//   return NewFunc(x, 0);
+// }
+//
+// will mark `OldFunc` as deprecated, and the go/cpp-inliner service will
+// replace calls to `OldFunc(x)` with calls to `NewFunc(x, 0)`. Once all calls
+// to `OldFunc` have been replaced, `OldFunc` can be deleted.
+//
+// See go/cpp-inliner for more information.
+//
+// Note: go/cpp-inliner is Google-internal service for automated refactoring.
+// While open-source users do not have access to this service, the macro is
+// provided for compatibility, and so that users receive deprecation warnings.
+#if ABSL_HAVE_CPP_ATTRIBUTE(deprecated) && \
+    ABSL_HAVE_CPP_ATTRIBUTE(clang::annotate)
+#define ABSL_DEPRECATE_AND_INLINE() [[deprecated, clang::annotate("inline-me")]]
+#elif ABSL_HAVE_CPP_ATTRIBUTE(deprecated)
+#define ABSL_DEPRECATE_AND_INLINE() [[deprecated]]
+#else
+#define ABSL_DEPRECATE_AND_INLINE()
+#endif
+
+// Requires the compiler to prove that the size of the given object is at least
+// the expected amount.
+#if ABSL_HAVE_ATTRIBUTE(diagnose_if) && ABSL_HAVE_BUILTIN(__builtin_object_size)
+#define ABSL_INTERNAL_NEED_MIN_SIZE(Obj, N)                     \
+  __attribute__((diagnose_if(__builtin_object_size(Obj, 0) < N, \
+                             "object size provably too small "  \
+                             "(this would corrupt memory)",     \
+                             "error")))
+#else
+#define ABSL_INTERNAL_NEED_MIN_SIZE(Obj, N)
+#endif
 
 #endif  // ABSL_BASE_MACROS_H_
