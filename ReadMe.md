@@ -19,6 +19,7 @@ If a device you are looking for is not listed below, check out open [issues](htt
 | Mac Studio 2022      |      M1 Ultra 20-core   | 128 | 1TB | 26.1.1|  26.1    |    112    |
 | MacBook Pro 14" 2024 |      M4 Pro 12c         | 24  | 512 | 26.3  |  26.3    |    164    |
 | Macbook Air 13" 2024 |      M4 10c (10c GPU)   | 16  | 256 | 26.1  |  26.1    |    188    |
+| Macbook Pro 16" 2021 |      M1 Max 10-core     | 64  | 1TB | 26.3  |  26.4    |    188    |
 | MacBook Pro 14" 2023 |      M2 Pro 10c         | 16  | 512 | 26.3  |  26.3    |    344    |
 
 
