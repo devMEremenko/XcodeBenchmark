@@ -20,11 +20,11 @@ If a device you are looking for is not listed below, check out open [issues](htt
 | Macbook Pro 16" 2024 |      M4 Pro 14c         | 48  | 1TB | 26.1  |  15.7.1  |    104    |
 | MacBook Pro 14" 2024 |      M4 Pro 14c         | 48  | 1TB | 26.3  |  26.3.1  |    108    |
 | Mac Studio 2022      |      M1 Ultra 20-core   | 128 | 1TB | 26.1.1|  26.1    |    112    |
+| Macbook Pro 14" 2025 |      M5 10-core         | 16  | 512 | 26.3  |  26.3.1  |    146    |
 | MacBook Pro 14" 2024 |      M4 Pro 12c         | 24  | 512 | 26.3  |  26.3    |    164    |
 | Macbook Air 13" 2026 |      M5 10c (10c GPU)   | 32  | 512 | 26.3  |  26.3.1  |    173    |
 | Macbook Air 13" 2024 |      M4 10c (10c GPU)   | 16  | 256 | 26.1  |  26.1    |    188    |
 | Macbook Pro 16" 2021 |      M1 Max 10-core     | 64  | 1TB | 26.3  |  26.4    |    188    |
-| Macbook Pro 14" 2025 |      M5 10-core         | 16  | 512 | 26.3  |  26.3.1  |    197    |
 | MacBook Pro 14" 2021 |      M1 Pro 10-core     | 16  | 512 | 26.3  |  26.3.1  |    266    |
 
 
