@@ -89,4 +89,27 @@ post_install do |pi|
           end
         end
     end
+
+    afnetworking_reachability = pi.sandbox.root + 'AFNetworking/AFNetworking/AFNetworkReachabilityManager.m'
+    if File.exist?(afnetworking_reachability)
+      file_content = File.read(afnetworking_reachability)
+      patched_content = file_content
+        .gsub('#import <netinet/in.h>' + "\n", "#import <sys/socket.h>\n#import <netinet/in.h>\n")
+        .gsub("#import <netinet6/in6.h>\n", '')
+        .gsub('struct sockaddr_in6 address;', 'struct sockaddr_storage address;')
+        .gsub('address.sin6_len = sizeof(address);', 'address.ss_len = sizeof(address);')
+        .gsub('address.sin6_family = AF_INET6;', 'address.ss_family = AF_INET6;')
+      if patched_content != file_content
+        File.write(afnetworking_reachability, patched_content)
+      end
+    end
+
+    afnetworking_http = pi.sandbox.root + 'AFNetworking/AFNetworking/AFHTTPSessionManager.m'
+    if File.exist?(afnetworking_http)
+      file_content = File.read(afnetworking_http)
+      patched_content = file_content.gsub("#import <netinet6/in6.h>\n", '')
+      if patched_content != file_content
+        File.write(afnetworking_http, patched_content)
+      end
+    end
 end
