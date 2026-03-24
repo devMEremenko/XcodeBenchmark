@@ -14,6 +14,7 @@ If a device you are looking for is not listed below, check out open [issues](htt
 |        Device        |           CPU           | RAM | SSD | Xcode |   macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:-----:|:--------:|:---------:|
 | MacBook Pro 16" 2026 |      M5 Max 18-core     | 48  | 2TB | 26.3  |  26.4    |    84     |
+| MacBook Pro 14" 2026 |      M5 Max 18-core     | 128 | 2TB | 26.3  |  26.3.1  |    86     |
 | MacBook Pro 16" 2026 |      M5 Pro 18-core     | 48  | 1TB | 26.3  |  26.3    |    89     |
 | MacBook Pro 16" 2024 |      M4 Max 16-core     | 48  | 1TB | 26.3  |  26.2    |    89     |
 | Mac Studio 2023      |      M2 Ultra 24-core   | 64  | 2TB | 26.2  |  26.2    |    93     |
