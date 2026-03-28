@@ -1,8 +1,10 @@
 # SWXMLHash
 
-[![CocoaPods](https://img.shields.io/cocoapods/p/SWXMLHash.svg)]()
-[![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
-[![CocoaPods](https://img.shields.io/cocoapods/v/SWXMLHash.svg)](https://cocoapods.org/pods/SWXMLHash)
+[![Swift](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fdrmohundro%2FSWXMLHash%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/drmohundro/SWXMLHash)
+[![Platforms](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fdrmohundro%2FSWXMLHash%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/drmohundro/SWXMLHash)
+[![CocoaPods Compatible](https://img.shields.io/cocoapods/v/SWXMLHash)](https://cocoapods.org/pods/SWXMLHash)
+[![Carthage Compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
+[![Swift Package Manager](https://img.shields.io/badge/Swift_Package_Manager-compatible-orange?style=flat-square)](https://img.shields.io/badge/Swift_Package_Manager-compatible-orange?style=flat-square)
 [![Join the chat at https://gitter.im/drmohundro/SWXMLHash](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/drmohundro/SWXMLHash?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![codebeat](https://codebeat.co/badges/893cc640-c5d9-45b2-a3ff-426e6e6b7b80)](https://codebeat.co/projects/github-com-drmohundro-swxmlhash)
 
@@ -51,7 +53,7 @@ platform :ios, '10.0'
 use_frameworks!
 
 target 'YOUR_TARGET_NAME' do
-  pod 'SWXMLHash', '~> 5.0.0'
+  pod 'SWXMLHash', '~> 7.0.0'
 end
 ```
 
@@ -73,7 +75,7 @@ $ brew install carthage
 Then add the following line to your `Cartfile`:
 
 ```
-github "drmohundro/SWXMLHash" ~> 5.0
+github "drmohundro/SWXMLHash" ~> 7.0
 ```
 
 ### Swift Package Manager
@@ -83,7 +85,7 @@ Swift Package Manager requires Swift version 4.0 or higher. First, create a
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/drmohundro/SWXMLHash.git", from: "5.0.0")
+    .package(url: "https://github.com/drmohundro/SWXMLHash.git", from: "7.0.0")
 ]
 ```
 
@@ -92,14 +94,12 @@ dependencies: [
 ### Manual Installation
 
 To install manually, you'll need to clone the SWXMLHash repository. You can do
-this in a separate directory or you can make use of git submodules - in this
+this in a separate directory, or you can make use of git submodules - in this
 case, git submodules are recommended so that your repository has details about
-which commit of SWXMLHash you're using. Once this is done, you can just drop the
-`SWXMLHash.swift` file into your project.
+which commit of SWXMLHash you're using. Once this is done, you can just drop all
+of the relevant swift files into your project.
 
-> NOTE: if you're targeting iOS 7, you'll have to install manually because
-> embedded frameworks require a minimum deployment target of iOS 8 or OSX
-> Mavericks.
+If you're using a workspace, though, you can just include the entire `SWXMLHash.xcodeproj`.
 
 ## Getting Started
 
@@ -116,7 +116,7 @@ To set any of the configuration options, you use the `configure` method, like
 so:
 
 ```swift
-let xml = SWXMLHash.config {
+let xml = XMLHash.config {
               config in
               // set any config options here
           }.parse(xmlToParse)
@@ -134,8 +134,8 @@ The available options at this time are:
     will be returned as "\<table\>")
   - Defaults to `false`
 - `caseInsensitive`
-  - This setting allows for key lookups to be case insensitive. Typically XML is
-    a case sensitive language, but this option lets you bypass this if
+  - This setting allows for key lookups to be case-insensitive. Typically, XML is
+    a case-sensitive language, but this option lets you bypass this if
     necessary.
   - Defaults to `false`
 - `encoding`
@@ -157,12 +157,12 @@ The available options at this time are:
 ## Examples
 
 All examples below can be found in the included
-[specs](https://github.com/drmohundro/SWXMLHash/blob/master/Tests/).
+[specs](https://github.com/drmohundro/SWXMLHash/blob/main/Tests/).
 
 ### Initialization
 
 ```swift
-let xml = SWXMLHash.parse(xmlToParse)
+let xml = XMLHash.parse(xmlToParse)
 ```
 
 Alternatively, if you're parsing a large XML file and need the best performance,
@@ -172,17 +172,17 @@ for performance reasons. See the error handling for one caveat regarding lazy
 loading.
 
 ```swift
-let xml = SWXMLHash.config {
+let xml = XMLHash.config {
               config in
               config.shouldProcessLazily = true
           }.parse(xmlToParse)
 ```
 
 The above approach uses the new config method, but there is also a `lazy` method
-directly off of `SWXMLHash`.
+directly off of `XMLHash`.
 
 ```swift
-let xml = SWXMLHash.lazy(xmlToParse)
+let xml = XMLHash.lazy(xmlToParse)
 ```
 
 ### Single Element Lookup
@@ -325,20 +325,20 @@ Given:
 ```xml
 <root>
   <catalog>
-    <book id=\"bk101\">
+    <book id="bk101">
       <author>Gambardella, Matthew</author>
       <title>XML Developer's Guide</title>
       <genre>Computer</genre><price>44.95</price>
       <publish_date>2000-10-01</publish_date>
     </book>
-    <book id=\"bk102\">
+    <book id="bk102">
       <author>Ralls, Kim</author>
       <title>Midnight Rain</title>
       <genre>Fantasy</genre>
       <price>5.95</price>
       <publish_date>2000-12-16</publish_date>
     </book>
-    <book id=\"bk103\">
+    <book id="bk103">
       <author>Corets, Eva</author>
       <title>Maeve Ascendant</title>
       <genre>Fantasy</genre>
@@ -349,7 +349,7 @@ Given:
 </root>
 ```
 
-The following will return return "Midnight Rain". Filtering can be by any part
+The following will return "Midnight Rain". Filtering can be by any part
 of the `XMLElement` class or by index as well.
 
 ```swift
@@ -388,56 +388,11 @@ lazy parsing doesn't actually occur until the `element` or `all` method are
 called - as a result, there isn't any way to know prior to asking for an element
 if it exists or not.
 
-### Simple Type Conversion
+### XML Deserialization Into Objects
 
-Given:
-
-```xml
-<root>
-  <elem>Monday, 23 January 2016 12:01:12 111</elem>
-</root>
-```
-
-With the following implementation for `Date` element and attribute
-deserialization:
-
-```swift
-extension Date: XMLElementDeserializable, XMLAttributeDeserializable {
-    public static func deserialize(_ element: XMLElement) throws -> Date {
-        let date = stringToDate(element.text)
-
-        guard let validDate = date else {
-            throw XMLDeserializationError.typeConversionFailed(type: "Date", element: element)
-        }
-
-        return validDate
-    }
-
-    public static func deserialize(_ attribute: XMLAttribute) throws -> Date {
-        let date = stringToDate(attribute.text)
-
-        guard let validDate = date else {
-            throw XMLDeserializationError.attributeDeserializationFailed(type: "Date", attribute: attribute)
-        }
-
-        return validDate
-    }
-
-    private static func stringToDate(_ dateAsString: String) -> Date? {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss zzz"
-        return dateFormatter.date(from: dateAsString)
-    }
-}
-```
-
-The below will return a date value:
-
-```swift
-let dt: Date = try xml["root"]["elem"].value()
-```
-
-### Complex Types Conversion
+Even more often, you'll want to deserialize an XML tree into an
+array of custom types. This is where `XMLObjectDeserialization`
+comes into play.
 
 Given:
 
@@ -472,14 +427,14 @@ Given:
         <category>C3</category>
       </categories>
     </book>
-  <books>
+  </books>
 </root>
 ```
 
-with `Book` struct implementing `XMLIndexerDeserializable`:
+with `Book` struct implementing `XMLObjectDeserialization`:
 
 ```swift
-struct Book: XMLIndexerDeserializable {
+struct Book: XMLObjectDeserialization {
     let title: String
     let price: Double
     let year: Int
@@ -509,7 +464,7 @@ let books: [Book] = try xml["root"]["books"]["book"].value()
 <img src="https://raw.githubusercontent.com/ncreated/SWXMLHash/assets/types-conversion%402x.png" width="600" alt="Types Conversion" />
 
 You can convert any XML to your custom type by implementing
-`XMLIndexerDeserializable` for any non-leaf node (e.g. `<book>` in the example
+`XMLObjectDeserialization` for any non-leaf node (e.g. `<book>` in the example
 above).
 
 For leaf nodes (e.g. `<title>` in the example above), built-in converters
@@ -524,6 +479,63 @@ the same types as above, and additional converters can be added by implementing
 Types conversion supports error handling, optionals and arrays. For more
 examples, look into `SWXMLHashTests.swift` or play with types conversion
 directly in the Swift playground.
+
+### Custom Value Conversion
+
+Value deserialization is where a specific string value needs to be deserialized
+into a custom type. So, date is a good example here - you'd rather deal with
+date types than doing string parsing, right? That's what the `XMLValueDeserialization`
+attribute is for.
+
+Given:
+
+```xml
+<root>
+  <elem>Monday, 23 January 2016 12:01:12 111</elem>
+</root>
+```
+
+With the following implementation for `Date` value deserialization:
+
+```swift
+extension Date: XMLValueDeserialization {
+    public static func deserialize(_ element: XMLHash.XMLElement) throws -> Date {
+        let date = stringToDate(element.text)
+
+        guard let validDate = date else {
+            throw XMLDeserializationError.typeConversionFailed(type: "Date", element: element)
+        }
+
+        return validDate
+    }
+
+    public static func deserialize(_ attribute: XMLAttribute) throws -> Date {
+        let date = stringToDate(attribute.text)
+
+        guard let validDate = date else {
+            throw XMLDeserializationError.attributeDeserializationFailed(type: "Date", attribute: attribute)
+        }
+
+        return validDate
+    }
+
+    public func validate() throws {
+        // empty validate... only necessary for custom validation logic after parsing
+    }
+
+    private static func stringToDate(_ dateAsString: String) -> Date? {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "EEEE, dd MMMM yyyy HH:mm:ss SSS"
+        return dateFormatter.date(from: dateAsString)
+    }
+}
+```
+
+The below will return a date value:
+
+```swift
+let dt: Date = try xml["root"]["elem"].value()
+```
 
 ## FAQ
 
@@ -542,7 +554,7 @@ deserialization, etc.).
 ### I'm getting an "Ambiguous reference to member 'subscript'" when I call `.value()`.
 
 `.value()` is used for deserialization - you have to have something that
-implements `XMLIndexerDeserializable` (or `XMLElementDeserializable` if it is a
+implements `XMLObjectDeserialization` (or `XMLElementDeserializable` if it is a
 single element versus a group of elements) and that can handle deserialization
 to the left-hand side of expression.
 
@@ -606,11 +618,33 @@ extension NSDate: XMLElementDeserializable {
 }
 ```
 
+### How do I handle deserialization with an enum?
+
+Check out this great suggestion/example from @woolie up at <https://github.com/drmohundro/SWXMLHash/discussions/245>.
+
+### I'm seeing an ""'XMLElement' is ambiguous" Error
+
+This is related to <https://github.com/drmohundro/SWXMLHash/issues/256> - `XMLElement` has actually been renamed
+multiple times to attempt to avoid conflicts, but the easiest approach is to just scope it via `XMLHash.XMLElement`.
+
+### Will SWXMLHash work in a web context (e.g. Vapor)?
+
+See <https://github.com/drmohundro/SWXMLHash/discussions/264> where this is discussed. The only change needed is to
+add the following import logic:
+
+```swift
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+```
+
 ### Have a different question?
 
 Feel free to shoot me an email, post a
 [question on StackOverflow](http://stackoverflow.com/questions/tagged/swxmlhash),
 or open an issue if you think you've found a bug. I'm happy to try to help!
+
+Another alternative is to post a question in the [Discussions](https://github.com/drmohundro/SWXMLHash/discussions).
 
 ## Changelog
 

@@ -67,9 +67,9 @@
 #ifndef OPENSSL_HEADER_ECDH_H
 #define OPENSSL_HEADER_ECDH_H
 
-#include <openssl/base.h>
+#include <openssl_grpc/base.h>
 
-#include <openssl/ec_key.h>
+#include <openssl_grpc/ec_key.h>
 
 #if defined(__cplusplus)
 extern "C" {

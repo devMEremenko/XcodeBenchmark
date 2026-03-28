@@ -16,7 +16,7 @@
 ///
 /// For more information, read the discussion at:
 /// https://github.com/ReactiveX/RxSwift/issues/1911#issuecomment-479723298
-import class Foundation.NSObject
+import Foundation
 
 /// Creates mutable reference wrapper for any type.
 final class RxMutableBox<T>: NSObject {
@@ -47,7 +47,7 @@ final class RxMutableBox<T>: CustomDebugStringConvertible {
 extension RxMutableBox {
     /// - returns: Box description.
     var debugDescription: String {
-        return "MutatingBox(\(self.value))"
+        "MutatingBox(\(self.value))"
     }
 }
 #endif

@@ -24,14 +24,14 @@
 
 import Foundation
 
-public extension URLRequest {
+extension URLRequest {
     /// Returns the `httpMethod` as Alamofire's `HTTPMethod` type.
-    var method: HTTPMethod? {
-        get { httpMethod.flatMap(HTTPMethod.init) }
+    public var method: HTTPMethod? {
+        get { httpMethod.map(HTTPMethod.init) }
         set { httpMethod = newValue?.rawValue }
     }
 
-    func validate() throws {
+    public func validate() throws {
         if method == .get, let bodyData = httpBody {
             throw AFError.urlRequestValidationFailed(reason: .bodyDataInGETRequest(bodyData))
         }

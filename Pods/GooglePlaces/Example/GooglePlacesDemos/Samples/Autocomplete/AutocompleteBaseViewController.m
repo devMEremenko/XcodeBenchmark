@@ -17,6 +17,7 @@
 
 #import "GooglePlacesDemos/Samples/PagingPhotoView.h"
 
+
 @implementation AutocompleteBaseViewController {
   PagingPhotoView *_photoView;
   UIButton *_photoButton;
@@ -27,7 +28,7 @@
   [super viewDidLoad];
 
   // Configure a background color.
-  self.view.backgroundColor = [UIColor whiteColor];
+  self.view.backgroundColor = [UIColor systemBackgroundColor];
 
   // Configure the UI. Tell our superclass we want a button and a result view below that.
   _photoButton =
@@ -42,6 +43,7 @@
 
   // Configure the photo view where we are going to display the loaded photos.
   _photoView = [[PagingPhotoView alloc] initWithFrame:self.view.bounds];
+
   _photoView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
   [self.view addSubview:_photoView];
 
@@ -79,6 +81,15 @@
     [text appendAttributedString:doubleReturn];
     [text appendAttributedString:attributions];
   }
+
+  [text addAttribute:NSForegroundColorAttributeName
+               value:[UIColor labelColor]
+               range:NSMakeRange(0, text.length)];
+
+  [text addAttribute:NSFontAttributeName
+               value:[UIFont preferredFontForTextStyle:UIFontTextStyleBody]
+               range:NSMakeRange(0, text.length)];
+
   _textView.attributedText = text;
   [_textView setIsAccessibilityElement:YES];
   [_textView setHidden:NO];
@@ -132,6 +143,7 @@
         .active = YES;
     [self.view.readableContentGuide.trailingAnchor constraintEqualToAnchor:_textView.trailingAnchor]
         .active = YES;
+
     // Set the textContainerInset to 0 because the readableContentGuide is already handling the
     // inset.
     _textView.textContainerInset = UIEdgeInsetsZero;
@@ -157,28 +169,28 @@
 - (UIButton *)createButton:(SEL)selector title:(NSString *)title {
   // Create a button to show the autocomplete widget.
   UIButton *button = [UIButton buttonWithType:UIButtonTypeSystem];
-  [button setTitle:title forState:UIControlStateNormal];
+
+  // Set button title to have a font attirbute that respond to the device text size
+  NSAttributedString *buttonTitle = [[NSAttributedString alloc]
+      initWithString:title
+          attributes:@{
+            NSFontAttributeName : [UIFont preferredFontForTextStyle:UIFontTextStyleBody]
+          }];
+  [button setAttributedTitle:buttonTitle forState:UIControlStateNormal];
+
+  // Set the text color to adapt to light and dark mode.
+  [button setTitleColor:[UIColor labelColor] forState:UIControlStateNormal];
+
   [button addTarget:self action:selector forControlEvents:UIControlEventTouchUpInside];
   button.translatesAutoresizingMaskIntoConstraints = NO;
   [self.view addSubview:button];
+
   // Position the button from the top of the view.
-  [NSLayoutConstraint constraintWithItem:button
-                               attribute:NSLayoutAttributeTop
-                               relatedBy:NSLayoutRelationEqual
-                                  toItem:self.topLayoutGuide
-                               attribute:NSLayoutAttributeBottom
-                              multiplier:1
-                                constant:8]
-      .active = YES;
-  // Centre it horizontally.
-  [NSLayoutConstraint constraintWithItem:button
-                               attribute:NSLayoutAttributeCenterX
-                               relatedBy:NSLayoutRelationEqual
-                                  toItem:self.view
-                               attribute:NSLayoutAttributeCenterX
-                              multiplier:1
-                                constant:0]
-      .active = YES;
+  [button.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor].active = YES;
+  [button.topAnchor constraintEqualToAnchor:self.view.topAnchor constant:kButtonTopMargin].active =
+      YES;
+  [button.heightAnchor constraintEqualToConstant:kButtonHeight].active = YES;
+  [button.widthAnchor constraintEqualToConstant:kButtonWidth].active = YES;
 
   return button;
 }
@@ -191,7 +203,7 @@
   [_photoView setHidden:NO];
 }
 
-// Preload the photos to be displayed.
+/** Preload the photos to be displayed. */
 - (void)preloadPhotoList:(NSArray<GMSPlacePhotoMetadata *> *)photos {
   __block NSMutableArray *attributedPhotos = [NSMutableArray array];
   __block NSInteger photoRequestsInFlight = photos.count;

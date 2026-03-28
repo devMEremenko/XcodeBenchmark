@@ -1,34 +1,33 @@
-/*
- *
- * Copyright 2019 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+//
+//
+// Copyright 2019 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 
-#ifndef SRC_CPP_SERVER_EXTERNAL_CONNECTION_ACCEPTOR_IMPL_H_
-#define SRC_CPP_SERVER_EXTERNAL_CONNECTION_ACCEPTOR_IMPL_H_
+#ifndef GRPC_SRC_CPP_SERVER_EXTERNAL_CONNECTION_ACCEPTOR_IMPL_H
+#define GRPC_SRC_CPP_SERVER_EXTERNAL_CONNECTION_ACCEPTOR_IMPL_H
 
-#include <memory>
-
-#include <grpc/impl/codegen/grpc_types.h>
 #include <grpcpp/security/server_credentials.h>
-#include <grpcpp/security/server_credentials_impl.h>
 #include <grpcpp/server_builder.h>
 #include <grpcpp/support/channel_arguments.h>
 
-#include "src/core/lib/gprpp/sync.h"
+#include <memory>
+#include <string>
+
 #include "src/core/lib/iomgr/tcp_server.h"
+#include "src/core/util/sync.h"
 
 namespace grpc {
 namespace internal {
@@ -37,7 +36,7 @@ class ExternalConnectionAcceptorImpl
     : public std::enable_shared_from_this<ExternalConnectionAcceptorImpl> {
  public:
   ExternalConnectionAcceptorImpl(
-      const grpc::string& name,
+      const std::string& name,
       ServerBuilder::experimental_type::ExternalConnectionType type,
       std::shared_ptr<ServerCredentials> creds);
   // Should only be called once.
@@ -54,10 +53,10 @@ class ExternalConnectionAcceptorImpl
 
   ServerCredentials* GetCredentials() { return creds_.get(); }
 
-  void SetToChannelArgs(::grpc::ChannelArguments* args);
+  void SetToChannelArgs(grpc::ChannelArguments* args);
 
  private:
-  const grpc::string name_;
+  const std::string name_;
   std::shared_ptr<ServerCredentials> creds_;
   grpc_core::TcpServerFdHandler* handler_ = nullptr;  // not owned
   grpc_core::Mutex mu_;
@@ -69,4 +68,4 @@ class ExternalConnectionAcceptorImpl
 }  // namespace internal
 }  // namespace grpc
 
-#endif  // SRC_CPP_SERVER_EXTERNAL_CONNECTION_ACCEPTOR_IMPL_H_
+#endif  // GRPC_SRC_CPP_SERVER_EXTERNAL_CONNECTION_ACCEPTOR_IMPL_H

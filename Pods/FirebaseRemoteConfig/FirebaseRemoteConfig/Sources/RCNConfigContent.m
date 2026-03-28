@@ -16,13 +16,14 @@
 
 #import "FirebaseRemoteConfig/Sources/RCNConfigContent.h"
 
+#import "FirebaseRemoteConfig/Sources/Private/FIRRemoteConfig_Private.h"
 #import "FirebaseRemoteConfig/Sources/Public/FirebaseRemoteConfig/FIRRemoteConfig.h"
 #import "FirebaseRemoteConfig/Sources/RCNConfigConstants.h"
 #import "FirebaseRemoteConfig/Sources/RCNConfigDBManager.h"
 #import "FirebaseRemoteConfig/Sources/RCNConfigDefines.h"
 #import "FirebaseRemoteConfig/Sources/RCNConfigValue_Internal.h"
 
-#import "FirebaseCore/Sources/Private/FirebaseCoreInternal.h"
+#import "FirebaseCore/Extension/FirebaseCoreInternal.h"
 
 @implementation RCNConfigContent {
   /// Active config data that is currently used.
@@ -32,14 +33,23 @@
   NSMutableDictionary *_fetchedConfig;
   /// Default config provided by user.
   NSMutableDictionary *_defaultConfig;
+  /// Active Personalization metadata that is currently used.
+  NSDictionary *_activePersonalization;
+  /// Pending Personalization metadata that is latest data from server that might or might not be
+  /// applied.
+  NSDictionary *_fetchedPersonalization;
+  /// Active Rollout metadata that is currently used.
+  NSArray<NSDictionary *> *_activeRolloutMetadata;
+  /// Pending Rollout metadata that is latest data from server that might or might not be applied.
+  NSArray<NSDictionary *> *_fetchedRolloutMetadata;
   /// DBManager
   RCNConfigDBManager *_DBManager;
   /// Current bundle identifier;
   NSString *_bundleIdentifier;
-  /// Dispatch semaphore to block all config reads until we have read from the database. This only
+  /// Blocks all config reads until we have read from the database. This only
   /// potentially blocks on the first read. Should be a no-wait for all subsequent reads once we
   /// have data read into memory from the database.
-  dispatch_semaphore_t _configLoadFromDBSemaphore;
+  dispatch_group_t _dispatch_group;
   /// Boolean indicating if initial DB load of fetched,active and default config has succeeded.
   BOOL _isConfigLoadFromDBCompleted;
   /// Boolean indicating that the load from database has initiated at least once.
@@ -47,7 +57,7 @@
 }
 
 /// Default timeout when waiting to read data from database.
-static const NSTimeInterval kDatabaseLoadTimeoutSecs = 30.0;
+const NSTimeInterval kDatabaseLoadTimeoutSecs = 30.0;
 
 /// Singleton instance of RCNConfigContent.
 + (instancetype)sharedInstance {
@@ -72,6 +82,10 @@ static const NSTimeInterval kDatabaseLoadTimeoutSecs = 30.0;
     _activeConfig = [[NSMutableDictionary alloc] init];
     _fetchedConfig = [[NSMutableDictionary alloc] init];
     _defaultConfig = [[NSMutableDictionary alloc] init];
+    _activePersonalization = [[NSDictionary alloc] init];
+    _fetchedPersonalization = [[NSDictionary alloc] init];
+    _activeRolloutMetadata = [[NSArray alloc] init];
+    _fetchedRolloutMetadata = [[NSArray alloc] init];
     _bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
     if (!_bundleIdentifier) {
       FIRLogNotice(kFIRLoggerRemoteConfig, @"I-RCN000038",
@@ -79,7 +93,8 @@ static const NSTimeInterval kDatabaseLoadTimeoutSecs = 30.0;
       _bundleIdentifier = @"";
     }
     _DBManager = DBManager;
-    _configLoadFromDBSemaphore = dispatch_semaphore_create(0);
+    // Waits for both config and Personalization data to load.
+    _dispatch_group = dispatch_group_create();
     [self loadConfigFromMainTable];
   }
   return self;
@@ -91,6 +106,52 @@ static const NSTimeInterval kDatabaseLoadTimeoutSecs = 30.0;
   RCN_MUST_NOT_BE_MAIN_THREAD();
   BOOL isDatabaseLoadSuccessful = [self checkAndWaitForInitialDatabaseLoad];
   return isDatabaseLoadSuccessful;
+}
+
+#pragma mark - database
+
+/// This method is only meant to be called at init time. The underlying logic will need to be
+/// reevaluated if the assumption changes at a later time.
+- (void)loadConfigFromMainTable {
+  if (!_DBManager) {
+    return;
+  }
+
+  NSAssert(!_isDatabaseLoadAlreadyInitiated, @"Database load has already been initiated");
+  _isDatabaseLoadAlreadyInitiated = true;
+
+  dispatch_group_enter(_dispatch_group);
+  [_DBManager loadMainWithBundleIdentifier:_bundleIdentifier
+                         completionHandler:^(
+                             BOOL success, NSDictionary *fetchedConfig, NSDictionary *activeConfig,
+                             NSDictionary *defaultConfig, NSDictionary *rolloutMetadata) {
+                           self->_fetchedConfig = [fetchedConfig mutableCopy];
+                           self->_activeConfig = [activeConfig mutableCopy];
+                           self->_defaultConfig = [defaultConfig mutableCopy];
+                           self->_fetchedRolloutMetadata =
+                               [rolloutMetadata[@RCNRolloutTableKeyFetchedMetadata] copy];
+                           self->_activeRolloutMetadata =
+                               [rolloutMetadata[@RCNRolloutTableKeyActiveMetadata] copy];
+                           dispatch_group_leave(self->_dispatch_group);
+                         }];
+
+  // TODO(karenzeng): Refactor personalization to be returned in loadMainWithBundleIdentifier above
+  dispatch_group_enter(_dispatch_group);
+  [_DBManager
+      loadPersonalizationWithCompletionHandler:^(
+          BOOL success, NSDictionary *fetchedPersonalization, NSDictionary *activePersonalization,
+          NSDictionary *defaultConfig, NSDictionary *rolloutMetadata) {
+        self->_fetchedPersonalization = [fetchedPersonalization copy];
+        self->_activePersonalization = [activePersonalization copy];
+        dispatch_group_leave(self->_dispatch_group);
+      }];
+}
+
+/// Update the current config result to main table.
+/// @param values Values in a row to write to the table.
+/// @param source The source the config data is coming from. It determines which table to write to.
+- (void)updateMainTableWithValues:(NSArray *)values fromSource:(RCNDBSource)source {
+  [_DBManager insertMainTableWithValues:values fromSource:source completionHandler:nil];
 }
 
 #pragma mark - update
@@ -152,6 +213,20 @@ static const NSTimeInterval kDatabaseLoadTimeoutSecs = 30.0;
         [dateFormatter setDateFormat:@"yyyy-MM-dd HH:mm:ss"];
         NSString *strValue = [dateFormatter stringFromDate:(NSDate *)value];
         valueData = [(NSString *)strValue dataUsingEncoding:NSUTF8StringEncoding];
+      } else if ([value isKindOfClass:[NSArray class]]) {
+        NSError *error;
+        valueData = [NSJSONSerialization dataWithJSONObject:value options:0 error:&error];
+        if (error) {
+          FIRLogError(kFIRLoggerRemoteConfig, @"I-RCN000076", @"Invalid array value for key '%@'",
+                      key);
+        }
+      } else if ([value isKindOfClass:[NSDictionary class]]) {
+        NSError *error;
+        valueData = [NSJSONSerialization dataWithJSONObject:value options:0 error:&error];
+        if (error) {
+          FIRLogError(kFIRLoggerRemoteConfig, @"I-RCN000077",
+                      @"Invalid dictionary value for key '%@'", key);
+        }
       } else {
         continue;
       }
@@ -204,8 +279,25 @@ static const NSTimeInterval kDatabaseLoadTimeoutSecs = 30.0;
   if ([state isEqualToString:RCNFetchResponseKeyStateUpdate]) {
     [self handleUpdateStateForConfigNamespace:currentNamespace
                                   withEntries:response[RCNFetchResponseKeyEntries]];
+    [self handleUpdatePersonalization:response[RCNFetchResponseKeyPersonalizationMetadata]];
+    [self handleUpdateRolloutFetchedMetadata:response[RCNFetchResponseKeyRolloutMetadata]];
     return;
   }
+}
+
+- (void)activatePersonalization {
+  _activePersonalization = _fetchedPersonalization;
+  [_DBManager insertOrUpdatePersonalizationConfig:_activePersonalization
+                                       fromSource:RCNDBSourceActive];
+}
+
+- (void)activateRolloutMetadata:(void (^)(BOOL success))completionHandler {
+  _activeRolloutMetadata = _fetchedRolloutMetadata;
+  [_DBManager insertOrUpdateRolloutTableWithKey:@RCNRolloutTableKeyActiveMetadata
+                                          value:_activeRolloutMetadata
+                              completionHandler:^(BOOL success, NSDictionary *result) {
+                                completionHandler(success);
+                              }];
 }
 
 #pragma mark State handling
@@ -263,35 +355,24 @@ static const NSTimeInterval kDatabaseLoadTimeoutSecs = 30.0;
   }
 }
 
-#pragma mark - database
-
-/// This method is only meant to be called at init time. The underlying logic will need to be
-/// revaluated if the assumption changes at a later time.
-- (void)loadConfigFromMainTable {
-  if (!_DBManager) {
+- (void)handleUpdatePersonalization:(NSDictionary *)metadata {
+  if (!metadata) {
     return;
   }
-
-  NSAssert(!_isDatabaseLoadAlreadyInitiated, @"Database load has already been initiated");
-  _isDatabaseLoadAlreadyInitiated = true;
-
-  [_DBManager
-      loadMainWithBundleIdentifier:_bundleIdentifier
-                 completionHandler:^(BOOL success, NSDictionary *fetchedConfig,
-                                     NSDictionary *activeConfig, NSDictionary *defaultConfig) {
-                   self->_fetchedConfig = [fetchedConfig mutableCopy];
-                   self->_activeConfig = [activeConfig mutableCopy];
-                   self->_defaultConfig = [defaultConfig mutableCopy];
-                   dispatch_semaphore_signal(self->_configLoadFromDBSemaphore);
-                 }];
+  _fetchedPersonalization = metadata;
+  [_DBManager insertOrUpdatePersonalizationConfig:metadata fromSource:RCNDBSourceFetched];
 }
 
-/// Update the current config result to main table.
-/// @param values Values in a row to write to the table.
-/// @param source The source the config data is coming from. It determines which table to write to.
-- (void)updateMainTableWithValues:(NSArray *)values fromSource:(RCNDBSource)source {
-  [_DBManager insertMainTableWithValues:values fromSource:source completionHandler:nil];
+- (void)handleUpdateRolloutFetchedMetadata:(NSArray<NSDictionary *> *)metadata {
+  if (!metadata) {
+    metadata = [[NSArray alloc] init];
+  }
+  _fetchedRolloutMetadata = metadata;
+  [_DBManager insertOrUpdateRolloutTableWithKey:@RCNRolloutTableKeyFetchedMetadata
+                                          value:metadata
+                              completionHandler:nil];
 }
+
 #pragma mark - getter/setter
 - (NSDictionary *)fetchedConfig {
   /// If this is the first time reading the fetchedConfig, we might still be reading it from the
@@ -314,16 +395,36 @@ static const NSTimeInterval kDatabaseLoadTimeoutSecs = 30.0;
   return _defaultConfig;
 }
 
+- (NSDictionary *)activePersonalization {
+  [self checkAndWaitForInitialDatabaseLoad];
+  return _activePersonalization;
+}
+
+- (NSArray<NSDictionary *> *)activeRolloutMetadata {
+  [self checkAndWaitForInitialDatabaseLoad];
+  return _activeRolloutMetadata;
+}
+
+- (NSDictionary *)getConfigAndMetadataForNamespace:(NSString *)FIRNamespace {
+  /// If this is the first time reading the active metadata, we might still be reading it from the
+  /// database.
+  [self checkAndWaitForInitialDatabaseLoad];
+  return @{
+    RCNFetchResponseKeyEntries : _activeConfig[FIRNamespace],
+    RCNFetchResponseKeyPersonalizationMetadata : _activePersonalization
+  };
+}
+
 /// We load the database async at init time. Block all further calls to active/fetched/default
 /// configs until load is done.
 /// @return Database load completion status.
 - (BOOL)checkAndWaitForInitialDatabaseLoad {
-  /// Wait on semaphore until done. This should be a no-op for subsequent calls.
+  /// Wait until load is done. This should be a no-op for subsequent calls.
   if (!_isConfigLoadFromDBCompleted) {
-    long result = dispatch_semaphore_wait(
-        _configLoadFromDBSemaphore,
+    intptr_t isErrorOrTimeout = dispatch_group_wait(
+        _dispatch_group,
         dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kDatabaseLoadTimeoutSecs * NSEC_PER_SEC)));
-    if (result != 0) {
+    if (isErrorOrTimeout) {
       FIRLogError(kFIRLoggerRemoteConfig, @"I-RCN000048",
                   @"Timed out waiting for fetched config to be loaded from DB");
       return false;
@@ -331,6 +432,95 @@ static const NSTimeInterval kDatabaseLoadTimeoutSecs = 30.0;
     _isConfigLoadFromDBCompleted = true;
   }
   return true;
+}
+
+// Compare fetched config with active config and output what has changed
+- (FIRRemoteConfigUpdate *)getConfigUpdateForNamespace:(NSString *)FIRNamespace {
+  // TODO: handle diff in experiment metadata
+
+  FIRRemoteConfigUpdate *configUpdate;
+  NSMutableSet<NSString *> *updatedKeys = [[NSMutableSet alloc] init];
+
+  NSDictionary *fetchedConfig =
+      _fetchedConfig[FIRNamespace] ? _fetchedConfig[FIRNamespace] : [[NSDictionary alloc] init];
+  NSDictionary *activeConfig =
+      _activeConfig[FIRNamespace] ? _activeConfig[FIRNamespace] : [[NSDictionary alloc] init];
+  NSDictionary *fetchedP13n = _fetchedPersonalization;
+  NSDictionary *activeP13n = _activePersonalization;
+  NSArray<NSDictionary *> *fetchedRolloutMetadata = _fetchedRolloutMetadata;
+  NSArray<NSDictionary *> *activeRolloutMetadata = _activeRolloutMetadata;
+
+  // add new/updated params
+  for (NSString *key in [fetchedConfig allKeys]) {
+    if (activeConfig[key] == nil ||
+        ![[activeConfig[key] stringValue] isEqualToString:[fetchedConfig[key] stringValue]]) {
+      [updatedKeys addObject:key];
+    }
+  }
+  // add deleted params
+  for (NSString *key in [activeConfig allKeys]) {
+    if (fetchedConfig[key] == nil) {
+      [updatedKeys addObject:key];
+    }
+  }
+
+  // add params with new/updated p13n metadata
+  for (NSString *key in [fetchedP13n allKeys]) {
+    if (activeP13n[key] == nil || ![activeP13n[key] isEqualToDictionary:fetchedP13n[key]]) {
+      [updatedKeys addObject:key];
+    }
+  }
+  // add params with deleted p13n metadata
+  for (NSString *key in [activeP13n allKeys]) {
+    if (fetchedP13n[key] == nil) {
+      [updatedKeys addObject:key];
+    }
+  }
+
+  NSDictionary<NSString *, NSDictionary *> *fetchedRollouts =
+      [self getParameterKeyToRolloutMetadata:fetchedRolloutMetadata];
+  NSDictionary<NSString *, NSDictionary *> *activeRollouts =
+      [self getParameterKeyToRolloutMetadata:activeRolloutMetadata];
+
+  // add params with new/updated rollout metadata
+  for (NSString *key in [fetchedRollouts allKeys]) {
+    if (activeRollouts[key] == nil ||
+        ![activeRollouts[key] isEqualToDictionary:fetchedRollouts[key]]) {
+      [updatedKeys addObject:key];
+    }
+  }
+  // add params with deleted rollout metadata
+  for (NSString *key in [activeRollouts allKeys]) {
+    if (fetchedRollouts[key] == nil) {
+      [updatedKeys addObject:key];
+    }
+  }
+
+  configUpdate = [[FIRRemoteConfigUpdate alloc] initWithUpdatedKeys:updatedKeys];
+  return configUpdate;
+}
+
+- (NSDictionary<NSString *, NSDictionary *> *)getParameterKeyToRolloutMetadata:
+    (NSArray<NSDictionary *> *)rolloutMetadata {
+  NSMutableDictionary<NSString *, NSMutableDictionary *> *result =
+      [[NSMutableDictionary alloc] init];
+  for (NSDictionary *metadata in rolloutMetadata) {
+    NSString *rolloutId = metadata[RCNFetchResponseKeyRolloutID];
+    NSString *variantId = metadata[RCNFetchResponseKeyVariantID];
+    NSArray<NSString *> *affectedKeys = metadata[RCNFetchResponseKeyAffectedParameterKeys];
+    if (rolloutId && variantId && affectedKeys) {
+      for (NSString *key in affectedKeys) {
+        if (result[key]) {
+          NSMutableDictionary *rolloutIdToVariantId = result[key];
+          [rolloutIdToVariantId setValue:variantId forKey:rolloutId];
+        } else {
+          NSMutableDictionary *rolloutIdToVariantId = [@{rolloutId : variantId} mutableCopy];
+          [result setValue:rolloutIdToVariantId forKey:key];
+        }
+      }
+    }
+  }
+  return [result copy];
 }
 
 @end

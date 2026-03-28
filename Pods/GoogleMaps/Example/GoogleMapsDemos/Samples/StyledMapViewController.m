@@ -39,42 +39,41 @@ static NSString *const kNoPOIsType = @"No business points of interest, no transi
   // error returned from |styleWithContentsOfFileURL:error:| if it returns nil. This error will
   // provide information on why your style was not able to be loaded.
 
-  NSURL *retroURL = [[NSBundle mainBundle] URLForResource:@"mapstyle-retro"
-                                            withExtension:@"json"];
+  NSURL *retroURL = [[NSBundle mainBundle] URLForResource:@"mapstyle-retro" withExtension:@"json"];
   _retroStyle = [GMSMapStyle styleWithContentsOfFileURL:retroURL error:NULL];
 
   NSURL *grayscaleURL = [[NSBundle mainBundle] URLForResource:@"mapstyle-silver"
                                                 withExtension:@"json"];
   _grayscaleStyle = [GMSMapStyle styleWithContentsOfFileURL:grayscaleURL error:NULL];
 
-  NSURL *nightURL = [[NSBundle mainBundle] URLForResource:@"mapstyle-night"
-                                            withExtension:@"json"];
+  NSURL *nightURL = [[NSBundle mainBundle] URLForResource:@"mapstyle-night" withExtension:@"json"];
   _nightStyle = [GMSMapStyle styleWithContentsOfFileURL:nightURL error:NULL];
 
   NSString *noPOIsString = @" [\n"
-      "  {\n"
-      "  \"featureType\": \"poi.business\",\n"
-      "  \"elementType\": \"all\",\n"
-      "  \"stylers\": [\n"
-      "              {\n"
-      "              \"visibility\": \"off\"\n"
-      "              }\n"
-      "              ]\n"
-      "  },\n"
-      "  {\n"
-      "  \"featureType\": \"transit\",\n"
-      "  \"elementType\": \"all\",\n"
-      "  \"stylers\": [\n"
-      "              {\n"
-      "              \"visibility\": \"off\"\n"
-      "              }\n"
-      "              ]\n"
-      "  }\n"
-      "  ]";
+                            "  {\n"
+                            "  \"featureType\": \"poi.business\",\n"
+                            "  \"elementType\": \"all\",\n"
+                            "  \"stylers\": [\n"
+                            "              {\n"
+                            "              \"visibility\": \"off\"\n"
+                            "              }\n"
+                            "              ]\n"
+                            "  },\n"
+                            "  {\n"
+                            "  \"featureType\": \"transit\",\n"
+                            "  \"elementType\": \"all\",\n"
+                            "  \"stylers\": [\n"
+                            "              {\n"
+                            "              \"visibility\": \"off\"\n"
+                            "              }\n"
+                            "              ]\n"
+                            "  }\n"
+                            "  ]";
   _noPOIsStyle = [GMSMapStyle styleWithJSONString:noPOIsString error:NULL];
 
-  GMSCameraPosition *camera =
-      [GMSCameraPosition cameraWithLatitude:-33.868 longitude:151.2086 zoom:12];
+  GMSCameraPosition *camera = [GMSCameraPosition cameraWithLatitude:-33.868
+                                                          longitude:151.2086
+                                                               zoom:12];
 
   _mapView = [GMSMapView mapWithFrame:CGRectZero camera:camera];
   self.view = _mapView;

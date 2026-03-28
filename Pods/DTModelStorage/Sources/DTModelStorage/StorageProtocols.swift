@@ -27,7 +27,7 @@ import Foundation
 import UIKit
 
 /// `Storage` protocol is used to define common interface for storage classes.
-public protocol Storage : class
+public protocol Storage : AnyObject
 {
     /// Returns number of sections in storage.
     func numberOfSections() -> Int
@@ -40,7 +40,7 @@ public protocol Storage : class
 }
 
 /// `SupplementaryStorage` is used to handle header/footer and supplementary models in storage.
-public protocol SupplementaryStorage : class
+public protocol SupplementaryStorage : AnyObject
 {
     /// Returns a header model for specified section index or nil.
     var headerModelProvider: ((_ sectionIndex: Int) -> Any?)? { get set }

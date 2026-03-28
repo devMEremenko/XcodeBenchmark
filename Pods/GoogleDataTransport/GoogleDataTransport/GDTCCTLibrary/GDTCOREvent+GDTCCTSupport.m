@@ -130,6 +130,10 @@ NSString *const GDTCCTEventCodeInfo = @"event_code_info";
                                                                 options:0
                                                                   error:&error];
       NSString *base64Data = bytesDict[GDTCCTNetworkConnectionInfo];
+      if (base64Data == nil) {
+        return nil;
+      }
+
       NSData *networkConnectionInfoData = [[NSData alloc] initWithBase64EncodedString:base64Data
                                                                               options:0];
       if (error) {
@@ -234,3 +238,7 @@ NSString *const GDTCCTEventCodeInfo = @"event_code_info";
 }
 
 @end
+
+/// Stub used to force the linker to include the categories in this file.
+void GDTCCTInclude_GDTCOREvent_GDTCCTSupport_Category(void) {
+}

@@ -22,8 +22,8 @@
 #import "AFNetworkReachabilityManager.h"
 #if !TARGET_OS_WATCH
 
+#import <sys/socket.h>
 #import <netinet/in.h>
-#import <netinet6/in6.h>
 #import <arpa/inet.h>
 #import <ifaddrs.h>
 #import <netdb.h>
@@ -147,10 +147,10 @@ static void AFNetworkReachabilityReleaseCallback(const void *info) {
 + (instancetype)manager
 {
 #if (defined(__IPHONE_OS_VERSION_MIN_REQUIRED) && __IPHONE_OS_VERSION_MIN_REQUIRED >= 90000) || (defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100)
-    struct sockaddr_in6 address;
+    struct sockaddr_storage address;
     bzero(&address, sizeof(address));
-    address.sin6_len = sizeof(address);
-    address.sin6_family = AF_INET6;
+    address.ss_len = sizeof(address);
+    address.ss_family = AF_INET6;
 #else
     struct sockaddr_in address;
     bzero(&address, sizeof(address));

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#import "NSDictionary+FIRMessaging.h"
+#import "FirebaseMessaging/Sources/NSDictionary+FIRMessaging.h"
 
 @implementation NSDictionary (FIRMessaging)
 
@@ -56,3 +56,7 @@
 }
 
 @end
+
+/// Stub used to force the linker to include the categories in this file.
+void FIRInclude_NSDictionary_FIRMessaging_Category(void) {
+}
