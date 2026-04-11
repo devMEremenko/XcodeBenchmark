@@ -29,6 +29,7 @@ If a device you are looking for is not listed below, check out open [issues](htt
 | Macbook Pro 16" 2021 |      M1 Max 10-core     | 64  | 1TB | 26.3  |  26.4    |    188    |
 | Macbook Pro 14" 2021 |      M1 Pro 10-core     | 16  | 1TB | 26.3  |  26.2    |    194    |
 | Macbook Neo 13" 2026 |      A18 Pro 6-core     |  8  | 512 | 26.3  |  26.3.2  |    404    |
+| iMac 21.5" 2019      |      i7 3.2 GHz         | 16  | 512 | 26.3  |  15.7.4  |    415    |
 
 
 ## Xcode 16 
