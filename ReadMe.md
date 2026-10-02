@@ -9,6 +9,12 @@ The project has already saved thousands of dollars for developers and companies 
 
 If a device you are looking for is not listed below, check out open [issues](https://github.com/devMEremenko/XcodeBenchmark/issues) and [PRs](https://github.com/devMEremenko/XcodeBenchmark/pulls).
 
+## Xcode 27
+
+|        Device        |           CPU           | RAM | SSD | Xcode |   macOS  | Time(sec) |
+|:--------------------:|:-----------------------:|:---:|:---:|:-----:|:--------:|:---------:|
+| MacBook Pro 16" 2024 |      M4 Max 14-core     | 36  | 1TB | 27.0  |  26.7    |    139    |
+
 ## Xcode 26
 
 |        Device        |           CPU           | RAM | SSD | Xcode |   macOS  | Time(sec) |
