@@ -33,6 +33,7 @@ if [ -d "$PATH_TO_PROJECT" ]; then
 	echo "Hardware Overview"
 	system_profiler SPHardwareDataType | grep "Model Name:"
 	system_profiler SPHardwareDataType | grep "Model Identifier:"
+	system_profiler SPHardwareDataType | grep "Chip:"
 
 	system_profiler SPHardwareDataType | grep "Processor Name:"
 	system_profiler SPHardwareDataType | grep "Processor Speed:"
