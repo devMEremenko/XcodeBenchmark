@@ -334,7 +334,7 @@ _XcodeBenchmark has been updated to support Xcode 16.3, and new submissions must
 
 ## Set up
 
-**Since Oct 1st, 2023, XcodeBenchmark only supports Xcode 15.0 or above.**
+**For new result submissions, use Xcode 26.3 or above.**
 
 - Download and install [Xcode](https://apps.apple.com/us/app/xcode/id497799835).
 - Open Xcode and install `additional tools` (Xcode should suggest it automatically).
@@ -342,7 +342,7 @@ _XcodeBenchmark has been updated to support Xcode 16.3, and new submissions must
 
 ## Before each test
 
-1. Disconnect the network cable and turn off WiFi.
+1. Pause downloads, syncing, software updates, and other background activity to reduce interference during the benchmark.
 2. Make sure to disable all software running at startup
     - Go to `System Preferences` -> `Users and Groups` -> `User` -> `Login Items`.
     - Empty the list.
@@ -352,6 +352,8 @@ _XcodeBenchmark has been updated to support Xcode 16.3, and new submissions must
 4. Connect to the power adapter if you're using a MacBook.
 
 ## Running a test
+
+**⚠️ Important:** Run `XcodeBenchmark` manually. Running it through AI gives **~10%** slower results.
 
 1. Open the `Terminal` app.
 2. Write `cd ` and drag & drop `XcodeBenchmark` folder to the `Terminal` app to form `cd path/to/xcode-benchmark`.
@@ -402,18 +404,20 @@ Please make sure to add [the link](https://github.com/devMEremenko/XcodeBenchmar
 
 **Since Feb 2026, XcodeBenchmark must be used with Xcode 26.3 or above.**
 
+- **Tip**: Once you have your results, [XcodeBenchmark PR creation skill](.agents/skills/xcodebenchmark-pr/SKILL.md) can submit them for you.
 - **If you have any non-Apple hardware components - submit your results to the `Custom Hardware` table.**
-- [Submit a pull request](https://github.com/devMEremenko/XcodeBenchmark/pulls).  
+- [Submit a pull request](https://github.com/devMEremenko/XcodeBenchmark/pulls).
 
 Make sure:
 - [All steps](https://github.com/devMEremenko/XcodeBenchmark#before-each-test) are performed
 - `Time` column is still sorted after insertion.
-- Attach a screenshot with a compilation time. [Example](img/contribution-example.png).
+- Include the build duration and hardware details in the PR description. A terminal screenshot is optional. [Example](img/contribution-example.png).
 - The content in cells is centered.
+
 
 ## Contributors
 
-- [Maxim Eremenko](https://www.linkedin.com/in/maxim-eremenko/)
+- [Maksym Yeromenko](https://www.linkedin.com/in/maxim-eremenko/)
 - [Max Tech](https://www.youtube.com/channel/UCptwuAv0XQHo1OQUSaO6NHw) YouTube channel
 - [@bitsmakerde](https://github.com/bitsmakerde)
 - [@ivanfeanor](https://github.com/ivanfeanor)
