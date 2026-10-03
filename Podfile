@@ -1,5 +1,5 @@
 source = 'https://github.com/CocoaPods/Specs.git'
-minimum_target = '14.5'
+minimum_target = '15.0'
 
 platform :ios, minimum_target
 

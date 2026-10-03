@@ -13,7 +13,8 @@ If a device you are looking for is not listed below, check out open [issues](htt
 
 |        Device        |           CPU           | RAM | SSD | Xcode |   macOS  | Time(sec) |
 |:--------------------:|:-----------------------:|:---:|:---:|:-----:|:--------:|:---------:|
-| MacBook Pro 16" 2024 |      M4 Max 14-core     | 36  | 1TB | 27.0  |  26.7    |    139    |
+| MacBook Pro 16" 2024 |      M4 Max 14-core     | 36  | 1TB |  27.0 |   26.7   |    139    |
+| Mac Mini 2024        |      M4 10-core         | 16  | 256 |  27.0 |   27.0   |    185    |
 
 ## Xcode 26
 
