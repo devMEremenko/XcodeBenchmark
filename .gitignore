@@ -1,6 +1,7 @@
 ## Build generated
 build/
 DerivedData/
+.xcodebenchmark.*/
 
 ## Settings
 *.pbxuser
