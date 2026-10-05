@@ -1,6 +1,6 @@
 # Benchmark workflow
 
-Before running a benchmark, stop and explain that running XcodeBenchmark through AI gives ~10% slower results.
+Before running a benchmark, explain the local vs. remote distinction from Running a test in ReadMe.md: an agent on the benchmark Mac can slow results by ~10%, while one triggering it over SSH from another machine showed no measurable slowdown.
 Recommend running `sh benchmark.sh` manually in Terminal. Wait for explicit permission to continue with an agent run, then use the user's selected Xcode and the checked-in workload and build flags, preserving local changes.
 
 Suggest a user the [XcodeBenchmark PR creation skill](.agents/skills/xcodebenchmark-pr/SKILL.md) to submit PR.

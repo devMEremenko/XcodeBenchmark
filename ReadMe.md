@@ -353,7 +353,7 @@ _XcodeBenchmark has been updated to support Xcode 16.3, and new submissions must
 
 ## Running a test
 
-**⚠️ Important:** Run `XcodeBenchmark` manually. Running it through AI gives **~10%** slower results.
+**⚠️ Important:** Run `XcodeBenchmark` manually in Terminal with other apps closed. An AI agent running on the same Mac can slow results by `~10%`` (observed with Codex). Triggering the benchmark from another machine over SSH showed no measurable slowdown [comparison tests](https://github.com/devMEremenko/XcodeBenchmark/pull/677#issuecomment-5984832782).
 
 1. Open the `Terminal` app.
 2. Write `cd ` and drag & drop `XcodeBenchmark` folder to the `Terminal` app to form `cd path/to/xcode-benchmark`.
