@@ -32,6 +32,7 @@ If a device you are looking for is not listed below, check out open [issues](htt
 | Mac Mini 2024        |      M4 Pro 14-core     | 64  | 4TB | 26.4  |  26.3.1  |    146    |
 | MacBook Pro 14" 2024 |      M4 Pro 12c         | 24  | 512 | 26.3  |  26.3    |    164    |
 | Macbook Air 13" 2026 |      M5 10c (10c GPU)   | 32  | 512 | 26.3  |  26.3.1  |    173    |
+| Macbook Air 15" 2026 |      M5 10c (10c GPU)   | 32  | 1TB | 26.5  |  26.5.1  |    178    |
 | Macbook Air 13" 2024 |      M4 10c (10c GPU)   | 16  | 256 | 26.1  |  26.1    |    188    |
 | Macbook Pro 16" 2021 |      M1 Max 10-core     | 64  | 1TB | 26.3  |  26.4    |    188    |
 | Macbook Pro 14" 2021 |      M1 Pro 10-core     | 16  | 1TB | 26.3  |  26.2    |    194    |
