@@ -24,6 +24,7 @@ If a device you are looking for is not listed below, check out open [issues](htt
 | MacBook Pro 16" 2026 |      M5 Pro 18-core     | 48  | 1TB | 26.3  |  26.3    |    89     |
 | MacBook Pro 16" 2024 |      M4 Max 16-core     | 48  | 1TB | 26.3  |  26.2    |    89     |
 | Mac Studio 2023      |      M2 Ultra 24-core   | 64  | 2TB | 26.2  |  26.2    |    93     |
+| MacBook Pro 14" 2024 |      M4 Max 16c (40c G) | 128 | 2TB | 26.4  |  26.4    |    97     |
 | MacBook Pro 14" 2026 |      M5 Pro 15-core     | 24  | 1TB | 26.4  |  26.4    |    101    |
 | Macbook Pro 16" 2024 |      M4 Pro 14c         | 48  | 1TB | 26.1  |  15.7.1  |    104    |
 | MacBook Pro 14" 2024 |      M4 Pro 14c         | 48  | 1TB | 26.3  |  26.3.1  |    108    |
@@ -479,3 +480,4 @@ Make sure:
 - [@facuramirez7](https://github.com/facuramirez7)
 - [@lprhodes](https://github.com/lprhodes)
 - [@KAnggara75](https://github.com/KAnggara75)
+- [@html5cat](https://x.com/html5cat)
