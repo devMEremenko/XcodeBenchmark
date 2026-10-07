@@ -17,8 +17,7 @@
 
 #import <GoogleMaps/GoogleMaps.h>
 
-@interface IndoorMuseumNavigationViewController : UIViewController<
-  GMSMapViewDelegate,
-  GMSIndoorDisplayDelegate>
+@interface IndoorMuseumNavigationViewController
+    : UIViewController <GMSMapViewDelegate, GMSIndoorDisplayDelegate>
 
 @end

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#import "GoogleDataTransport/GDTCORLibrary/Public/GoogleDataTransport/GDTCORLifecycle.h"
+#import "GoogleDataTransport/GDTCORLibrary/Internal/GDTCORLifecycle.h"
 
 #import "GoogleDataTransport/GDTCORLibrary/Public/GoogleDataTransport/GDTCORConsoleLogger.h"
 #import "GoogleDataTransport/GDTCORLibrary/Public/GoogleDataTransport/GDTCOREvent.h"
@@ -47,18 +47,17 @@
   if (self) {
     NSNotificationCenter *notificationCenter = [NSNotificationCenter defaultCenter];
     [notificationCenter addObserver:self
-                           selector:@selector(applicationDidEnterBackground:)
+                           selector:@selector(applicationDidEnterBackgroundNotification:)
                                name:kGDTCORApplicationDidEnterBackgroundNotification
                              object:nil];
     [notificationCenter addObserver:self
-                           selector:@selector(applicationWillEnterForeground:)
+                           selector:@selector(applicationWillEnterForegroundNotification:)
                                name:kGDTCORApplicationWillEnterForegroundNotification
                              object:nil];
 
-    NSString *name = kGDTCORApplicationWillTerminateNotification;
     [notificationCenter addObserver:self
-                           selector:@selector(applicationWillTerminate:)
-                               name:name
+                           selector:@selector(applicationWillTerminateNotification:)
+                               name:kGDTCORApplicationWillTerminateNotification
                              object:nil];
   }
   return self;
@@ -68,7 +67,7 @@
   [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
-- (void)applicationDidEnterBackground:(NSNotification *)notification {
+- (void)applicationDidEnterBackgroundNotification:(NSNotification *)notification {
   GDTCORApplication *application = [GDTCORApplication sharedApplication];
   if ([[GDTCORTransformer sharedInstance] respondsToSelector:@selector(appWillBackground:)]) {
     GDTCORLogDebug(@"%@", @"Signaling GDTCORTransformer that the app is backgrounding.");
@@ -84,7 +83,7 @@
   }
 }
 
-- (void)applicationWillEnterForeground:(NSNotification *)notification {
+- (void)applicationWillEnterForegroundNotification:(NSNotification *)notification {
   GDTCORApplication *application = [GDTCORApplication sharedApplication];
   if ([[GDTCORTransformer sharedInstance] respondsToSelector:@selector(appWillForeground:)]) {
     GDTCORLogDebug(@"%@", @"Signaling GDTCORTransformer that the app is foregrounding.");
@@ -100,7 +99,7 @@
   }
 }
 
-- (void)applicationWillTerminate:(NSNotification *)notification {
+- (void)applicationWillTerminateNotification:(NSNotification *)notification {
   GDTCORApplication *application = [GDTCORApplication sharedApplication];
   if ([[GDTCORTransformer sharedInstance] respondsToSelector:@selector(appWillTerminate:)]) {
     GDTCORLogDebug(@"%@", @"Signaling GDTCORTransformer that the app is terminating.");

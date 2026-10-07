@@ -17,10 +17,10 @@
 
 #import <GoogleMaps/GoogleMaps.h>
 
-// Returns a random value from 0-1.0f.
+/** Returns a random value from 0-1.0f. */
 static CGFloat randf() { return (((float)arc4random() / 0x100000000) * 1.0f); }
 
-@interface AnimatedUIViewMarkerViewController ()<GMSMapViewDelegate>
+@interface AnimatedUIViewMarkerViewController () <GMSMapViewDelegate>
 @end
 
 @implementation AnimatedUIViewMarkerViewController {
@@ -30,8 +30,9 @@ static CGFloat randf() { return (((float)arc4random() / 0x100000000) * 1.0f); }
 
 - (void)viewDidLoad {
   [super viewDidLoad];
-  GMSCameraPosition *camera =
-      [GMSCameraPosition cameraWithLatitude:-33.8683 longitude:151.2086 zoom:5];
+  GMSCameraPosition *camera = [GMSCameraPosition cameraWithLatitude:-33.8683
+                                                          longitude:151.2086
+                                                               zoom:5];
   _mapView = [GMSMapView mapWithFrame:CGRectZero camera:camera];
   _mapView.delegate = self;
 
@@ -40,10 +41,10 @@ static CGFloat randf() { return (((float)arc4random() / 0x100000000) * 1.0f); }
 
 - (void)viewWillAppear:(BOOL)animated {
   [super viewWillAppear:animated];
-  [[NSNotificationCenter defaultCenter] addObserver:self
-                                           selector:@selector(applicationWillEnterForeground)
-                                               name:UIApplicationWillEnterForegroundNotification
-                                             object:nil];
+  [NSNotificationCenter.defaultCenter addObserver:self
+                                         selector:@selector(applicationWillEnterForeground)
+                                             name:UIApplicationWillEnterForegroundNotification
+                                           object:nil];
   [_mapView clear];
   [self addDefaultMarker];
 }
@@ -55,7 +56,9 @@ static CGFloat randf() { return (((float)arc4random() / 0x100000000) * 1.0f); }
 
 - (void)viewWillDisappear:(BOOL)animated {
   [super viewWillDisappear:animated];
-  [[NSNotificationCenter defaultCenter] removeObserver:self];
+  [NSNotificationCenter.defaultCenter removeObserver:self
+                                                name:UIApplicationWillEnterForegroundNotification
+                                              object:nil];
 }
 
 - (UIView *)mapView:(GMSMapView *)mapView markerInfoContents:(GMSMarker *)marker {

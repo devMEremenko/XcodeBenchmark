@@ -26,6 +26,7 @@
 #import "VKUploadMessagesPhotoRequest.h"
 
 @implementation VKApi
+
 + (VKApiUsers *)users {
     return [VKApiUsers new];
 }
@@ -44,6 +45,10 @@
 
 + (VKApiGroups *)groups {
     return [VKApiGroups new];
+}
+
++ (VKApiDocs *)docs {
+    return [VKApiDocs new];
 }
 
 + (VKRequest *)requestWithMethod:(NSString *)method

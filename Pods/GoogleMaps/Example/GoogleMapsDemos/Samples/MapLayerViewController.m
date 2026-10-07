@@ -19,6 +19,7 @@
 
 @implementation MapLayerViewController {
   GMSMapView *_mapView;
+  BOOL _rotating;
 }
 
 - (void)viewDidLoad {
@@ -40,7 +41,6 @@
                                       target:self
                                       action:@selector(didTapMyLocation)];
   self.navigationItem.rightBarButtonItem = myLocationButton;
-
 }
 
 - (void)didTapMyLocation {
@@ -48,44 +48,39 @@
   if (!location || !CLLocationCoordinate2DIsValid(location.coordinate)) {
     return;
   }
-
-  _mapView.layer.cameraLatitude = location.coordinate.latitude;
-  _mapView.layer.cameraLongitude = location.coordinate.longitude;
-  _mapView.layer.cameraBearing = 0.0;
-
-  // Access the GMSMapLayer directly to modify the following properties with a
-  // specified timing function and duration.
-
+  GMSCameraPosition *camera =
+      [[GMSCameraPosition alloc] initWithTarget:location.coordinate
+                                           zoom:_mapView.camera.zoom
+                                        bearing:0.0
+                                   viewingAngle:_mapView.camera.viewingAngle];
   CAMediaTimingFunction *curve =
       [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
-  CABasicAnimation *animation;
+  // Animate to the marker
+  [CATransaction begin];
+  [CATransaction setAnimationDuration:2.0f];  // 2 second animation
+  [CATransaction setAnimationTimingFunction:curve];
+  [CATransaction setCompletionBlock:^{
+    if (_rotating) {  // Animation was interrupted by orientation change.
+      [CATransaction
+          setDisableActions:true];  // Disable animation to avoid interruption from rotation.
+      [_mapView animateToCameraPosition:camera];
+    }
+  }];
 
-  animation = [CABasicAnimation animationWithKeyPath:kGMSLayerCameraLatitudeKey];
-  animation.duration = 2.0f;
-  animation.timingFunction = curve;
-  animation.toValue = @(location.coordinate.latitude);
-  [_mapView.layer addAnimation:animation forKey:kGMSLayerCameraLatitudeKey];
+  [_mapView animateToCameraPosition:camera];
+  [CATransaction commit];
+}
 
-  animation = [CABasicAnimation animationWithKeyPath:kGMSLayerCameraLongitudeKey];
-  animation.duration = 2.0f;
-  animation.timingFunction = curve;
-  animation.toValue = @(location.coordinate.longitude);
-  [_mapView.layer addAnimation:animation forKey:kGMSLayerCameraLongitudeKey];
-
-  animation = [CABasicAnimation animationWithKeyPath:kGMSLayerCameraBearingKey];
-  animation.duration = 2.0f;
-  animation.timingFunction = curve;
-  animation.toValue = @0.0;
-  [_mapView.layer addAnimation:animation forKey:kGMSLayerCameraBearingKey];
-
-  // Fly out to the minimum zoom and then zoom back to the current zoom!
-  CGFloat zoom = _mapView.camera.zoom;
-  NSArray *keyValues = @[@(zoom), @(kGMSMinZoomLevel), @(zoom)];
-  CAKeyframeAnimation *keyFrameAnimation =
-      [CAKeyframeAnimation animationWithKeyPath:kGMSLayerCameraZoomLevelKey];
-  keyFrameAnimation.duration = 2.0f;
-  keyFrameAnimation.values = keyValues;
-  [_mapView.layer addAnimation:keyFrameAnimation forKey:kGMSLayerCameraZoomLevelKey];
+- (void)viewWillTransitionToSize:(CGSize)size
+       withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
+  _rotating = true;
+  [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
+  [coordinator
+      animateAlongsideTransition:nil
+                      completion:^(
+                          id<UIViewControllerTransitionCoordinatorContext> _Nonnull context) {
+                        _rotating = false;
+                      }];
 }
 
 @end

@@ -27,7 +27,7 @@
 import Foundation
 import UIKit
 
-//swiftlint:disable large_tuple
+// swiftlint:disable large_tuple
 
 /// Data holder for reaction
 open class EventReaction {
@@ -313,7 +313,7 @@ public extension EventReaction {
         return reaction.performWithArguments((view ?? 0, model, location))
     }
     
-    //swiftlint:disable function_parameter_count
+    // swiftlint:disable function_parameter_count
     /// Performs reaction of `type`, `signature`, with `argument`, `view`, `model` in `location`.
     static func perform4ArgumentsReaction(from mappings: [ViewModelMappingProtocol], signature: String, argument: Any, view: Any?, model: Any, location: IndexPath) -> Any {
         guard let reaction = reaction(from: mappings, signature: signature, forModel: model, at: location, view: view as? UIView) as? FourArgumentsEventReaction else { return 0 }

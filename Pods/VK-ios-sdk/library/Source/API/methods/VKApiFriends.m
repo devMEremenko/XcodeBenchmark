@@ -25,11 +25,15 @@
 
 @implementation VKApiFriends
 - (VKRequest *)get {
-    return [self prepareRequestWithMethodName:@"get" parameters:nil modelClass:[VKUsersArray class]];
+    return [self prepareRequestWithMethodName:@"get"
+                                   parameters:nil
+                                   modelClass:[VKUsersArray class]];
 }
 
 - (VKRequest *)get:(NSDictionary *)params {
-    return [self prepareRequestWithMethodName:@"get" parameters:params modelClass:[VKUsersArray class]];
+    return [self prepareRequestWithMethodName:@"get"
+                                   parameters:params
+                                   modelClass:[VKUsersArray class]];
 }
 
 @end

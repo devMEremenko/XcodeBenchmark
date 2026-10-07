@@ -5,8 +5,8 @@
 #ifndef STORAGE_LEVELDB_INCLUDE_DB_H_
 #define STORAGE_LEVELDB_INCLUDE_DB_H_
 
-#include <stdint.h>
-#include <stdio.h>
+#include <cstdint>
+#include <cstdio>
 
 #include "leveldb/export.h"
 #include "leveldb/iterator.h"
@@ -33,7 +33,7 @@ class LEVELDB_EXPORT Snapshot {
 
 // A range of keys
 struct LEVELDB_EXPORT Range {
-  Range() {}
+  Range() = default;
   Range(const Slice& s, const Slice& l) : start(s), limit(l) {}
 
   Slice start;  // Included in the range

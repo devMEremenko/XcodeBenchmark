@@ -7,6 +7,7 @@
 //  License: MIT License
 //
 
+#if !os(watchOS)
 import Foundation
 import UIKit
 
@@ -23,3 +24,4 @@ public extension NibResourceType {
     return UINib(resource: self).instantiate(withOwner: ownerOrNil, options: optionsOrNil)
   }
 }
+#endif

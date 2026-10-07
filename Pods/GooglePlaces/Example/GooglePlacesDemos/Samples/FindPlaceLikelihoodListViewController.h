@@ -16,9 +16,7 @@
 #import <CoreLocation/CoreLocation.h>
 #import <UIKit/UIKit.h>
 
-/**
- * Demo that exposes the findPlaceLikelihoodsForLocation API.
- */
+/** Demo that exposes the findPlaceLikelihoodsForLocation API. */
 @interface FindPlaceLikelihoodListViewController
     : UIViewController <UITableViewDataSource, UITableViewDelegate, CLLocationManagerDelegate>
 

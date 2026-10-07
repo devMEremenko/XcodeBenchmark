@@ -6,17 +6,10 @@
 //  Copyright © 2015 Krunoslav Zaher. All rights reserved.
 //
 
-import class Foundation.NSObject
-import protocol Foundation.NSCopying
-import class Foundation.Thread
 import Dispatch
+import Foundation
 
 #if os(Linux)
-    import struct Foundation.pthread_key_t
-    import func Foundation.pthread_setspecific
-    import func Foundation.pthread_getspecific
-    import func Foundation.pthread_key_create
-    
     fileprivate enum CurrentThreadSchedulerQueueKey {
         fileprivate static let instance = "RxSwift.CurrentThreadScheduler.Queue"
     }

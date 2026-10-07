@@ -16,11 +16,12 @@
 
 #import "FirebaseMessaging/Sources/FIRMessagingAnalytics.h"
 
-#import "GoogleUtilities/AppDelegateSwizzler/Private/GULAppDelegateSwizzler.h"
-#import "GoogleUtilities/Environment/Private/GULAppEnvironmentUtil.h"
+#import <GoogleUtilities/GULAppDelegateSwizzler.h>
+#import <GoogleUtilities/GULAppEnvironmentUtil.h>
 #import "Interop/Analytics/Public/FIRInteropEventNames.h"
 #import "Interop/Analytics/Public/FIRInteropParameterNames.h"
 
+#import "FirebaseMessaging/Sources/FIRMessagingConstants.h"
 #import "FirebaseMessaging/Sources/FIRMessagingLogger.h"
 
 static NSString *const kLogTag = @"FIRMessagingAnalytics";
@@ -35,29 +36,16 @@ static NSString *const kApsContentAvailableKey = @"badge";
 // Data Key
 static NSString *const kDataKey = @"data";
 
-// Messaging From Key
-static NSString *const kFIRMessagingFromKey = @"from";
-
 static NSString *const kFIRParameterLabel = @"label";
 
 static NSString *const kReengagementSource = @"Firebase";
 static NSString *const kReengagementMedium = @"notification";
 
 // Analytics
-static NSString *const kAnalyticsEnabled = @"google.c.a."
-                                           @"e";
-static NSString *const kAnalyticsComposerIdentifier = @"google.c.a."
-                                                      @"c_id";
-static NSString *const kAnalyticsComposerLabel = @"google.c.a."
-                                                 @"c_l";
-static NSString *const kAnalyticsMessageLabel = @"google.c.a."
-                                                @"m_l";
-static NSString *const kAnalyticsMessageTimestamp = @"google.c.a."
-                                                    @"ts";
-static NSString *const kAnalyticsMessageUseDeviceTime = @"google.c.a."
-                                                        @"udt";
-static NSString *const kAnalyticsTrackConversions = @"google.c.a."
-                                                    @"tc";
+static NSString *const kAnalyticsEnabled = @"google.c.a.e";
+static NSString *const kAnalyticsMessageTimestamp = @"google.c.a.ts";
+static NSString *const kAnalyticsMessageUseDeviceTime = @"google.c.a.udt";
+static NSString *const kAnalyticsTrackConversions = @"google.c.a.tc";
 
 @implementation FIRMessagingAnalytics
 
@@ -119,17 +107,17 @@ static NSString *const kAnalyticsTrackConversions = @"google.c.a."
   }
 
   NSMutableDictionary *params = [NSMutableDictionary dictionary];
-  NSString *composerIdentifier = analyticsDataMap[kAnalyticsComposerIdentifier];
+  NSString *composerIdentifier = analyticsDataMap[kFIRMessagingAnalyticsComposerIdentifier];
   if ([composerIdentifier isKindOfClass:[NSString class]] && composerIdentifier.length) {
     params[kFIRIParameterMessageIdentifier] = [composerIdentifier copy];
   }
 
-  NSString *composerLabel = analyticsDataMap[kAnalyticsComposerLabel];
+  NSString *composerLabel = analyticsDataMap[kFIRMessagingAnalyticsComposerLabel];
   if ([composerLabel isKindOfClass:[NSString class]] && composerLabel.length) {
     params[kFIRIParameterMessageName] = [composerLabel copy];
   }
 
-  NSString *messageLabel = analyticsDataMap[kAnalyticsMessageLabel];
+  NSString *messageLabel = analyticsDataMap[kFIRMessagingAnalyticsMessageLabel];
   if ([messageLabel isKindOfClass:[NSString class]] && messageLabel.length) {
     params[kFIRParameterLabel] = [messageLabel copy];
   }
@@ -161,7 +149,7 @@ static NSString *const kAnalyticsTrackConversions = @"google.c.a."
     return;
   }
 
-  NSString *composerIdentifier = notification[kAnalyticsComposerIdentifier];
+  NSString *composerIdentifier = notification[kFIRMessagingAnalyticsComposerIdentifier];
   if ([composerIdentifier isKindOfClass:[NSString class]] && composerIdentifier.length) {
     // Set user property for event.
     [analytics setUserPropertyWithOrigin:@"fcm"
@@ -188,7 +176,8 @@ static NSString *const kAnalyticsTrackConversions = @"google.c.a."
 
 + (void)logMessage:(NSDictionary *)notification
        toAnalytics:(id<FIRAnalyticsInterop> _Nullable)analytics {
-  // iOS onlly because Analytics doesn't support tvOS.
+  // iOS only because Analytics doesn't support other platforms.
+
 #if TARGET_OS_IOS
   if (![self canLogNotification:notification]) {
     return;
@@ -201,9 +190,12 @@ static NSString *const kAnalyticsTrackConversions = @"google.c.a."
   UIApplicationState applicationState = application.applicationState;
   switch (applicationState) {
     case UIApplicationStateInactive:
-      // App was either in background(suspended) or inactive and user tapped on a display
-      // notification.
-      [self logOpenNotification:notification toAnalytics:analytics];
+      // App was in background and in transition to open when user tapped
+      // on a display notification.
+      // Needs to check notification is displayed.
+      if ([[self class] isDisplayNotification:notification]) {
+        [self logOpenNotification:notification toAnalytics:analytics];
+      }
       break;
 
     case UIApplicationStateActive:
@@ -212,11 +204,34 @@ static NSString *const kAnalyticsTrackConversions = @"google.c.a."
       break;
 
     default:
-      // Only a silent notification (i.e. 'content-available' is true) can be received while the app
-      // is in the background. These messages aren't loggable anyway.
+      // App was either in background state or in transition from closed
+      // to open.
+      // Needs to check notification is displayed.
+      if ([[self class] isDisplayNotification:notification]) {
+        [self logOpenNotification:notification toAnalytics:analytics];
+      }
       break;
   }
 #endif
+}
+
++ (BOOL)isDisplayNotification:(NSDictionary *)notification {
+  NSDictionary *aps = notification[kApsKey];
+  if (!aps || ![aps isKindOfClass:[NSDictionary class]]) {
+    return NO;
+  }
+  NSDictionary *alert = aps[kApsAlertKey];
+  if (!alert) {
+    return NO;
+  }
+  if ([alert isKindOfClass:[NSDictionary class]]) {
+    return alert.allKeys.count > 0;
+  }
+  // alert can be string sometimes (if only body is specified)
+  if ([alert isKindOfClass:[NSString class]]) {
+    return YES;
+  }
+  return NO;
 }
 
 @end

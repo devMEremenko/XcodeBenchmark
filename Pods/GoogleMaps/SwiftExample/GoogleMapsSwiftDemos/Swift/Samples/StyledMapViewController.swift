@@ -45,6 +45,8 @@ class StyledMapViewController: UIViewController {
           self.updateUI(style: style)
         })
     }
+    alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+    alert.popoverPresentationController?.barButtonItem = sender
     present(alert, animated: true)
   }
 }

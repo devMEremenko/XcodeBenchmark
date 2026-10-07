@@ -26,9 +26,10 @@
 import UIKit
 import DTModelStorage
 
-extension DTCollectionViewManager {
+/// Extension for UICollectionViewDataSource events
+public extension DTCollectionViewManager {
     /// Registers `closure` to be executed, when `UICollectionViewDataSource.collectionView(_:canMoveItemAt:)` method is called for `cellClass`.
-    open func canMove<Cell:ModelTransfer>(_ cellClass:Cell.Type, _ closure: @escaping (Cell, Cell.ModelType, IndexPath) -> Bool) where Cell: UICollectionViewCell
+    func canMove<Cell:ModelTransfer>(_ cellClass:Cell.Type, _ closure: @escaping (Cell, Cell.ModelType, IndexPath) -> Bool) where Cell: UICollectionViewCell
     {
         collectionDataSource?.appendReaction(for: Cell.self, signature: EventMethodSignature.canMoveItemAtIndexPath, closure: closure)
     }
@@ -36,26 +37,29 @@ extension DTCollectionViewManager {
     /// Registers `closure` to be executed, when `UICollectionViewDataSrouce.(_:moveItemAt:to:)` method is called for `cellClass`.
     /// - warning: This method requires items to be moved without animations, since animation has already happened when user moved those cells. If you use `MemoryStorage`, it's appropriate to call `memoryStorage.moveItemWithoutAnimation(from:to:)` method to achieve desired behavior.
     /// - SeeAlso: 'collectionView:moveRowAt:to:' method
-    open func moveItemAtTo(_ closure: @escaping (_ sourceIndexPath: IndexPath, _ destinationIndexPath: IndexPath) -> Void)
+    func moveItemAtTo(_ closure: @escaping (_ sourceIndexPath: IndexPath, _ destinationIndexPath: IndexPath) -> Void)
     {
         collectionDataSource?.appendNonCellReaction(.moveItemAtIndexPathToIndexPath, closure: closure)
     }
     
+    @available(iOS 14.0, tvOS 10.2, *)
     /// Registers `closure` to be executed, when `UICollectionViewDataSource.indexTitlesForCollectionView(_:)` method is called.
-    open func indexTitles(_ closure: @escaping () -> [String]?) {
+    func indexTitles(_ closure: @escaping () -> [String]?) {
         collectionDataSource?.appendNonCellReaction(.indexTitlesForCollectionView, closure: closure)
     }
     
+    @available(iOS 14.0, tvOS 10.2, *)
     /// Registers `closure` to be executed when `UICollectionViewDataSource.collectionView(_:indexPathForIndexTitle:)` method is called.
-    open func indexPathForIndexTitle(_ closure: @escaping (String, Int) -> IndexPath) {
+    func indexPathForIndexTitle(_ closure: @escaping (String, Int) -> IndexPath) {
         collectionDataSource?.appendNonCellReaction(.indexPathForIndexTitleAtIndex, closure: closure)
     }
 }
 
-extension ViewModelMapping where View : UICollectionViewCell {
+/// Extension for UICollectionViewDataSource events
+public extension CellViewModelMappingProtocolGeneric where Cell : UICollectionViewCell {
     /// Registers `closure` to be executed, when `UICollectionViewDataSource.collectionView(_:canMoveItemAt:)` method is called.
-    open func canMove(_ closure: @escaping (View, Model, IndexPath) -> Bool)
+    func canMove(_ closure: @escaping (Cell, Model, IndexPath) -> Bool)
     {
-        reactions.append(EventReaction(viewType: View.self, modelType: Model.self, signature: EventMethodSignature.canMoveItemAtIndexPath.rawValue, closure))
+        reactions.append(EventReaction(viewType: Cell.self, modelType: Model.self, signature: EventMethodSignature.canMoveItemAtIndexPath.rawValue, closure))
     }
 }

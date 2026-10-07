@@ -1,9 +1,13 @@
 //
-//  DateInRegion+Parser.swift
 //  SwiftDate
+//  Parse, validate, manipulate, and display dates, time and timezones in Swift
 //
-//  Created by Daniele Margutti on 14/06/2018.
-//  Copyright © 2018 SwiftDate. All rights reserved.
+//  Created by Daniele Margutti
+//   - Web: https://www.danielemargutti.com
+//   - Twitter: https://twitter.com/danielemargutti
+//   - Mail: hello@danielemargutti.com
+//
+//  Copyright © 2019 Daniele Margutti. Licensed under MIT License.
 //
 
 import Foundation
@@ -53,7 +57,7 @@ public protocol DateParsable {
 	///   - options: options of the parser
 	///   - region: region in which the date should be expressed in (timzone is ignored and evaluated automatically)
 	/// - Returns: date in region representation, `nil` if parse fails
-	func toISODate(_ options: ISOParser.Options?, region: Region) -> DateInRegion?
+	func toISODate(_ options: ISOParser.Options?, region: Region?) -> DateInRegion?
 
 	/// Convert to date from a valid DOTNET string
 	///
@@ -83,23 +87,23 @@ public protocol DateParsable {
 extension String: DateParsable {
 
 	public func toDate(_ format: String? = nil, region: Region = SwiftDate.defaultRegion) -> DateInRegion? {
-		return DateInRegion(self, format: format, region: region)
+        DateInRegion(self, format: format, region: region)
 	}
 
 	public func toDate(_ formats: [String], region: Region) -> DateInRegion? {
-		return DateInRegion(self, formats: formats, region: region)
+        DateInRegion(self, formats: formats, region: region)
 	}
 
 	public func toDate(style: StringToDateStyles, region: Region = SwiftDate.defaultRegion) -> DateInRegion? {
-		return style.toDate(self, region: region)
+        style.toDate(self, region: region)
 	}
 
-	public func toISODate(_ options: ISOParser.Options? = nil, region: Region = Region.ISO) -> DateInRegion? {
-		return ISOParser.parse(self, region: region, options: options)
+	public func toISODate(_ options: ISOParser.Options? = nil, region: Region? = nil) -> DateInRegion? {
+        ISOParser.parse(self, region: region, options: options)
 	}
 
 	public func toDotNETDate(region: Region = Region.ISO) -> DateInRegion? {
-		return DOTNETParser.parse(self, region: region, options: nil)
+        DOTNETParser.parse(self, region: region, options: nil)
 	}
 
 	public func toRSSDate(alt: Bool, region: Region = Region.ISO) -> DateInRegion? {
@@ -110,7 +114,11 @@ extension String: DateParsable {
 	}
 
 	public func toSQLDate(region: Region = Region.ISO) -> DateInRegion? {
-		return StringToDateStyles.sql.toDate(self, region: region)
+        StringToDateStyles.sql.toDate(self, region: region)
 	}
-
+	
+	public func asLocale() -> Locale {
+        Locale(identifier: self)
+    }
+    
 }

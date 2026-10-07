@@ -28,12 +28,11 @@
 
 #include "table/block_builder.h"
 
-#include <assert.h>
-
 #include <algorithm>
+#include <cassert>
 
 #include "leveldb/comparator.h"
-#include "leveldb/table_builder.h"
+#include "leveldb/options.h"
 #include "util/coding.h"
 
 namespace leveldb {
@@ -64,7 +63,7 @@ Slice BlockBuilder::Finish() {
   for (size_t i = 0; i < restarts_.size(); i++) {
     PutFixed32(&buffer_, restarts_[i]);
   }
-  PutFixed32(&buffer_, restarts_.size());
+  PutFixed32(&buffer_, (uint32_t)restarts_.size());
   finished_ = true;
   return Slice(buffer_);
 }
@@ -75,7 +74,7 @@ void BlockBuilder::Add(const Slice& key, const Slice& value) {
   assert(counter_ <= options_->block_restart_interval);
   assert(buffer_.empty()  // No values yet?
          || options_->comparator->Compare(key, last_key_piece) > 0);
-  size_t shared = 0;
+  uint32_t shared = 0;
   if (counter_ < options_->block_restart_interval) {
     // See how much sharing to do with previous string
     const size_t min_length = std::min(last_key_piece.size(), key.size());
@@ -84,15 +83,15 @@ void BlockBuilder::Add(const Slice& key, const Slice& value) {
     }
   } else {
     // Restart compression
-    restarts_.push_back(buffer_.size());
+    restarts_.push_back((uint32_t)buffer_.size());
     counter_ = 0;
   }
   const size_t non_shared = key.size() - shared;
 
   // Add "<shared><non_shared><value_size>" to buffer_
   PutVarint32(&buffer_, shared);
-  PutVarint32(&buffer_, non_shared);
-  PutVarint32(&buffer_, value.size());
+  PutVarint32(&buffer_, (uint32_t)non_shared);
+  PutVarint32(&buffer_, (uint32_t)value.size());
 
   // Add string delta to buffer_ followed by value
   buffer_.append(key.data() + shared, non_shared);

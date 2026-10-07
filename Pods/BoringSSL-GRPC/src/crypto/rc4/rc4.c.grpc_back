@@ -54,7 +54,7 @@
  * copied and put under another distribution licence
  * [including the GNU Public Licence.] */
 
-#include <openssl/rc4.h>
+#include <openssl_grpc/rc4.h>
 
 
 void RC4(RC4_KEY *key, size_t len, const uint8_t *in, uint8_t *out) {

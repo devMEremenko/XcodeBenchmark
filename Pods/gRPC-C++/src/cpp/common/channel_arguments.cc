@@ -1,33 +1,36 @@
-/*
- *
- * Copyright 2015 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
-#include <grpcpp/support/channel_arguments.h>
-
-#include <sstream>
-
-#include <grpc/impl/codegen/grpc_types.h>
-#include <grpc/support/log.h>
+//
+//
+// Copyright 2015 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
+#include <grpc/impl/channel_arg_names.h>
+#include <grpc/impl/compression_types.h>
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/resource_quota.h>
-#include "src/core/lib/channel/channel_args.h"
+#include <grpcpp/support/channel_arguments.h>
+
+#include <algorithm>
+#include <list>
+#include <string>
+#include <vector>
+
+#include "absl/log/check.h"
 #include "src/core/lib/iomgr/exec_ctx.h"
 #include "src/core/lib/iomgr/socket_mutator.h"
 
-namespace grpc_impl {
+namespace grpc {
 
 ChannelArguments::ChannelArguments() {
   // This will be ignored if used on the server side.
@@ -42,7 +45,7 @@ ChannelArguments::ChannelArguments(const ChannelArguments& other)
   for (const auto& a : other.args_) {
     grpc_arg ap;
     ap.type = a.type;
-    GPR_ASSERT(list_it_src->c_str() == a.key);
+    CHECK(list_it_src->c_str() == a.key);
     ap.key = const_cast<char*>(list_it_dst->c_str());
     ++list_it_src;
     ++list_it_dst;
@@ -51,7 +54,7 @@ ChannelArguments::ChannelArguments(const ChannelArguments& other)
         ap.value.integer = a.value.integer;
         break;
       case GRPC_ARG_STRING:
-        GPR_ASSERT(list_it_src->c_str() == a.value.string);
+        CHECK(list_it_src->c_str() == a.value.string);
         ap.value.string = const_cast<char*>(list_it_dst->c_str());
         ++list_it_src;
         ++list_it_dst;
@@ -66,9 +69,9 @@ ChannelArguments::ChannelArguments(const ChannelArguments& other)
 }
 
 ChannelArguments::~ChannelArguments() {
-  grpc_core::ExecCtx exec_ctx;
   for (auto& arg : args_) {
     if (arg.type == GRPC_ARG_POINTER) {
+      grpc_core::ExecCtx exec_ctx;
       arg.value.pointer.vtable->destroy(arg.value.pointer.p);
     }
   }
@@ -97,8 +100,8 @@ void ChannelArguments::SetSocketMutator(grpc_socket_mutator* mutator) {
   grpc_core::ExecCtx exec_ctx;
   for (auto& arg : args_) {
     if (arg.type == mutator_arg.type &&
-        grpc::string(arg.key) == grpc::string(mutator_arg.key)) {
-      GPR_ASSERT(!replaced);
+        std::string(arg.key) == std::string(mutator_arg.key)) {
+      CHECK(!replaced);
       arg.value.pointer.vtable->destroy(arg.value.pointer.p);
       arg.value.pointer = mutator_arg.value.pointer;
       replaced = true;
@@ -106,7 +109,7 @@ void ChannelArguments::SetSocketMutator(grpc_socket_mutator* mutator) {
   }
 
   if (!replaced) {
-    strings_.push_back(grpc::string(mutator_arg.key));
+    strings_.push_back(std::string(mutator_arg.key));
     args_.push_back(mutator_arg);
     args_.back().key = const_cast<char*>(strings_.back().c_str());
   }
@@ -117,7 +120,7 @@ void ChannelArguments::SetSocketMutator(grpc_socket_mutator* mutator) {
 // prefix. The user can build up a prefix string by calling this multiple times,
 // each with more significant identifier.
 void ChannelArguments::SetUserAgentPrefix(
-    const grpc::string& user_agent_prefix) {
+    const std::string& user_agent_prefix) {
   if (user_agent_prefix.empty()) {
     return;
   }
@@ -126,8 +129,8 @@ void ChannelArguments::SetUserAgentPrefix(
   for (auto& arg : args_) {
     ++strings_it;
     if (arg.type == GRPC_ARG_STRING) {
-      if (grpc::string(arg.key) == GRPC_ARG_PRIMARY_USER_AGENT_STRING) {
-        GPR_ASSERT(arg.value.string == strings_it->c_str());
+      if (std::string(arg.key) == GRPC_ARG_PRIMARY_USER_AGENT_STRING) {
+        CHECK(arg.value.string == strings_it->c_str());
         *(strings_it) = user_agent_prefix + " " + arg.value.string;
         arg.value.string = const_cast<char*>(strings_it->c_str());
         replaced = true;
@@ -142,7 +145,7 @@ void ChannelArguments::SetUserAgentPrefix(
 }
 
 void ChannelArguments::SetResourceQuota(
-    const grpc_impl::ResourceQuota& resource_quota) {
+    const grpc::ResourceQuota& resource_quota) {
   SetPointerWithVtable(GRPC_ARG_RESOURCE_QUOTA,
                        resource_quota.c_resource_quota(),
                        grpc_resource_quota_arg_vtable());
@@ -157,16 +160,16 @@ void ChannelArguments::SetMaxSendMessageSize(int size) {
 }
 
 void ChannelArguments::SetLoadBalancingPolicyName(
-    const grpc::string& lb_policy_name) {
+    const std::string& lb_policy_name) {
   SetString(GRPC_ARG_LB_POLICY_NAME, lb_policy_name);
 }
 
 void ChannelArguments::SetServiceConfigJSON(
-    const grpc::string& service_config_json) {
+    const std::string& service_config_json) {
   SetString(GRPC_ARG_SERVICE_CONFIG, service_config_json);
 }
 
-void ChannelArguments::SetInt(const grpc::string& key, int value) {
+void ChannelArguments::SetInt(const std::string& key, int value) {
   grpc_arg arg;
   arg.type = GRPC_ARG_INTEGER;
   strings_.push_back(key);
@@ -176,7 +179,7 @@ void ChannelArguments::SetInt(const grpc::string& key, int value) {
   args_.push_back(arg);
 }
 
-void ChannelArguments::SetPointer(const grpc::string& key, void* value) {
+void ChannelArguments::SetPointer(const std::string& key, void* value) {
   static const grpc_arg_pointer_vtable vtable = {
       &PointerVtableMembers::Copy, &PointerVtableMembers::Destroy,
       &PointerVtableMembers::Compare};
@@ -184,7 +187,7 @@ void ChannelArguments::SetPointer(const grpc::string& key, void* value) {
 }
 
 void ChannelArguments::SetPointerWithVtable(
-    const grpc::string& key, void* value,
+    const std::string& key, void* value,
     const grpc_arg_pointer_vtable* vtable) {
   grpc_arg arg;
   arg.type = GRPC_ARG_POINTER;
@@ -195,8 +198,8 @@ void ChannelArguments::SetPointerWithVtable(
   args_.push_back(arg);
 }
 
-void ChannelArguments::SetString(const grpc::string& key,
-                                 const grpc::string& value) {
+void ChannelArguments::SetString(const std::string& key,
+                                 const std::string& value) {
   grpc_arg arg;
   arg.type = GRPC_ARG_STRING;
   strings_.push_back(key);
@@ -214,4 +217,17 @@ void ChannelArguments::SetChannelArgs(grpc_channel_args* channel_args) const {
   }
 }
 
-}  // namespace grpc_impl
+void ChannelArguments::SetSslTargetNameOverride(const std::string& name) {
+  SetString(GRPC_SSL_TARGET_NAME_OVERRIDE_ARG, name);
+}
+
+std::string ChannelArguments::GetSslTargetNameOverride() const {
+  for (unsigned int i = 0; i < args_.size(); i++) {
+    if (std::string(GRPC_SSL_TARGET_NAME_OVERRIDE_ARG) == args_[i].key) {
+      return args_[i].value.string;
+    }
+  }
+  return "";
+}
+
+}  // namespace grpc

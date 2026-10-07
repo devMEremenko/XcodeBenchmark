@@ -26,6 +26,7 @@
 import UIKit
 import Foundation
 import DTModelStorage
+import SwiftUI
 
 /// Internal class, that is used to create table view cells, headers and footers.
 final class TableViewFactory
@@ -47,9 +48,42 @@ final class TableViewFactory
         self.tableView = tableView
     }
     
-    func registerCellClass<Cell:ModelTransfer>(_ cellClass : Cell.Type, handler: @escaping (Cell, Cell.ModelType, IndexPath) -> Void, mapping: ((ViewModelMapping<Cell, Cell.ModelType>) -> Void)?) where Cell: UITableViewCell
+#if swift(>=5.7) && !canImport(AppKit) || (canImport(AppKit) && swift(>=5.7.1)) // Xcode 14.0 AND macCatalyst on Xcode 14.1 (which will have swift> 5.7.1)
+    @available(iOS 16, tvOS 16, *)
+    func registerHostingConfiguration<Content: View, Background: View, Model>(
+        configuration: @escaping (UITableViewCell, Model, IndexPath) -> UIHostingConfiguration<Content, Background>,
+        mapping: ((HostingConfigurationViewModelMapping<Content, Background, Model>) -> Void)?
+    ) {
+        let mapping = HostingConfigurationViewModelMapping(cellConfiguration: configuration, mapping: mapping)
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: mapping.reuseIdentifier)
+        mappings.append(mapping)
+    }
+    
+    @available(iOS 16, tvOS 16, *)
+    func registerHostingConfiguration<Content: View, Background: View, Model>(
+        configuration: @escaping (UICellConfigurationState, UITableViewCell, Model, IndexPath) -> UIHostingConfiguration<Content, Background>,
+        mapping: ((HostingConfigurationViewModelMapping<Content, Background, Model>) -> Void)?
+    ) {
+        let mapping = HostingConfigurationViewModelMapping(cellConfiguration: configuration, mapping: mapping)
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: mapping.reuseIdentifier)
+        mappings.append(mapping)
+    }
+#endif
+    
+    @available(iOS 13, tvOS 13, *)
+    func registerHostingCell<Content: View, Model>(_ content: @escaping (Model, IndexPath) -> Content, parentViewController: UIViewController?,
+                                                   mapping: ((HostingCellViewModelMapping<Content, Model>) -> Void)?) {
+        let mapping = HostingCellViewModelMapping<Content, Model>(cellContent: content, parentViewController: parentViewController, mapping: mapping)
+        if mapping.configuration.parentController == nil {
+            assertionFailure("HostingTableViewCellConfiguration.parentController is nil. This will prevent HostingCell from sizing and appearing correctly. Please set parentController to controller, that contains managed table view.")
+        }
+        tableView.register(mapping.hostingCellSubclass.self, forCellReuseIdentifier: mapping.reuseIdentifier)
+        mappings.append(mapping)
+    }
+    
+    func registerCellClass<Cell:ModelTransfer>(_ cellClass : Cell.Type, handler: @escaping (Cell, Cell.ModelType, IndexPath) -> Void, mapping: ((TableViewCellModelMapping<Cell, Cell.ModelType>) -> Void)?) where Cell: UITableViewCell
     {
-        let mapping = ViewModelMapping<Cell, Cell.ModelType>(cellConfiguration: handler, mapping: mapping)
+        let mapping = TableViewCellModelMapping<Cell, Cell.ModelType>(cellConfiguration: handler, mapping: mapping)
         if let cell = tableView.dequeueReusableCell(withIdentifier: mapping.reuseIdentifier) {
             // Storyboard prototype cell
             if let cellReuseIdentifier = cell.reuseIdentifier, cellReuseIdentifier != mapping.reuseIdentifier {
@@ -67,9 +101,9 @@ final class TableViewFactory
         verifyCell(Cell.self, nibName: mapping.xibName, withReuseIdentifier: mapping.reuseIdentifier, in: mapping.bundle)
     }
     
-    func registerCellClass<Cell: UITableViewCell, Model>(_ cellType: Cell.Type, _ modelType: Model.Type, handler: @escaping (Cell, Model, IndexPath) -> Void, mapping: ((ViewModelMapping<Cell, Model>) -> Void)? = nil)
+    func registerCellClass<Cell: UITableViewCell, Model>(_ cellType: Cell.Type, _ modelType: Model.Type, handler: @escaping (Cell, Model, IndexPath) -> Void, mapping: ((TableViewCellModelMapping<Cell, Model>) -> Void)? = nil)
     {
-        let mapping = ViewModelMapping<Cell, Model>(cellConfiguration: handler, mapping: mapping)
+        let mapping = TableViewCellModelMapping<Cell, Model>(cellConfiguration: handler, mapping: mapping)
         if let cell = tableView.dequeueReusableCell(withIdentifier: mapping.reuseIdentifier) {
             // Storyboard prototype cell
             if let cellReuseIdentifier = cell.reuseIdentifier, cellReuseIdentifier != mapping.reuseIdentifier {
@@ -131,9 +165,9 @@ final class TableViewFactory
         }
     }
     
-    func registerSupplementaryClass<View:ModelTransfer>(_ supplementaryClass: View.Type, ofKind kind: String, handler: @escaping (View, View.ModelType, Int) -> Void, mapping: ((ViewModelMapping<View, View.ModelType>) -> Void)?) where View:UIView
+    func registerSupplementaryClass<View:ModelTransfer>(_ supplementaryClass: View.Type, ofKind kind: String, handler: @escaping (View, View.ModelType, Int) -> Void, mapping: ((TableViewHeaderFooterViewModelMapping<View, View.ModelType>) -> Void)?) where View:UIView
     {
-        let mapping = ViewModelMapping<View, View.ModelType>(kind: kind, headerFooterConfiguration: handler, mapping: mapping)
+        let mapping = TableViewHeaderFooterViewModelMapping<View, View.ModelType>(kind: kind, headerFooterConfiguration: handler, mapping: mapping)
         
         if View.isSubclass(of: UITableViewHeaderFooterView.self) {
             if let nibName = mapping.xibName, UINib.nibExists(withNibName: nibName, inBundle: mapping.bundle) {
@@ -147,9 +181,9 @@ final class TableViewFactory
         verifyHeaderFooterView(View.self, nibName: mapping.xibName, in: mapping.bundle)
     }
     
-    func registerSupplementaryClass<View, Model>(_ supplementaryClass: View.Type, ofKind kind: String, handler: @escaping (View, Model, Int) -> Void, mapping: ((ViewModelMapping<View, Model>) -> Void)?) where View:UIView
+    func registerSupplementaryClass<View, Model>(_ supplementaryClass: View.Type, ofKind kind: String, handler: @escaping (View, Model, Int) -> Void, mapping: ((TableViewHeaderFooterViewModelMapping<View, Model>) -> Void)?) where View:UIView
     {
-        let mapping = ViewModelMapping<View, Model>(kind: kind, headerFooterConfiguration: handler, mapping: mapping)
+        let mapping = TableViewHeaderFooterViewModelMapping<View, Model>(kind: kind, headerFooterConfiguration: handler, mapping: mapping)
         
         if View.isSubclass(of: UITableViewHeaderFooterView.self) {
             if let nibName = mapping.xibName, UINib.nibExists(withNibName: nibName, inBundle: mapping.bundle) {
@@ -200,7 +234,7 @@ final class TableViewFactory
     
     func cellForModel(_ model: Any, atIndexPath indexPath:IndexPath) -> UITableViewCell?
     {
-        if let mapping = viewModelMapping(for: .cell, model: model, indexPath: indexPath)
+        if let mapping = viewModelMapping(for: .cell, model: model, indexPath: indexPath) as? CellViewModelMappingProtocol
         {
             return mapping.dequeueConfiguredReusableCell(for: tableView, model: model, indexPath: indexPath)
         }
@@ -211,14 +245,14 @@ final class TableViewFactory
     func updateCellAt(_ indexPath : IndexPath, with model: Any) {
         guard let cell = tableView.cellForRow(at: indexPath) else { return }
         guard let unwrappedModel = RuntimeHelper.recursivelyUnwrapAnyValue(model) else { return }
-        if let mapping = viewModelMapping(for: .cell, model: unwrappedModel, indexPath: indexPath) {
+        if let mapping = viewModelMapping(for: .cell, model: unwrappedModel, indexPath: indexPath) as? CellViewModelMappingProtocol {
             mapping.updateCell(cell: cell, at: indexPath, with: unwrappedModel)
         }
     }
     
     func headerFooterView(of type: ViewType, model : Any, atIndexPath indexPath: IndexPath) -> UIView?
     {
-        guard let mapping = viewModelMapping(for: type, model: model, indexPath: indexPath) else {
+        guard let mapping = viewModelMapping(for: type, model: model, indexPath: indexPath) as? SupplementaryViewModelMappingProtocol else {
             anomalyHandler?.reportAnomaly(.noHeaderFooterMappingFound(modelDescription: String(describing: model), indexPath: indexPath))
             return nil
         }

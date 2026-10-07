@@ -1,6 +1,7 @@
-////  CryptoSwift
 //
-//  Copyright (C) 2014-2018 Marcin Krzyżanowski <marcin@krzyzanowskim.com>
+//  CryptoSwift
+//
+//  Copyright (C) 2014-2022 Marcin Krzyżanowski <marcin@krzyzanowskim.com>
 //  This software is provided 'as-is', without any express or implied warranty.
 //
 //  In no event will the authors be held liable for any damages arising from the use of this software.
@@ -22,6 +23,8 @@ import Darwin
 import Glibc
 #elseif canImport(ucrt)
 import ucrt
+#elseif canImport(WASILibc)
+import WASILibc
 #endif
 
 /// Counter with Cipher Block Chaining-Message Authentication Code

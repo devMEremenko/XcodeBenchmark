@@ -24,6 +24,7 @@
 // THE SOFTWARE.
 
 import Foundation
+import Alamofire
 
 /// Protocol used to serialize errors received from sending `APIRequest` or `UploadAPIRequest`.
 public protocol ErrorSerializable: Error {
@@ -72,5 +73,17 @@ open class APIError: LocalizedError, ErrorSerializable, DownloadErrorSerializabl
     /// Prints localized description of error inside
     open var errorDescription: String? {
         return error?.localizedDescription
+    }
+
+    /// Whether the request, that led to this error, was cancelled by the sender
+    open var isCancelled: Bool {
+        guard let error = error else { return false }
+        if case .some(AFError.explicitlyCancelled) = error as? AFError {
+            return true
+        }
+        if let nsError = error as NSError?, nsError.code == NSURLErrorCancelled {
+            return true
+        }
+        return false
     }
 }

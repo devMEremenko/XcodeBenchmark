@@ -21,6 +21,7 @@ static CLLocationCoordinate2D kPanoramaNear = {40.761388, -73.978133};
 static CLLocationCoordinate2D kMarkerAt = {40.761455, -73.977814};
 
 @interface PanoramaViewController () <GMSPanoramaViewDelegate>
+
 @end
 
 @implementation PanoramaViewController {
@@ -32,8 +33,7 @@ static CLLocationCoordinate2D kMarkerAt = {40.761455, -73.977814};
 - (void)viewDidLoad {
   [super viewDidLoad];
 
-  _view = [GMSPanoramaView panoramaWithFrame:CGRectZero
-                              nearCoordinate:kPanoramaNear];
+  _view = [GMSPanoramaView panoramaWithFrame:CGRectZero nearCoordinate:kPanoramaNear];
   _view.backgroundColor = [UIColor grayColor];
   _view.delegate = self;
   self.view = _view;
@@ -51,22 +51,18 @@ static CLLocationCoordinate2D kMarkerAt = {40.761455, -73.977814};
 
 #pragma mark - GMSPanoramaDelegate
 
-- (void)panoramaView:(GMSPanoramaView *)panoramaView
-       didMoveCamera:(GMSPanoramaCamera *)camera {
-  NSLog(@"Camera: (%f,%f,%f)",
-        camera.orientation.heading, camera.orientation.pitch, camera.zoom);
+- (void)panoramaView:(GMSPanoramaView *)panoramaView didMoveCamera:(GMSPanoramaCamera *)camera {
+  NSLog(@"Camera: (%f,%f,%f)", camera.orientation.heading, camera.orientation.pitch, camera.zoom);
 }
 
-- (void)panoramaView:(GMSPanoramaView *)view
-   didMoveToPanorama:(GMSPanorama *)panorama {
+- (void)panoramaView:(GMSPanoramaView *)view didMoveToPanorama:(GMSPanorama *)panorama {
   if (!_configured) {
     GMSMarker *marker = [GMSMarker markerWithPosition:kMarkerAt];
     marker.icon = [GMSMarker markerImageWithColor:[UIColor purpleColor]];
     marker.panoramaView = _view;
 
     CLLocationDegrees heading = GMSGeometryHeading(kPanoramaNear, kMarkerAt);
-    _view.camera =
-        [GMSPanoramaCamera cameraWithHeading:heading pitch:0 zoom:1];
+    _view.camera = [GMSPanoramaCamera cameraWithHeading:heading pitch:0 zoom:1];
 
     _configured = YES;
   }

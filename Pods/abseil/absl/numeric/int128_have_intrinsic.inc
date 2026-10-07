@@ -155,16 +155,13 @@ constexpr int128::operator unsigned __int128() const {
 #if defined(__clang__) && !defined(__ppc64__)
 inline int128::operator float() const { return static_cast<float>(v_); }
 
-inline int128::operator double () const { return static_cast<double>(v_); }
+inline int128::operator double() const { return static_cast<double>(v_); }
 
 inline int128::operator long double() const {
   return static_cast<long double>(v_);
 }
 
 #else  // Clang on PowerPC
-// Forward declaration for conversion operators to floating point types.
-int128 operator-(int128 v);
-bool operator!=(int128 lhs, int128 rhs);
 
 inline int128::operator float() const {
   // We must convert the absolute value and then negate as needed, because
@@ -199,51 +196,59 @@ inline int128::operator long double() const {
 
 // Comparison operators.
 
-inline bool operator==(int128 lhs, int128 rhs) {
+constexpr bool operator==(int128 lhs, int128 rhs) {
   return static_cast<__int128>(lhs) == static_cast<__int128>(rhs);
 }
 
-inline bool operator!=(int128 lhs, int128 rhs) {
+constexpr bool operator!=(int128 lhs, int128 rhs) {
   return static_cast<__int128>(lhs) != static_cast<__int128>(rhs);
 }
 
-inline bool operator<(int128 lhs, int128 rhs) {
+constexpr bool operator<(int128 lhs, int128 rhs) {
   return static_cast<__int128>(lhs) < static_cast<__int128>(rhs);
 }
 
-inline bool operator>(int128 lhs, int128 rhs) {
+constexpr bool operator>(int128 lhs, int128 rhs) {
   return static_cast<__int128>(lhs) > static_cast<__int128>(rhs);
 }
 
-inline bool operator<=(int128 lhs, int128 rhs) {
+constexpr bool operator<=(int128 lhs, int128 rhs) {
   return static_cast<__int128>(lhs) <= static_cast<__int128>(rhs);
 }
 
-inline bool operator>=(int128 lhs, int128 rhs) {
+constexpr bool operator>=(int128 lhs, int128 rhs) {
   return static_cast<__int128>(lhs) >= static_cast<__int128>(rhs);
 }
 
+#ifdef __cpp_impl_three_way_comparison
+constexpr absl::strong_ordering operator<=>(int128 lhs, int128 rhs) {
+  if (auto lhs_128 = static_cast<__int128>(lhs),
+      rhs_128 = static_cast<__int128>(rhs);
+      lhs_128 < rhs_128) {
+    return absl::strong_ordering::less;
+  } else if (lhs_128 > rhs_128) {
+    return absl::strong_ordering::greater;
+  } else {
+    return absl::strong_ordering::equal;
+  }
+}
+#endif
+
 // Unary operators.
 
-inline int128 operator-(int128 v) {
-  return -static_cast<__int128>(v);
-}
+constexpr int128 operator-(int128 v) { return -static_cast<__int128>(v); }
 
-inline bool operator!(int128 v) {
-  return !static_cast<__int128>(v);
-}
+constexpr bool operator!(int128 v) { return !static_cast<__int128>(v); }
 
-inline int128 operator~(int128 val) {
-  return ~static_cast<__int128>(val);
-}
+constexpr int128 operator~(int128 val) { return ~static_cast<__int128>(val); }
 
 // Arithmetic operators.
 
-inline int128 operator+(int128 lhs, int128 rhs) {
+constexpr int128 operator+(int128 lhs, int128 rhs) {
   return static_cast<__int128>(lhs) + static_cast<__int128>(rhs);
 }
 
-inline int128 operator-(int128 lhs, int128 rhs) {
+constexpr int128 operator-(int128 lhs, int128 rhs) {
   return static_cast<__int128>(lhs) - static_cast<__int128>(rhs);
 }
 
@@ -281,22 +286,22 @@ inline int128& int128::operator--() {
   return *this;
 }
 
-inline int128 operator|(int128 lhs, int128 rhs) {
+constexpr int128 operator|(int128 lhs, int128 rhs) {
   return static_cast<__int128>(lhs) | static_cast<__int128>(rhs);
 }
 
-inline int128 operator&(int128 lhs, int128 rhs) {
+constexpr int128 operator&(int128 lhs, int128 rhs) {
   return static_cast<__int128>(lhs) & static_cast<__int128>(rhs);
 }
 
-inline int128 operator^(int128 lhs, int128 rhs) {
+constexpr int128 operator^(int128 lhs, int128 rhs) {
   return static_cast<__int128>(lhs) ^ static_cast<__int128>(rhs);
 }
 
-inline int128 operator<<(int128 lhs, int amount) {
+constexpr int128 operator<<(int128 lhs, int amount) {
   return static_cast<__int128>(lhs) << amount;
 }
 
-inline int128 operator>>(int128 lhs, int amount) {
+constexpr int128 operator>>(int128 lhs, int amount) {
   return static_cast<__int128>(lhs) >> amount;
 }

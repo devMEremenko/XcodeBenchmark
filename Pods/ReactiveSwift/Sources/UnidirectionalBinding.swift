@@ -120,7 +120,7 @@ extension Signal.Observer {
 	@discardableResult
 	public static func <~
 		<Source: BindingSource>
-		(observer: Signal<Value, Error>.Observer, source: Source) -> Disposable?
+		(observer: Signal<Value, Error>.Observer, source: Source) -> Disposable
 		where Source.Value == Value
 	{
 		return source.producer.startWithValues { [weak observer] in

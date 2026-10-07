@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC. All rights reserved.
+// Copyright 2022 Google LLC. All rights reserved.
 //
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use this
@@ -65,6 +65,7 @@ enum Samples {
         viewControllerClass: GradientPolylinesViewController.self, title: "Gradient Polylines"),
     ]
     let panoramaSamples = [
+      Sample(viewControllerClass: PanoramaServiceController.self, title: "Panorama Service"),
       Sample(viewControllerClass: PanoramaViewController.self, title: "Street View"),
       Sample(viewControllerClass: FixedPanoramaViewController.self, title: "Fixed Street View"),
     ]

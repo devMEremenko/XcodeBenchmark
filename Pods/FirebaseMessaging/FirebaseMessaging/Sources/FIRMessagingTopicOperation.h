@@ -16,11 +16,13 @@
 
 #import <Foundation/Foundation.h>
 
-#import <FirebaseMessaging/FIRMessaging.h>
+#import "FirebaseMessaging/Sources/Public/FirebaseMessaging/FIRMessaging.h"
 
 #import "FirebaseMessaging/Sources/FIRMessagingTopicsCommon.h"
 
 NS_ASSUME_NONNULL_BEGIN
+
+@class FIRMessagingTokenManager;
 
 /**
  *  An asynchronous NSOperation subclass which performs a single network request for a topic
@@ -35,7 +37,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (instancetype)initWithTopic:(NSString *)topic
                        action:(FIRMessagingTopicAction)action
-                        token:(NSString *)token
+                 tokenManager:(FIRMessagingTokenManager *)tokenManager
                       options:(nullable NSDictionary *)options
                    completion:(FIRMessagingTopicOperationCompletion)completion;
 

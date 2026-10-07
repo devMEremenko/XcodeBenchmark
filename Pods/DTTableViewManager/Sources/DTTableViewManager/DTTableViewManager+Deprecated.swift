@@ -31,7 +31,7 @@ import DTModelStorage
 public extension DTTableViewManager {
     @available(*, deprecated, message: "Please use register(_:mapping:handler:) and set xibName in mapping closure instead.")
     /// Registers nib with `nibName` mapping from model class to `cellClass`.
-    func registerNibNamed<T:ModelTransfer>(_ nibName: String, for cellClass: T.Type, mapping: ((ViewModelMapping<T, T.ModelType>) -> Void)? = nil) where T: UITableViewCell
+    func registerNibNamed<T:ModelTransfer>(_ nibName: String, for cellClass: T.Type, mapping: ((TableViewCellModelMapping<T, T.ModelType>) -> Void)? = nil)
     {
         register(T.self, mapping:  { mapping in
             mapping.xibName = nibName
@@ -43,7 +43,7 @@ public extension DTTableViewManager {
     ///
     /// This method is intended to be used for headers created from code - without UI made in XIB.
     /// This method also sets TableViewConfiguration.sectionHeaderStyle property to .view.
-    func registerNiblessHeader<T:ModelTransfer>(_ headerClass : T.Type, mapping: ((ViewModelMapping<T, T.ModelType>) -> Void)? = nil) where T: UITableViewHeaderFooterView
+    func registerNiblessHeader<T:ModelTransfer>(_ headerClass : T.Type, mapping: ((TableViewHeaderFooterViewModelMapping<T, T.ModelType>) -> Void)? = nil) where T: UITableViewHeaderFooterView
     {
         configuration.sectionHeaderStyle = .view
         registerHeader(T.self, mapping:  { mappingInstance in
@@ -57,7 +57,7 @@ public extension DTTableViewManager {
     ///
     /// This method is intended to be used for footers created from code - without UI made in XIB.
     /// This method also sets TableViewConfiguration.sectionFooterStyle property to .view.
-    func registerNiblessFooter<T:ModelTransfer>(_ footerClass : T.Type, mapping: ((ViewModelMapping<T, T.ModelType>) -> Void)? = nil) where T: UITableViewHeaderFooterView
+    func registerNiblessFooter<T:ModelTransfer>(_ footerClass : T.Type, mapping: ((TableViewHeaderFooterViewModelMapping<T, T.ModelType>) -> Void)? = nil) where T: UITableViewHeaderFooterView
     {
         configuration.sectionFooterStyle = .view
         viewFactory.registerSupplementaryClass(T.self, ofKind: DTTableViewElementSectionFooter, handler: { _, _, _ in }, mapping: { mappingInstance in
@@ -72,7 +72,7 @@ public extension DTTableViewManager {
     /// This method also sets TableViewConfiguration.sectionHeaderStyle property to .view.
     /// - Note: Views does not need to be `UITableViewHeaderFooterView`, if it's a `UIView` subclass, it also will be created from XIB.
     /// - SeeAlso: `UIView+XibLoading`.
-    func registerNibNamed<T:ModelTransfer>(_ nibName: String, forHeader headerClass: T.Type, mapping: ((ViewModelMapping<T, T.ModelType>) -> Void)? = nil) where T:UIView
+    func registerNibNamed<T:ModelTransfer>(_ nibName: String, forHeader headerClass: T.Type, mapping: ((TableViewHeaderFooterViewModelMapping<T, T.ModelType>) -> Void)? = nil)
     {
         configuration.sectionHeaderStyle = .view
         registerHeader(T.self, mapping:  { mappingInstance in
@@ -87,7 +87,7 @@ public extension DTTableViewManager {
     /// This method also sets TableViewConfiguration.sectionFooterStyle property to .view.
     /// - Note: Views does not need to be `UITableViewHeaderFooterView`, if it's a `UIView` subclass, it also will be created from XIB.
     /// - SeeAlso: `UIView+XibLoading`.
-    func registerNibNamed<T:ModelTransfer>(_ nibName: String, forFooter footerClass: T.Type, mapping: ((ViewModelMapping<T, T.ModelType>) -> Void)? = nil) where T:UIView
+    func registerNibNamed<T:ModelTransfer>(_ nibName: String, forFooter footerClass: T.Type, mapping: ((TableViewHeaderFooterViewModelMapping<T, T.ModelType>) -> Void)? = nil)
     {
         configuration.sectionFooterStyle = .view
         registerFooter(T.self, mapping:  { mappingInstance in

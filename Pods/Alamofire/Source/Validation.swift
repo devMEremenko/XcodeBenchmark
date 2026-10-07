@@ -83,7 +83,7 @@ extension Request {
         -> ValidationResult
         where S.Iterator.Element == Int {
         if acceptableStatusCodes.contains(response.statusCode) {
-            return .success(Void())
+            return .success(())
         } else {
             let reason: ErrorReason = .unacceptableStatusCode(code: response.statusCode)
             return .failure(AFError.responseValidationFailed(reason: reason))
@@ -97,7 +97,7 @@ extension Request {
                                            data: Data?)
         -> ValidationResult
         where S.Iterator.Element == String {
-        guard let data = data, !data.isEmpty else { return .success(Void()) }
+        guard let data = data, !data.isEmpty else { return .success(()) }
 
         return validate(contentType: acceptableContentTypes, response: response)
     }
@@ -112,12 +112,12 @@ extension Request {
         else {
             for contentType in acceptableContentTypes {
                 if let mimeType = MIMEType(contentType), mimeType.isWildcard {
-                    return .success(Void())
+                    return .success(())
                 }
             }
 
             let error: AFError = {
-                let reason: ErrorReason = .missingContentType(acceptableContentTypes: Array(acceptableContentTypes))
+                let reason: ErrorReason = .missingContentType(acceptableContentTypes: acceptableContentTypes.sorted())
                 return AFError.responseValidationFailed(reason: reason)
             }()
 
@@ -126,12 +126,12 @@ extension Request {
 
         for contentType in acceptableContentTypes {
             if let acceptableMIMEType = MIMEType(contentType), acceptableMIMEType.matches(responseMIMEType) {
-                return .success(Void())
+                return .success(())
             }
         }
 
         let error: AFError = {
-            let reason: ErrorReason = .unacceptableContentType(acceptableContentTypes: Array(acceptableContentTypes),
+            let reason: ErrorReason = .unacceptableContentType(acceptableContentTypes: acceptableContentTypes.sorted(),
                                                                responseContentType: responseContentType)
 
             return AFError.responseValidationFailed(reason: reason)
@@ -152,9 +152,9 @@ extension DataRequest {
     ///
     /// If validation fails, subsequent calls to response handlers will have an associated error.
     ///
-    /// - Parameter statusCode: `Sequence` of acceptable response status codes.
+    /// - Parameter acceptableStatusCodes: `Sequence` of acceptable response status codes.
     ///
-    /// - Returns:              The instance.
+    /// - Returns:                         The instance.
     @discardableResult
     public func validate<S: Sequence>(statusCode acceptableStatusCodes: S) -> Self where S.Iterator.Element == Int {
         validate { [unowned self] _, response, _ in
@@ -185,7 +185,7 @@ extension DataRequest {
     @discardableResult
     public func validate() -> Self {
         let contentTypes: () -> [String] = { [unowned self] in
-            self.acceptableContentTypes
+            acceptableContentTypes
         }
         return validate(statusCode: acceptableStatusCodes).validate(contentType: contentTypes())
     }
@@ -200,9 +200,9 @@ extension DataStreamRequest {
     ///
     /// If validation fails, subsequent calls to response handlers will have an associated error.
     ///
-    /// - Parameter statusCode: `Sequence` of acceptable response status codes.
+    /// - Parameter acceptableStatusCodes: `Sequence` of acceptable response status codes.
     ///
-    /// - Returns:              The instance.
+    /// - Returns:                         The instance.
     @discardableResult
     public func validate<S: Sequence>(statusCode acceptableStatusCodes: S) -> Self where S.Iterator.Element == Int {
         validate { [unowned self] _, response in
@@ -233,7 +233,7 @@ extension DataStreamRequest {
     @discardableResult
     public func validate() -> Self {
         let contentTypes: () -> [String] = { [unowned self] in
-            self.acceptableContentTypes
+            acceptableContentTypes
         }
         return validate(statusCode: acceptableStatusCodes).validate(contentType: contentTypes())
     }
@@ -253,9 +253,9 @@ extension DownloadRequest {
     ///
     /// If validation fails, subsequent calls to response handlers will have an associated error.
     ///
-    /// - Parameter statusCode: `Sequence` of acceptable response status codes.
+    /// - Parameter acceptableStatusCodes: `Sequence` of acceptable response status codes.
     ///
-    /// - Returns:              The instance.
+    /// - Returns:                         The instance.
     @discardableResult
     public func validate<S: Sequence>(statusCode acceptableStatusCodes: S) -> Self where S.Iterator.Element == Int {
         validate { [unowned self] _, response, _ in
@@ -295,7 +295,7 @@ extension DownloadRequest {
     @discardableResult
     public func validate() -> Self {
         let contentTypes = { [unowned self] in
-            self.acceptableContentTypes
+            acceptableContentTypes
         }
         return validate(statusCode: acceptableStatusCodes).validate(contentType: contentTypes())
     }

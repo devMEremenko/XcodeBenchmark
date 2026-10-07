@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#import "GoogleDataTransport/GDTCORLibrary/Public/GoogleDataTransport/GDTCORRegistrar.h"
+#import "GoogleDataTransport/GDTCORLibrary/Internal/GDTCORRegistrar.h"
 #import "GoogleDataTransport/GDTCORLibrary/Private/GDTCORRegistrar_Private.h"
 
 #import "GoogleDataTransport/GDTCORLibrary/Public/GoogleDataTransport/GDTCORConsoleLogger.h"
@@ -23,13 +23,27 @@ id<GDTCORStorageProtocol> _Nullable GDTCORStorageInstanceForTarget(GDTCORTarget 
   return [GDTCORRegistrar sharedInstance].targetToStorage[@(target)];
 }
 
-@implementation GDTCORRegistrar {
-  /** Backing ivar for targetToUploader property. */
-  NSMutableDictionary<NSNumber *, id<GDTCORUploader>> *_targetToUploader;
-
-  /** Backing ivar for targetToStorage property. */
-  NSMutableDictionary<NSNumber *, id<GDTCORStorageProtocol>> *_targetToStorage;
+id<GDTCORStoragePromiseProtocol> _Nullable GDTCORStoragePromiseInstanceForTarget(
+    GDTCORTarget target) {
+  id storage = [GDTCORRegistrar sharedInstance].targetToStorage[@(target)];
+  if ([storage conformsToProtocol:@protocol(GDTCORStoragePromiseProtocol)]) {
+    return storage;
+  } else {
+    return nil;
+  }
 }
+
+id<GDTCORMetricsControllerProtocol> _Nullable GDTCORMetricsControllerInstanceForTarget(
+    GDTCORTarget target) {
+  return [GDTCORRegistrar sharedInstance].targetToMetricsController[@(target)];
+}
+
+@implementation GDTCORRegistrar
+
+// Manaully synthesize properties declared in `GDTCORRegistrar_Private.h` category.
+@synthesize targetToUploader = _targetToUploader;
+@synthesize targetToStorage = _targetToStorage;
+@synthesize targetToMetricsController = _targetToMetricsController;
 
 + (instancetype)sharedInstance {
   static GDTCORRegistrar *sharedInstance;
@@ -44,8 +58,9 @@ id<GDTCORStorageProtocol> _Nullable GDTCORStorageInstanceForTarget(GDTCORTarget 
   self = [super init];
   if (self) {
     _registrarQueue = dispatch_queue_create("com.google.GDTCORRegistrar", DISPATCH_QUEUE_SERIAL);
-    _targetToUploader = [[NSMutableDictionary alloc] init];
-    _targetToStorage = [[NSMutableDictionary alloc] init];
+    _targetToUploader = [NSMutableDictionary dictionary];
+    _targetToStorage = [NSMutableDictionary dictionary];
+    _targetToMetricsController = [NSMutableDictionary dictionary];
   }
   return self;
 }
@@ -68,6 +83,21 @@ id<GDTCORStorageProtocol> _Nullable GDTCORStorageInstanceForTarget(GDTCORTarget 
     if (strongSelf) {
       GDTCORLogDebug(@"Registered storage: %@ for target:%ld", storage, (long)target);
       strongSelf->_targetToStorage[@(target)] = storage;
+      [self setMetricsControllerAsStorageDelegateForTarget:target];
+    }
+  });
+}
+
+- (void)registerMetricsController:(id<GDTCORMetricsControllerProtocol>)metricsController
+                           target:(GDTCORTarget)target {
+  __weak GDTCORRegistrar *weakSelf = self;
+  dispatch_async(_registrarQueue, ^{
+    GDTCORRegistrar *strongSelf = weakSelf;
+    if (strongSelf) {
+      GDTCORLogDebug(@"Registered metrics controller: %@ for target:%ld", metricsController,
+                     (long)target);
+      strongSelf->_targetToMetricsController[@(target)] = metricsController;
+      [self setMetricsControllerAsStorageDelegateForTarget:target];
     }
   });
 }
@@ -94,6 +124,24 @@ id<GDTCORStorageProtocol> _Nullable GDTCORStorageInstanceForTarget(GDTCORTarget 
     }
   });
   return targetToStorage;
+}
+
+- (NSMutableDictionary<NSNumber *, id<GDTCORMetricsControllerProtocol>> *)
+    targetToMetricsController {
+  __block NSMutableDictionary<NSNumber *, id<GDTCORMetricsControllerProtocol>>
+      *targetToMetricsController;
+  __weak GDTCORRegistrar *weakSelf = self;
+  dispatch_sync(_registrarQueue, ^{
+    GDTCORRegistrar *strongSelf = weakSelf;
+    if (strongSelf) {
+      targetToMetricsController = strongSelf->_targetToMetricsController;
+    }
+  });
+  return targetToMetricsController;
+}
+
+- (void)setMetricsControllerAsStorageDelegateForTarget:(GDTCORTarget)target {
+  _targetToStorage[@(target)].delegate = _targetToMetricsController[@(target)];
 }
 
 #pragma mark - GDTCORLifecycleProtocol

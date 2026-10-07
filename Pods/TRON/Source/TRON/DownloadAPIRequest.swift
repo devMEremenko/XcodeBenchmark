@@ -89,6 +89,7 @@ open class DownloadAPIRequest<Model, ErrorModel: DownloadErrorSerializable>: Bas
                                     encoding: parameterEncoding,
                                     headers: headers,
                                     interceptor: interceptor,
+                                    requestModifier: requestModifier,
                                     to: destination)
 
         case .downloadResuming(let data, let destination):

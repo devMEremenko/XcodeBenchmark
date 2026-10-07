@@ -23,34 +23,68 @@
 #ifndef _FIRMessaging_CONSTANTS_H
 #define _FIRMessaging_CONSTANTS_H
 
-FOUNDATION_EXPORT NSString *const kFIRMessagingRawDataKey;
-FOUNDATION_EXPORT NSString *const kFIRMessagingCollapseKey;
 FOUNDATION_EXPORT NSString *const kFIRMessagingFromKey;
-
-FOUNDATION_EXPORT NSString *const kFIRMessagingSendTo;
-FOUNDATION_EXPORT NSString *const kFIRMessagingSendTTL;
-FOUNDATION_EXPORT NSString *const kFIRMessagingSendDelay;
-FOUNDATION_EXPORT NSString *const kFIRMessagingSendMessageID;
-FOUNDATION_EXPORT NSString *const KFIRMessagingSendMessageAppData;
-
-FOUNDATION_EXPORT NSString *const kFIRMessagingMessageInternalReservedKeyword;
-FOUNDATION_EXPORT NSString *const kFIRMessagingMessagePersistentIDKey;
-
 FOUNDATION_EXPORT NSString *const kFIRMessagingMessageIDKey;
 FOUNDATION_EXPORT NSString *const kFIRMessagingMessageAPNSContentAvailableKey;
-FOUNDATION_EXPORT NSString *const kFIRMessagingMessageSyncViaMCSKey;
 FOUNDATION_EXPORT NSString *const kFIRMessagingMessageSyncMessageTTLKey;
 FOUNDATION_EXPORT NSString *const kFIRMessagingMessageLinkKey;
+FOUNDATION_EXPORT NSString *const kFIRMessagingSenderID;
+FOUNDATION_EXPORT NSString *const kFIRMessagingFID;
+FOUNDATION_EXPORT NSString *const kFIRMessagingAnalyticsComposerIdentifier;
+FOUNDATION_EXPORT NSString *const kFIRMessagingAnalyticsMessageLabel;
+FOUNDATION_EXPORT NSString *const kFIRMessagingAnalyticsComposerLabel;
+FOUNDATION_EXPORT NSString *const kFIRMessagingProductID;
 
 FOUNDATION_EXPORT NSString *const kFIRMessagingRemoteNotificationsProxyEnabledInfoPlistKey;
-
 FOUNDATION_EXPORT NSString *const kFIRMessagingSubDirectoryName;
 
-// Notifications
+#pragma mark - Notifications
+
 FOUNDATION_EXPORT NSString *const kFIRMessagingCheckinFetchedNotification;
 FOUNDATION_EXPORT NSString *const kFIRMessagingAPNSTokenNotification;
+FOUNDATION_EXPORT NSString *const kFIRMessagingDefaultGCMTokenFailNotification;
 FOUNDATION_EXPORT NSString *const kFIRMessagingRegistrationTokenRefreshNotification;
 
 FOUNDATION_EXPORT const int kFIRMessagingSendTtlDefault;  // 24 hours
+
+/**
+ *  Value included in a structured response indicating an identity reset.
+ */
+FOUNDATION_EXPORT NSString *const kFIRMessaging_CMD_RST;
+
+#pragma mark - Miscellaneous
+
+/// The scope used to save the IID "*" scope token. This is used for saving the
+/// IID auth token that we receive from the server. This feature was never
+/// implemented on the server side.
+FOUNDATION_EXPORT NSString *const kFIRMessagingAllScopeIdentifier;
+/// The scope used to save the IID "*" scope token.
+FOUNDATION_EXPORT NSString *const kFIRMessagingDefaultTokenScope;
+/// Denylisted "fiam" token scope.
+FOUNDATION_EXPORT NSString *const kFIRMessagingFIAMTokenScope;
+
+/// Subdirectory in search path directory to store InstanceID preferences.
+FOUNDATION_EXPORT NSString *const kFIRMessagingInstanceIDSubDirectoryName;
+
+/// The key for APNS token in options dictionary.
+FOUNDATION_EXPORT NSString *const kFIRMessagingTokenOptionsAPNSKey;
+
+/// The key for APNS token environment type in options dictionary.
+FOUNDATION_EXPORT NSString *const kFIRMessagingTokenOptionsAPNSIsSandboxKey;
+
+/// The key for GMP AppID sent in registration requests.
+FOUNDATION_EXPORT NSString *const kFIRMessagingTokenOptionsFirebaseAppIDKey;
+
+FOUNDATION_EXPORT NSString *const kFIRMessagingAPNSTokenType;
+
+/// The key to enable auto-register by swizzling AppDelegate's methods.
+FOUNDATION_EXPORT NSString *const kFIRMessagingAppDelegateProxyEnabledInfoPlistKey;
+
+/// Error code for missing entitlements in Keychain. iOS Keychain error
+/// https://forums.developer.apple.com/thread/4743
+FOUNDATION_EXPORT const int kFIRMessagingSecMissingEntitlementErrorCode;
+
+/// The key for InstallationID or InstanceID in token request.
+FOUNDATION_EXPORT NSString *const kFIRMessagingParamInstanceID;
 
 #endif

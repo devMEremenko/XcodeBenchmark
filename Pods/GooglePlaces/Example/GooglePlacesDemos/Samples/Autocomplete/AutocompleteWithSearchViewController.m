@@ -16,7 +16,7 @@
 #import "GooglePlacesDemos/Samples/Autocomplete/AutocompleteWithSearchViewController.h"
 
 #import <GooglePlaces/GooglePlaces.h>
-
+#import "GooglePlacesDemos/Support/BaseDemoViewController.h"
 NSString *const kSearchBarAccessibilityIdentifier = @"searchBarAccessibilityIdentifier";
 
 @interface AutocompleteWithSearchViewController () <GMSAutocompleteResultsViewControllerDelegate,
@@ -41,13 +41,11 @@ NSString *const kSearchBarAccessibilityIdentifier = @"searchBarAccessibilityIden
 
   _acViewController = [[GMSAutocompleteResultsViewController alloc] init];
   _acViewController.autocompleteFilter = self.autocompleteFilter;
-  _acViewController.placeFields = self.placeFields;
   _acViewController.delegate = self;
 
   _searchController =
       [[UISearchController alloc] initWithSearchResultsController:_acViewController];
   _searchController.hidesNavigationBarDuringPresentation = NO;
-  _searchController.dimsBackgroundDuringPresentation = YES;
 
   _searchController.searchBar.autoresizingMask = UIViewAutoresizingFlexibleWidth;
   _searchController.searchBar.searchBarStyle = UISearchBarStyleMinimal;
@@ -64,7 +62,7 @@ NSString *const kSearchBarAccessibilityIdentifier = @"searchBarAccessibilityIden
   self.extendedLayoutIncludesOpaqueBars = YES;
 
   _searchController.searchResultsUpdater = _acViewController;
-  if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+  if (UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad) {
     _searchController.modalPresentationStyle = UIModalPresentationPopover;
   } else {
     _searchController.modalPresentationStyle = UIModalPresentationFullScreen;
@@ -96,8 +94,7 @@ NSString *const kSearchBarAccessibilityIdentifier = @"searchBarAccessibilityIden
   [self autocompleteDidFail:error];
 }
 
-// Show and hide the network activity indicator when we start/stop loading results.
-
+/** Show and hide the network activity indicator when we start/stop loading results. */
 - (void)didRequestAutocompletePredictionsForResultsController:
     (GMSAutocompleteResultsViewController *)resultsController {
   [UIApplication sharedApplication].networkActivityIndicatorVisible = YES;

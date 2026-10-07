@@ -1,7 +1,7 @@
 //
 //  CryptoSwift
 //
-//  Copyright (C) 2014-2017 Marcin Krzyżanowski <marcin@krzyzanowskim.com>
+//  Copyright (C) 2014-2022 Marcin Krzyżanowski <marcin@krzyzanowskim.com>
 //  This software is provided 'as-is', without any express or implied warranty.
 //
 //  In no event will the authors be held liable for any damages arising from the use of this software.
@@ -12,6 +12,8 @@
 //  - Altered source versions must be plainly marked as such, and must not be misrepresented as being the original software.
 //  - This notice may not be removed or altered from any source or binary distribution.
 //
+
+import Foundation
 
 /** String extension */
 extension String {
@@ -81,7 +83,7 @@ extension String {
   /// - parameter cipher: Instance of `Cipher`
   /// - returns: base64 encoded string of encrypted bytes
   @inlinable
-  public func encryptToBase64(cipher: Cipher) throws -> String? {
+  public func encryptToBase64(cipher: Cipher) throws -> String {
     try self.bytes.encrypt(cipher: cipher).toBase64()
   }
 

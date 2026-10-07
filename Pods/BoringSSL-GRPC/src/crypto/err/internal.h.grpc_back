@@ -15,7 +15,7 @@
 #ifndef OPENSSL_HEADER_CRYPTO_ERR_INTERNAL_H
 #define OPENSSL_HEADER_CRYPTO_ERR_INTERNAL_H
 
-#include <openssl/err.h>
+#include <openssl_grpc/err.h>
 
 #if defined(__cplusplus)
 extern "C" {

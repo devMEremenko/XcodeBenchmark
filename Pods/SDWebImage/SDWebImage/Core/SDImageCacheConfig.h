@@ -57,7 +57,8 @@ typedef NS_ENUM(NSUInteger, SDImageCacheConfigExpireType) {
 /*
  * The option to control weak memory cache for images. When enable, `SDImageCache`'s memory cache will use a weak maptable to store the image at the same time when it stored to memory, and get removed at the same time.
  * However when memory warning is triggered, since the weak maptable does not hold a strong reference to image instance, even when the memory cache itself is purged, some images which are held strongly by UIImageViews or other live instances can be recovered again, to avoid later re-query from disk cache or network. This may be helpful for the case, for example, when app enter background and memory is purged, cause cell flashing after re-enter foreground.
- * Defaults to YES. You can change this option dynamically.
+ * When enabling this option, we will sync back the image from weak maptable to strong cache during next time top level `sd_setImage` function call.
+ * Defaults to NO (YES before 5.12.0 version). You can change this option dynamically.
  */
 @property (assign, nonatomic) BOOL shouldUseWeakMemoryCache;
 
@@ -66,6 +67,12 @@ typedef NS_ENUM(NSUInteger, SDImageCacheConfigExpireType) {
  * Defaults to YES.
  */
 @property (assign, nonatomic) BOOL shouldRemoveExpiredDataWhenEnterBackground;
+
+/**
+ * Whether or not to remove the expired disk data when application been terminated. This operation is processed in sync to ensure clean up.
+ * Defaults to YES.
+ */
+@property (assign, nonatomic) BOOL shouldRemoveExpiredDataWhenTerminate;
 
 /**
  * The reading options while reading cache from disk.
@@ -119,6 +126,15 @@ typedef NS_ENUM(NSUInteger, SDImageCacheConfigExpireType) {
  * @note Since `NSFileManager` does not support `NSCopying`. We just pass this by reference during copying. So it's not recommend to set this value on `defaultCacheConfig`.
  */
 @property (strong, nonatomic, nullable) NSFileManager *fileManager;
+
+/**
+ * The dispatch queue attr for ioQueue. You can config the QoS and concurrent/serial to internal IO queue. The ioQueue is used by SDImageCache to access read/write for disk data.
+ * Defaults we use `DISPATCH_QUEUE_SERIAL`(NULL), to use serial dispatch queue to ensure single access for disk data. It's safe but may be slow.
+ * @note You can override this to use `DISPATCH_QUEUE_CONCURRENT`, use concurrent queue.
+ * @warning **MAKE SURE** to keep `diskCacheWritingOptions` to use `NSDataWritingAtomic`, or concurrent queue may cause corrupted disk data (because multiple threads read/write same file without atomic is not IO-safe).
+ * @note This value does not support dynamic changes. Which means further modification on this value after cache initialized has no effect.
+ */
+@property (strong, nonatomic, nullable) dispatch_queue_attr_t ioQueueAttributes;
 
 /**
  * The custom memory cache class. Provided class instance must conform to `SDMemoryCache` protocol to allow usage.

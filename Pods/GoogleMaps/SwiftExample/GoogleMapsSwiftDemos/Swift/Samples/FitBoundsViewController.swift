@@ -18,6 +18,9 @@ class FitBoundsViewController: UIViewController {
 
   private let markerImageName = "glow-marker"
 
+  private let anotherSydneyLocation = CLLocationCoordinate2D(
+    latitude: -33.8683, longitude: 149.2086)
+
   private lazy var mapView: GMSMapView = {
     let camera = GMSCameraPosition(target: .victoria, zoom: 4)
     return GMSMapView(frame: .zero, camera: camera)
@@ -29,13 +32,11 @@ class FitBoundsViewController: UIViewController {
     let sydneyMarker = GMSMarker(position: .sydney)
     sydneyMarker.title = "Sydney!"
     sydneyMarker.icon = UIImage(named: markerImageName)
-    sydneyMarker.map = mapView
 
     let anotherSydneyMarker = GMSMarker()
     anotherSydneyMarker.title = "Sydney 2!"
     anotherSydneyMarker.icon = UIImage(named: markerImageName)
-    anotherSydneyMarker.position = .sydney
-    anotherSydneyMarker.map = mapView
+    anotherSydneyMarker.position = anotherSydneyLocation
     return [sydneyMarker, anotherSydneyMarker]
   }()
 
@@ -46,6 +47,14 @@ class FitBoundsViewController: UIViewController {
     // Creates a button that, when pressed, updates the camera to fit the bounds.
     navigationItem.rightBarButtonItem = UIBarButtonItem(
       title: "Fit Bounds", style: .plain, target: self, action: #selector(fitBounds))
+  }
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+
+    markers.forEach { marker in
+      marker.map = mapView
+    }
   }
 
   @objc func fitBounds() {

@@ -18,9 +18,11 @@
 
 #import <Realm/RLMResults.h>
 
+#import "RLMRealm_Private.h"
+
 @class RLMObjectSchema;
 
-NS_ASSUME_NONNULL_BEGIN
+RLM_HEADER_AUDIT_BEGIN(nullability)
 
 @interface RLMResults ()
 @property (nonatomic, readonly, getter=isAttached) BOOL attached;
@@ -28,6 +30,12 @@ NS_ASSUME_NONNULL_BEGIN
 + (instancetype)emptyDetachedResults;
 - (RLMResults *)snapshot;
 
+- (void)subscribeWithName:(NSString *_Nullable)name
+              waitForSync:(RLMWaitForSyncMode)waitForSyncMode
+               confinedTo:(RLMScheduler *)confinement
+                  timeout:(NSTimeInterval)timeout
+               completion:(RLMResultsCompletionBlock)completion;
+
 @end
 
-NS_ASSUME_NONNULL_END
+RLM_HEADER_AUDIT_END(nullability)

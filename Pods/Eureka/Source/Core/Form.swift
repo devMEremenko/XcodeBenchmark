@@ -25,7 +25,7 @@
 import Foundation
 
 /// The delegate of the Eureka form.
-public protocol FormDelegate : class {
+public protocol FormDelegate : AnyObject {
     func sectionsHaveBeenAdded(_ sections: [Section], at: IndexSet)
     func sectionsHaveBeenRemoved(_ sections: [Section], at: IndexSet)
     func sectionsHaveBeenReplaced(oldSections: [Section], newSections: [Section], at: IndexSet)
@@ -213,16 +213,44 @@ extension Form : RangeReplaceableCollection {
         }
     }
 
-    public func replaceSubrange<C: Collection>(_ subRange: Range<Int>, with newElements: C) where C.Iterator.Element == Section {
+    public func replaceSubrange<C: Collection>(
+        _ subRange: Range<Int>,
+        with newElements: C
+    ) where C.Iterator.Element == Section {
         for i in subRange.lowerBound..<subRange.upperBound {
             if let section = kvoWrapper.sections.object(at: i) as? Section {
                 section.willBeRemovedFromForm()
                 kvoWrapper._allSections.remove(at: kvoWrapper._allSections.firstIndex(of: section)!)
             }
         }
-        kvoWrapper.sections.replaceObjects(in: NSRange(location: subRange.lowerBound, length: subRange.upperBound - subRange.lowerBound),
-                                           withObjectsFrom: newElements.map { $0 })
+        kvoWrapper.sections.replaceObjects(
+            in: NSRange(location: subRange.lowerBound, length: subRange.upperBound - subRange.lowerBound),
+            withObjectsFrom: newElements.map { $0 }
+        )
         kvoWrapper._allSections.insert(contentsOf: newElements, at: indexForInsertion(at: subRange.lowerBound))
+
+        for section in newElements {
+            section.wasAddedTo(form: self)
+        }
+    }
+
+    public func replaceSubrangeInAllSections<C: Collection>(
+        _ subRange: Range<Int>,
+        with newElements: C
+    ) where C.Iterator.Element == Section {
+        // Remove subrange in all sections
+        for i in subRange.reversed() where kvoWrapper._allSections.count > i {
+            let removed = kvoWrapper._allSections.remove(at: i)
+            removed.willBeRemovedFromForm()
+        }
+
+        kvoWrapper._allSections.insert(contentsOf: newElements, at: indexForInsertion(at: subRange.lowerBound))
+
+        // Replace all visible sections by `kvoWrapper._allSections`, as hidden ones are being removed later anyway
+        kvoWrapper.sections.replaceObjects(
+            in: NSRange(location: 0, length: kvoWrapper.sections.count),
+            withObjectsFrom: kvoWrapper._allSections
+        )
 
         for section in newElements {
             section.wasAddedTo(form: self)
@@ -238,7 +266,20 @@ extension Form : RangeReplaceableCollection {
         for section in sections {
             section.willBeRemovedFromForm()
         }
+    }
 
+    public func removeAll(where shouldBeRemoved: (Section) throws -> Bool) rethrows {
+        let indices = try kvoWrapper._allSections.enumerated()
+            .filter { try shouldBeRemoved($0.element)}
+            .map { $0.offset }
+
+        var removedSections = [Section]()
+        for index in indices.reversed() {
+            removedSections.append(kvoWrapper._allSections.remove(at: index))
+        }
+        kvoWrapper.sections.removeObjects(in: removedSections)
+
+        removedSections.forEach { $0.willBeRemovedFromForm() }
     }
 
     private func indexForInsertion(at index: Int) -> Int {

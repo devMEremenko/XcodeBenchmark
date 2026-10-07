@@ -1,9 +1,13 @@
 //
-//  CalendarConvertible.swift
 //  SwiftDate
+//  Parse, validate, manipulate, and display dates, time and timezones in Swift
 //
-//  Created by Daniele Margutti on 06/06/2018.
-//  Copyright © 2018 SwiftDate. All rights reserved.
+//  Created by Daniele Margutti
+//   - Web: https://www.danielemargutti.com
+//   - Twitter: https://twitter.com/danielemargutti
+//   - Mail: hello@danielemargutti.com
+//
+//  Copyright © 2019 Daniele Margutti. Licensed under MIT License.
 //
 
 import Foundation
@@ -58,6 +62,8 @@ extension Calendar.Identifier: CustomStringConvertible {
 		case .republicOfChina:		return "republicOfChina"
 		case .islamicTabular:		return "islamicTabular"
 		case .islamicUmmAlQura:		return "islamicUmmAlQura"
+		@unknown default:
+			fatalError("Unsupported calendar \(self)")
 		}
 	}
 

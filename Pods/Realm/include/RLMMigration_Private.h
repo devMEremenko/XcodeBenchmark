@@ -24,7 +24,7 @@ namespace realm {
     class Schema;
 }
 
-NS_ASSUME_NONNULL_BEGIN
+RLM_HEADER_AUDIT_BEGIN(nullability, sendability)
 
 @interface RLMMigration ()
 
@@ -33,8 +33,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (instancetype)initWithRealm:(RLMRealm *)realm oldRealm:(RLMRealm *)oldRealm schema:(realm::Schema &)schema;
 
-- (void)execute:(RLMMigrationBlock)block;
+- (void)execute:(RLMMigrationBlock)block objectClass:(_Nullable Class)cls;
 
 @end
 
-NS_ASSUME_NONNULL_END
+RLM_HEADER_AUDIT_END(nullability, sendability)

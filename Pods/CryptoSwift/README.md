@@ -9,20 +9,22 @@
 
 Crypto related functions and helpers for [Swift](https://swift.org) implemented in Swift. ([#PureSwift](https://twitter.com/hashtag/pureswift))
 
-**Note**: The `master` branch follows the latest currently released **version of Swift**. If you need an earlier version for an older version of Swift, you can specify its version in your `Podfile` or use the code on the branch for that version. Older branches are unsupported. Check [versions](#swift-versions-support) for details.
+**Note**: The `main` branch follows the latest currently released **version of Swift**. If you need an earlier version for an older version of Swift, specify its version in your `Podfile` or use the code on the branch for that version. Older branches are unsupported. Check [versions](#swift-versions-support) for details.
 
 ---
 
 [Requirements](#requirements) | [Features](#features) | [Contribution](#contribution) | [Installation](#installation) | [Swift versions](#swift-versions-support) | [How-to](#how-to) | [Author](#author) | [License](#license) | [Changelog](#changelog)
 
-## Sponsorship
+### Support & Sponsors
 
-It takes some time to keep it all for your convenience, so maybe spare $1, so I can keep working on that. There are more than 8000 clones daily. If I'd get $1/month from each company that uses my work here, I'd say we're even. Hurry up, find the [Sponsorship](https://github.com/users/krzyzanowskim/sponsorship) button, and fulfill your duty.
+The financial sustainability of the project is possible thanks to the ongoing contributions from our [GitHub Sponsors](https://github.com/sponsors/krzyzanowskim)
 
-CryptoSwift isn't backed by any big company and is developer in my spare time that I also use to as a freelancer.
+### Premium Sponsors
 
-[![Twitter](https://img.shields.io/badge/Twitter-@krzyzanowskim-blue.svg?style=flat)](http://twitter.com/krzyzanowskim)
+  [Emerge Tools](https://www.emergetools.com/) is a suite of revolutionary products designed to supercharge mobile apps and the teams that build them.
 
+  [<img alt="www.emergetools.com/" width="200" src="https://github-production-user-asset-6210df.s3.amazonaws.com/758033/256565082-a21f5ac1-ef39-4b56-a8d2-575adeb7fe55.png" />](https://www.emergetools.com)
+  
 ## Requirements
 Good mood
 
@@ -34,60 +36,68 @@ Good mood
 - iOS, Android, macOS, AppleTV, watchOS, Linux support
 
 #### Hash (Digest)
-  [MD5](http://tools.ietf.org/html/rfc1321)
-| [SHA1](http://tools.ietf.org/html/rfc3174)
-| [SHA224](http://tools.ietf.org/html/rfc6234)
-| [SHA256](http://tools.ietf.org/html/rfc6234)
-| [SHA384](http://tools.ietf.org/html/rfc6234)
-| [SHA512](http://tools.ietf.org/html/rfc6234)
-| [SHA3](http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.202.pdf)
+  [MD5](https://tools.ietf.org/html/rfc1321)
+| [SHA1](https://tools.ietf.org/html/rfc3174)
+| [SHA2-224](https://tools.ietf.org/html/rfc6234)
+| [SHA2-256](https://tools.ietf.org/html/rfc6234)
+| [SHA2-384](https://tools.ietf.org/html/rfc6234)
+| [SHA2-512](https://tools.ietf.org/html/rfc6234)
+| [SHA3](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.202.pdf)
 
 #### Cyclic Redundancy Check (CRC)
-  [CRC32](http://en.wikipedia.org/wiki/Cyclic_redundancy_check)
-| [CRC32C](http://en.wikipedia.org/wiki/Cyclic_redundancy_check)
-| [CRC16](http://en.wikipedia.org/wiki/Cyclic_redundancy_check)
+  [CRC32](https://en.wikipedia.org/wiki/Cyclic_redundancy_check)
+| [CRC32C](https://en.wikipedia.org/wiki/Cyclic_redundancy_check)
+| [CRC16](https://en.wikipedia.org/wiki/Cyclic_redundancy_check)
 
 #### Cipher
   [AES-128, AES-192, AES-256](http://csrc.nist.gov/publications/fips/fips197/fips-197.pdf)
 | [ChaCha20](http://cr.yp.to/chacha/chacha-20080128.pdf)
+| [XChaCha20](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-xchacha)
 | [Rabbit](https://tools.ietf.org/html/rfc4503)
 | [Blowfish](https://www.schneier.com/academic/blowfish/)
 
+#### RSA (public-key encryption algorithm)
+  [Encryption, Signature](https://github.com/krzyzanowskim/CryptoSwift#rsa)
+
 #### Message authenticators
-  [Poly1305](http://cr.yp.to/mac/poly1305-20050329.pdf)
+  [Poly1305](https://cr.yp.to/mac/poly1305-20050329.pdf)
 | [HMAC (MD5, SHA1, SHA256)](https://www.ietf.org/rfc/rfc2104.txt)
 | [CMAC](https://tools.ietf.org/html/rfc4493)
 | [CBC-MAC](https://en.wikipedia.org/wiki/CBC-MAC)
 
 #### Cipher mode of operation
-- Electronic codebook ([ECB](http://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Electronic_codebook_.28ECB.29))
-- Cipher-block chaining ([CBC](http://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher-block_chaining_.28CBC.29))
-- Propagating Cipher Block Chaining ([PCBC](http://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Propagating_Cipher_Block_Chaining_.28PCBC.29))
-- Cipher feedback ([CFB](http://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher_feedback_.28CFB.29))
-- Output Feedback ([OFB](http://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Output_Feedback_.28OFB.29))
+- Electronic codebook ([ECB](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Electronic_codebook_.28ECB.29))
+- Cipher-block chaining ([CBC](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher-block_chaining_.28CBC.29))
+- Propagating Cipher Block Chaining ([PCBC](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Propagating_Cipher_Block_Chaining_.28PCBC.29))
+- Cipher feedback ([CFB](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher_feedback_.28CFB.29))
+- Output Feedback ([OFB](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Output_Feedback_.28OFB.29))
 - Counter Mode ([CTR](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Counter_.28CTR.29))
 - Galois/Counter Mode ([GCM](https://csrc.nist.gov/publications/detail/sp/800-38d/final))
 - Counter with Cipher Block Chaining-Message Authentication Code ([CCM](https://csrc.nist.gov/publications/detail/sp/800-38c/final))
 - OCB Authenticated-Encryption Algorithm ([OCB](https://tools.ietf.org/html/rfc7253))
 
 #### Password-Based Key Derivation Function
-- [PBKDF1](http://tools.ietf.org/html/rfc2898#section-5.1) (Password-Based Key Derivation Function 1)
-- [PBKDF2](http://tools.ietf.org/html/rfc2898#section-5.2) (Password-Based Key Derivation Function 2)
+- [PBKDF1](https://tools.ietf.org/html/rfc2898#section-5.1) (Password-Based Key Derivation Function 1)
+- [PBKDF2](https://tools.ietf.org/html/rfc2898#section-5.2) (Password-Based Key Derivation Function 2)
 - [HKDF](https://tools.ietf.org/html/rfc5869) (HMAC-based Extract-and-Expand Key Derivation Function)
 - [Scrypt](https://tools.ietf.org/html/rfc7914) (The scrypt Password-Based Key Derivation Function)
 
 #### Data padding
-  PKCS#5
-| [PKCS#7](http://tools.ietf.org/html/rfc5652#section-6.3)
-| [Zero padding](https://en.wikipedia.org/wiki/Padding_(cryptography)#Zero_padding)
-| [ISO78164](http://www.embedx.com/pdfs/ISO_STD_7816/info_isoiec7816-4%7Bed21.0%7Den.pdf)
-| No padding
+- [PKCS#5](https://www.rfc-editor.org/rfc/rfc2898.html)
+- [EMSA-PKCS1-v1_5 (Encoding Method for Signature)](https://www.rfc-editor.org/rfc/rfc3447#section-9.2)
+- [EME-PCKS1-v1_5 (Encoding Method for Encryption)](https://www.rfc-editor.org/rfc/rfc3447)
+- [PKCS#7](https://tools.ietf.org/html/rfc5652#section-6.3)
+- [Zero padding](https://en.wikipedia.org/wiki/Padding_(cryptography)#Zero_padding)
+- [ISO78164](https://www.embedx.com/pdfs/ISO_STD_7816/info_isoiec7816-4%7Bed21.0%7Den.pdf)
+- [ISO10126](https://en.wikipedia.org/wiki/Padding_(cryptography)#ISO_10126)
+- No padding
 
 #### Authenticated Encryption with Associated Data (AEAD)
 - [AEAD\_CHACHA20\_POLY1305](https://tools.ietf.org/html/rfc7539#section-2.8)
+- [AEAD\_XCHACHA20\_POLY1305](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-xchacha#section-2)
 
 ## Why
-[Why?](https://github.com/krzyzanowskim/CryptoSwift/issues/5) [Because I can](https://github.com/krzyzanowskim/CryptoSwift/issues/5#issuecomment-53379391).
+[Why?](https://github.com/krzyzanowskim/CryptoSwift/discussions/982) [Because I can](https://github.com/krzyzanowskim/CryptoSwift/discussions/982#discussioncomment-3669415).
 
 ## How do I get involved?
 
@@ -97,8 +107,8 @@ You want to help, great! Go ahead and fork our repo, make your changes and send 
 
 Check out [CONTRIBUTING.md](CONTRIBUTING.md) for more information on how to help with CryptoSwift.
 
-- If you found a bug, [open an issue](https://github.com/krzyzanowskim/CryptoSwift/issues).
-- If you have a feature request, [open an issue](https://github.com/krzyzanowskim/CryptoSwift/issues).
+- If you found a bug, [open a discussion](https://github.com/krzyzanowskim/CryptoSwift/discussions).
+- If you have a feature request, [open a discussion](https://github.com/krzyzanowskim/CryptoSwift/discussions).
 
 ## Installation
 
@@ -121,19 +131,19 @@ It is recommended to enable [Whole-Module Optimization](https://swift.org/blog/w
 You can use [Swift Package Manager](https://swift.org/package-manager/) and specify dependency in `Package.swift` by adding this:
 
 ```swift
-.package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", .upToNextMinor(from: "1.4.0"))
+.package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", .upToNextMajor(from: "1.8.0"))
 ```
 
-See: [Package.swift - manual](http://blog.krzyzanowskim.com/2016/08/09/package-swift-manual/)
+See: [Package.swift - manual](https://blog.krzyzanowskim.com/2016/08/09/package-swift-manual/)
 
-Notice: Swift Package Manager uses debug configuration for debug Xcode build, that may result in significant (up to x10000) worse performance. Performance characteristic is different in Release build. To overcome this prolem, consider embed `CryptoSwift.xcframework` described below.
+Notice: Swift Package Manager uses debug configuration for debug Xcode build, that may result in significant (up to x10000) worse performance. Performance characteristic is different in Release build. To overcome this problem, consider embed `CryptoSwift.xcframework` described below.
 
 #### CocoaPods
 
 You can use [CocoaPods](https://cocoapods.org/pods/CryptoSwift).
 
 ```ruby
-pod 'CryptoSwift', '~> 1.4.0'
+pod 'CryptoSwift', '~> 1.8.0'
 ```
 
 Bear in mind that CocoaPods will build CryptoSwift without [Whole-Module Optimization](https://swift.org/blog/whole-module-optimizations/) that may impact performance. You can change it manually after installation, or use [cocoapods-wholemodule](https://github.com/jedlewison/cocoapods-wholemodule) plugin.
@@ -147,7 +157,7 @@ Specify in Cartfile:
 github "krzyzanowskim/CryptoSwift"
 ```
 
-Run `carthage` to build the framework and drag the built CryptoSwift.framework into your Xcode project. Follow [build instructions](https://github.com/Carthage/Carthage#getting-started). [Common issues](https://github.com/krzyzanowskim/CryptoSwift/issues/492#issuecomment-330822874).
+Run `carthage` to build the framework and drag the built CryptoSwift.framework into your Xcode project. Follow [build instructions](https://github.com/Carthage/Carthage#getting-started). [Common issues](https://github.com/krzyzanowskim/CryptoSwift/discussions/983#discussioncomment-3669433).
 
 #### XCFramework
 
@@ -160,7 +170,7 @@ CryptoSwift.xcframework is a Release (Optimized) binary that offer best availabl
 
 #### Embedded Framework
 
-Embedded frameworks require a minimum deployment target of iOS 9 or macOS Sierra (10.12). Drag the `CryptoSwift.xcodeproj` file into your Xcode project, and add appropriate framework as a dependency to your target. Now select your App and choose the General tab for the app target. Find *Embedded Binaries* and press "+", then select `CryptoSwift.framework` (iOS, macOS, watchOS or tvOS)
+Embedded frameworks require a minimum deployment target of iOS 11.0 or macOS Sierra (10.13). Drag the `CryptoSwift.xcodeproj` file into your Xcode project, and add appropriate framework as a dependency to your target. Now select your App and choose the General tab for the app target. Find *Embedded Binaries* and press "+", then select `CryptoSwift.framework` (iOS, macOS, watchOS or tvOS)
 
 ![](https://cloud.githubusercontent.com/assets/758033/10834511/25a26852-7e9a-11e5-8c01-6cc8f1838459.png)
 
@@ -184,7 +194,7 @@ In the project, you'll find [single scheme](https://mxcl.dev/PromiseKit/news/201
 - Swift 4.2, branch [swift42](https://github.com/krzyzanowskim/CryptoSwift/tree/swift42) version <= 0.15.0
 - Swift 5.0, branch [swift5](https://github.com/krzyzanowskim/CryptoSwift/tree/swift5) version <= 1.2.0
 - Swift 5.1, branch [swift5](https://github.com/krzyzanowskim/CryptoSwift/tree/swift51) version <= 1.3.3
-- Swift 5.3 and newer, branch [master](https://github.com/krzyzanowskim/CryptoSwift/tree/master)
+- Swift 5.3 and newer, branch [main](https://github.com/krzyzanowskim/CryptoSwift/tree/main)
 
 ## How-to
 
@@ -216,7 +226,7 @@ For your convenience, **CryptoSwift** provides two functions to easily convert a
 Data from bytes:
 
 ```swift
-let data = Data( [0x01, 0x02, 0x03])
+let data = Data([0x01, 0x02, 0x03])
 ```
 
 `Data` to `Array<UInt8>`
@@ -521,19 +531,140 @@ let encrypt = try AEADChaCha20Poly1305.encrypt(plaintext, key: key, iv: nonce, a
 let decrypt = try AEADChaCha20Poly1305.decrypt(ciphertext, key: key, iv: nonce, authenticationHeader: header, authenticationTag: tagArr: tag)
 ```
 
+##### RSA
+
+RSA initialization from parameters
+
+```swift
+let input: Array<UInt8> = [0,1,2,3,4,5,6,7,8,9]
+
+let n: Array<UInt8> = // RSA modulus
+let e: Array<UInt8> = // RSA public exponent
+let d: Array<UInt8> = // RSA private exponent
+
+let rsa = RSA(n: n, e: e, d: d)
+
+do {
+    let encrypted = try rsa.encrypt(input)
+    let decrypted = try rsa.decrypt(encrypted)
+} catch {
+    print(error)
+}
+```
+
+RSA key generation
+
+```swift
+let rsa = try RSA(keySize: 2048) // This generates a modulus, public exponent and private exponent with the given size
+```
+
+RSA Encryption & Decryption Example
+``` swift
+// Alice Generates a Private Key
+let alicesPrivateKey = try RSA(keySize: 1024)
+    
+// Alice shares her **public** key with Bob
+let alicesPublicKeyData = try alicesPrivateKey.publicKeyExternalRepresentation()
+    
+// Bob receives the raw external representation of Alices public key and imports it
+let bobsImportOfAlicesPublicKey = try RSA(rawRepresentation: alicesPublicKeyData)
+    
+// Bob can now encrypt a message for Alice using her public key
+let message = "Hi Alice! This is Bob!"
+let privateMessage = try bobsImportOfAlicesPublicKey.encrypt(message.bytes)
+    
+// This results in some encrypted output like this
+// URcRwG6LfH63zOQf2w+HIllPri9Rb6hFlXbi/bh03zPl2MIIiSTjbAPqbVFmoF3RmDzFjIarIS7ZpT57a1F+OFOJjx50WYlng7dioKFS/rsuGHYnMn4csjCRF6TAqvRQcRnBueeINRRA8SLaLHX6sZuQkjIE5AoHJwgavmiv8PY=
+      
+// Bob can now send this encrypted message to Alice without worrying about people being able to read the original contents
+    
+// Alice receives the encrypted message and uses her private key to decrypt the data and recover the original message
+let originalDecryptedMessage = try alicesPrivateKey.decrypt(privateMessage)
+    
+print(String(data: Data(originalDecryptedMessage), encoding: .utf8))
+// "Hi Alice! This is Bob!"
+```
+
+RSA Signature & Verification Example
+``` swift
+// Alice Generates a Private Key
+let alicesPrivateKey = try RSA(keySize: 1024)
+    
+// Alice wants to sign a message that she agrees with
+let messageAliceSupports = "Hi my name is Alice!"
+let alicesSignature = try alicesPrivateKey.sign(messageAliceSupports.bytes)
+    
+// Alice shares her Public key and the signature with Bob
+let alicesPublicKeyData = try alicesPrivateKey.publicKeyExternalRepresentation()
+    
+// Bob receives the raw external representation of Alices Public key and imports it!
+let bobsImportOfAlicesPublicKey = try RSA(rawRepresentation: alicesPublicKeyData)
+        
+// Bob can now verify that Alice signed the message using the Private key associated with her shared Public key.
+let verifiedSignature = try bobsImportOfAlicesPublicKey.verify(signature: alicesSignature, for: "Hi my name is Alice!".bytes)
+    
+if verifiedSignature == true {
+  // Bob knows that the signature Alice provided is valid for the message and was signed using the Private key associated with Alices shared Public key.
+} else {
+  // The signature was invalid, so either
+  // - the message Alice signed was different then what we expected.
+  // - or Alice used a Private key that isn't associated with the shared Public key that Bob has.
+}
+```
+
+CryptoSwift RSA Key -> Apple's Security Framework SecKey Example
+``` swift
+/// Starting with a CryptoSwift RSA Key
+let rsaKey = try RSA(keySize: 1024)
+
+/// Define your Keys attributes
+let attributes: [String:Any] = [
+  kSecAttrKeyType as String: kSecAttrKeyTypeRSA,
+  kSecAttrKeyClass as String: kSecAttrKeyClassPrivate, // or kSecAttrKeyClassPublic
+  kSecAttrKeySizeInBits as String: 1024, // The appropriate bits
+  kSecAttrIsPermanent as String: false
+]
+var error:Unmanaged<CFError>? = nil
+guard let rsaSecKey = try SecKeyCreateWithData(rsaKey.externalRepresentation() as CFData, attributes as CFDictionary, &error) else {
+  /// Error constructing SecKey from raw key data
+  return
+}
+
+/// You now have an RSA SecKey for use with Apple's Security framework
+```
+
+Apple's Security Framework SecKey -> CryptoSwift RSA Key Example
+``` swift
+/// Starting with a SecKey RSA Key
+let rsaSecKey:SecKey
+
+/// Copy External Representation
+var externalRepError:Unmanaged<CFError>?
+guard let cfdata = SecKeyCopyExternalRepresentation(rsaSecKey, &externalRepError) else {
+  /// Failed to copy external representation for RSA SecKey
+  return
+}
+
+/// Instantiate the RSA Key from the raw external representation
+let rsaKey = try RSA(rawRepresentation: cfdata as Data)
+
+/// You now have a CryptoSwift RSA Key
+```
+
+
 ## Author
 
-CryptoSwift is owned and maintained by [Marcin Krzyżanowski](http://www.krzyzanowskim.com)
+CryptoSwift is owned and maintained by [Marcin Krzyżanowski](https://www.krzyzanowskim.com)
 
-You can follow me on Twitter at [@krzyzanowskim](http://twitter.com/krzyzanowskim) for project updates and releases.
+You can follow me on Twitter at [@krzyzanowskim](https://twitter.com/krzyzanowskim) for project updates and releases.
 
 # Cryptography Notice
 
-This distribution includes cryptographic software. The country in which you currently reside may have restrictions on the import, possession, use, and/or re-export to another country, of encryption software. BEFORE using any encryption software, please check your country's laws, regulations and policies concerning the import, possession, or use, and re-export of encryption software, to see if this is permitted. See http://www.wassenaar.org/ for more information.
+This distribution includes cryptographic software. The country in which you currently reside may have restrictions on the import, possession, use, and/or re-export to another country, of encryption software. BEFORE using any encryption software, please check your country's laws, regulations and policies concerning the import, possession, or use, and re-export of encryption software, to see if this is permitted. See https://www.wassenaar.org/ for more information.
 
 ## License
 
-Copyright (C) 2014-2017 Marcin Krzyżanowski <marcin@krzyzanowskim.com>
+Copyright (C) 2014-2022 Marcin Krzyżanowski <marcin@krzyzanowskim.com>
 This software is provided 'as-is', without any express or implied warranty.
 
 In no event will the authors be held liable for any damages arising from the use of this software.
@@ -543,7 +674,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 - The origin of this software must not be misrepresented; you must not claim that you wrote the original software. If you use this software in a product, **an acknowledgment in the product documentation is required**.
 - Altered source versions must be plainly marked as such, and must not be misrepresented as being the original software.
 - This notice may not be removed or altered from any source or binary distribution.
-- Redistributions of any form whatsoever must retain the following acknowledgment: 'This product includes software developed by the "Marcin Krzyzanowski" (http://krzyzanowskim.com/).'
+- Redistributions of any form whatsoever must retain the following acknowledgment: 'This product includes software developed by the "Marcin Krzyzanowski" (https://krzyzanowskim.com/).'
 
 ## Changelog
 

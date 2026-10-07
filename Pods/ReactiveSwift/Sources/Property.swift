@@ -12,7 +12,7 @@ import Glibc
 ///
 /// Only classes can conform to this protocol, because having a signal
 /// for changes over time implies the origin must have a unique identity.
-public protocol PropertyProtocol: class, BindingSource {
+public protocol PropertyProtocol: AnyObject, BindingSource {
 	/// The current value of the property.
 	var value: Value { get }
 
@@ -85,6 +85,11 @@ extension PropertyProtocol {
 		return Property(unsafeProducer: transform(producer))
 	}
 
+	/// Lifts a unary SignalProducer operator to operate upon PropertyProtocol instead.
+	fileprivate func liftUnserialized<U>(_ transform: @escaping (SignalProducer<Value, Never>) -> SignalProducer<U, Never>) -> Property<U> {
+		return Property(unsafeProducer: transform(producer), unserialized: true)
+	}
+
 	/// Lifts a binary SignalProducer operator to operate upon PropertyProtocol instead.
 	fileprivate func lift<P: PropertyProtocol, U>(_ transform: @escaping (SignalProducer<Value, Never>) -> (SignalProducer<P.Value, Never>) -> SignalProducer<U, Never>) -> (P) -> Property<U> {
 		return { other in
@@ -102,7 +107,7 @@ extension PropertyProtocol {
 	///
 	/// - returns: A property that holds a mapped value from `self`.
 	public func map<U>(_ transform: @escaping (Value) -> U) -> Property<U> {
-		return lift { $0.map(transform) }
+		return liftUnserialized { $0.map(transform) }
 	}
 	
 	/// Map the current value and all susequent values to a new constant property.
@@ -112,7 +117,7 @@ extension PropertyProtocol {
 	///
 	/// - returns: A property that holds a mapped value from `self`.
 	public func map<U>(value: U) -> Property<U> {
-		return lift { $0.map(value: value) }
+		return liftUnserialized { $0.map(value: value) }
 	}
 
 	/// Maps the current value and all subsequent values to a new property
@@ -123,7 +128,7 @@ extension PropertyProtocol {
 	///
 	/// - returns: A property that holds a mapped value from `self`.
 	public func map<U>(_ keyPath: KeyPath<Value, U>) -> Property<U> {
-		return lift { $0.map(keyPath) }
+		return liftUnserialized { $0.map(keyPath) }
 	}
 
 	/// Passes only the values of the property that pass the given predicate
@@ -176,7 +181,7 @@ extension PropertyProtocol {
 	/// - returns: A property that holds tuples that contain previous and
 	///            current values of `self`.
 	public func combinePrevious(_ initial: Value) -> Property<(Value, Value)> {
-		return lift { $0.combinePrevious(initial) }
+		return liftUnserialized { $0.combinePrevious(initial) }
 	}
 
 	/// Forward only values from `self` that are not considered equivalent to its
@@ -189,7 +194,7 @@ extension PropertyProtocol {
 	///
 	/// - returns: A property which conditionally forwards values from `self`.
 	public func skipRepeats(_ isEquivalent: @escaping (Value, Value) -> Bool) -> Property<Value> {
-		return lift { $0.skipRepeats(isEquivalent) }
+		return liftUnserialized { $0.skipRepeats(isEquivalent) }
 	}
 }
 
@@ -200,7 +205,7 @@ extension PropertyProtocol where Value: Equatable {
 	///
 	/// - returns: A property which conditionally forwards values from `self`.
 	public func skipRepeats() -> Property<Value> {
-		return lift { $0.skipRepeats() }
+		return liftUnserialized { $0.skipRepeats() }
 	}
 }
 
@@ -243,7 +248,7 @@ extension PropertyProtocol {
 	///
 	/// - returns: A property that sends unique values during its lifetime.
 	public func uniqueValues<Identity: Hashable>(_ transform: @escaping (Value) -> Identity) -> Property<Value> {
-		return lift { $0.uniqueValues(transform) }
+		return liftUnserialized { $0.uniqueValues(transform) }
 	}
 }
 
@@ -257,7 +262,7 @@ extension PropertyProtocol where Value: Hashable {
 	///
 	/// - returns: A property that sends unique values during its lifetime.
 	public func uniqueValues() -> Property<Value> {
-		return lift { $0.uniqueValues() }
+		return liftUnserialized { $0.uniqueValues() }
 	}
 }
 
@@ -420,7 +425,7 @@ extension PropertyProtocol where Value == Bool {
 	///
 	/// - returns: A property that contains the logical NOT results.
 	public func negate() -> Property<Value> {
-		return self.lift { $0.negate() }
+		return liftUnserialized { $0.negate() }
 	}
 
 	/// Create a property that computes a logical AND between the latest values of `self`
@@ -443,6 +448,16 @@ extension PropertyProtocol where Value == Bool {
 	public static func all<P: PropertyProtocol, Properties: Collection>(_ properties: Properties) -> Property<Value> where P.Value == Value, Properties.Element == P {
 		return Property(initial: properties.map { $0.value }.reduce(true) { $0 && $1 }, then: SignalProducer.all(properties))
 	}
+    
+    /// Create a property that computes a logical AND between the latest values of `properties`.
+    ///
+    /// - parameters:
+    ///   - property: Properties to be combined.
+    ///
+    /// - returns: A property that contains the logical AND results.
+    public static func all<P: PropertyProtocol>(_ properties: P...) -> Property<Value> where P.Value == Value {
+        return .all(properties)
+    }
 
 	/// Create a property that computes a logical OR between the latest values of `self`
 	/// and `property`.
@@ -464,6 +479,16 @@ extension PropertyProtocol where Value == Bool {
 	public static func any<P: PropertyProtocol, Properties: Collection>(_ properties: Properties) -> Property<Value> where P.Value == Value, Properties.Element == P {
 		return Property(initial: properties.map { $0.value }.reduce(false) { $0 || $1 }, then: SignalProducer.any(properties))
 	}
+    
+    /// Create a property that computes a logical OR between the latest values of `properties`.
+    ///
+    /// - parameters:
+    ///   - properties: Properties to be combined.
+    ///
+    /// - returns: A property that contains the logical OR results.
+    public static func any<P: PropertyProtocol>(_ properties: P...) -> Property<Value> where P.Value == Value {
+        return .any(properties)
+    }
 }
 
 /// A read-only property that can be observed for its changes over time. There
@@ -598,7 +623,7 @@ public final class Property<Value>: PropertyProtocol {
 	///
 	/// - parameters:
 	///   - unsafeProducer: The composed producer for creating the property.
-	fileprivate init(unsafeProducer: SignalProducer<Value, Never>) {
+	fileprivate init(unsafeProducer: SignalProducer<Value, Never>, unserialized: Bool = false) {
 		// The ownership graph:
 		//
 		// ------------     weak  -----------    strong ------------------
@@ -614,7 +639,9 @@ public final class Property<Value>: PropertyProtocol {
 		// A composed property tracks its active consumers through its relay signal, and
 		// interrupts `unsafeProducer` if the relay signal terminates.
 		let disposable = SerialDisposable()
-		let (relay, observer) = Signal<Value, Never>.pipe(disposable: disposable)
+		let (relay, observer) = unserialized
+			? Signal<Value, Never>.unserializedPipe(disposable: disposable)
+			: Signal<Value, Never>.pipe(disposable: disposable)
 
 		disposable.inner = unsafeProducer.start { [weak box] event in
 			// `observer` receives `interrupted` only as a result of the termination of
@@ -646,7 +673,7 @@ public final class Property<Value>: PropertyProtocol {
 		_value = { box.value! }
 		signal = relay
 
-		producer = SignalProducer { [box, relay] observer, lifetime in
+		producer = SignalProducer.unserialized { [box, relay] observer, lifetime in
 			box.withValue { value in
 				observer.send(value: value!)
 				lifetime += relay.observe(Signal.Observer(mappingInterruptedToCompleted: observer))
@@ -719,7 +746,7 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	/// followed by all changes over time, then complete when the property has
 	/// deinitialized.
 	public var producer: SignalProducer<Value, Never> {
-		return SignalProducer { [box, signal] observer, lifetime in
+		return SignalProducer.unserialized { [box, signal] observer, lifetime in
 			box.withValue { value in
 				observer.send(value: value)
 				lifetime += signal.observe(Signal.Observer(mappingInterruptedToCompleted: observer))
@@ -732,7 +759,7 @@ public final class MutableProperty<Value>: ComposableMutablePropertyProtocol {
 	/// - parameters:
 	///   - initialValue: Starting value for the mutable property.
 	public init(_ initialValue: Value) {
-		(signal, observer) = Signal.pipe()
+		(signal, observer) = Signal.unserializedPipe()
 		(lifetime, token) = Lifetime.make()
 
 		/// Need a recursive lock around `value` to allow recursive access to

@@ -7,6 +7,7 @@
 #include "table/block.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <vector>
 
 #include "leveldb/comparator.h"
@@ -33,7 +34,7 @@ Block::Block(const BlockContents& contents)
       // The size is too small for NumRestarts()
       size_ = 0;
     } else {
-      restart_offset_ = size_ - (1 + NumRestarts()) * sizeof(uint32_t);
+      restart_offset_ = (uint32_t)size_ - (1 + NumRestarts()) * sizeof(uint32_t);
     }
   }
 }
@@ -55,9 +56,9 @@ static inline const char* DecodeEntry(const char* p, const char* limit,
                                       uint32_t* shared, uint32_t* non_shared,
                                       uint32_t* value_length) {
   if (limit - p < 3) return nullptr;
-  *shared = reinterpret_cast<const unsigned char*>(p)[0];
-  *non_shared = reinterpret_cast<const unsigned char*>(p)[1];
-  *value_length = reinterpret_cast<const unsigned char*>(p)[2];
+  *shared = reinterpret_cast<const uint8_t*>(p)[0];
+  *non_shared = reinterpret_cast<const uint8_t*>(p)[1];
+  *value_length = reinterpret_cast<const uint8_t*>(p)[2];
   if ((*shared | *non_shared | *value_length) < 128) {
     // Fast path: all three values are encoded in one byte each
     p += 3;
@@ -93,7 +94,7 @@ class Block::Iter : public Iterator {
 
   // Return the offset in data_ just past the end of the current entry.
   inline uint32_t NextEntryOffset() const {
-    return (value_.data() + value_.size()) - data_;
+    return (uint32_t)((value_.data() + value_.size()) - data_);
   }
 
   uint32_t GetRestartPoint(uint32_t index) {
@@ -123,23 +124,23 @@ class Block::Iter : public Iterator {
     assert(num_restarts_ > 0);
   }
 
-  virtual bool Valid() const { return current_ < restarts_; }
-  virtual Status status() const { return status_; }
-  virtual Slice key() const {
+  bool Valid() const override { return current_ < restarts_; }
+  Status status() const override { return status_; }
+  Slice key() const override {
     assert(Valid());
     return key_;
   }
-  virtual Slice value() const {
+  Slice value() const override {
     assert(Valid());
     return value_;
   }
 
-  virtual void Next() {
+  void Next() override {
     assert(Valid());
     ParseNextKey();
   }
 
-  virtual void Prev() {
+  void Prev() override {
     assert(Valid());
 
     // Scan backwards to a restart point before current_
@@ -160,7 +161,7 @@ class Block::Iter : public Iterator {
     } while (ParseNextKey() && NextEntryOffset() < original);
   }
 
-  virtual void Seek(const Slice& target) {
+  void Seek(const Slice& target) override {
     // Binary search in restart array to find the last restart point
     // with a key < target
     uint32_t left = 0;
@@ -200,12 +201,12 @@ class Block::Iter : public Iterator {
     }
   }
 
-  virtual void SeekToFirst() {
+  void SeekToFirst() override {
     SeekToRestartPoint(0);
     ParseNextKey();
   }
 
-  virtual void SeekToLast() {
+  void SeekToLast() override {
     SeekToRestartPoint(num_restarts_ - 1);
     while (ParseNextKey() && NextEntryOffset() < restarts_) {
       // Keep skipping

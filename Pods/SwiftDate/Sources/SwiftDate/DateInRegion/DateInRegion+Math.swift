@@ -1,9 +1,13 @@
 //
-//  DateInRegion+Math.swift
 //  SwiftDate
+//  Parse, validate, manipulate, and display dates, time and timezones in Swift
 //
-//  Created by Daniele Margutti on 07/06/2018.
-//  Copyright © 2018 SwiftDate. All rights reserved.
+//  Created by Daniele Margutti
+//   - Web: https://www.danielemargutti.com
+//   - Twitter: https://twitter.com/danielemargutti
+//   - Mail: hello@danielemargutti.com
+//
+//  Copyright © 2019 Daniele Margutti. Licensed under MIT License.
 //
 
 import Foundation
@@ -11,7 +15,7 @@ import Foundation
 // MARK: - Math Operation DateInRegion - DateInRegion
 
 public func - (lhs: DateInRegion, rhs: DateInRegion) -> TimeInterval {
-	return rhs.timeIntervalSince(lhs)
+    lhs.timeIntervalSince(rhs)
 }
 
 // MARK: - Math Operation DateInRegion - Date Components
@@ -22,7 +26,7 @@ public func + (lhs: DateInRegion, rhs: DateComponents) -> DateInRegion {
 }
 
 public func - (lhs: DateInRegion, rhs: DateComponents) -> DateInRegion {
-	return lhs + (-rhs)
+    lhs + (-rhs)
 }
 
 // MARK: - Math Operation DateInRegion - Calendar.Component

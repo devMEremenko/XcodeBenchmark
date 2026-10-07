@@ -21,13 +21,11 @@
 //  CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #import "VKApiObjectArray.h"
-#import "VKAudio.h"
 #import "VKPhoto.h"
 #import "VKLikes.h"
 #import "VKUser.h"
 #import "VKRelative.h"
 #import "VKCounters.h"
-#import "VKLikes.h"
 #import "VKSchool.h"
 #import "VKUniversity.h"
 #import "VKGroup.h"

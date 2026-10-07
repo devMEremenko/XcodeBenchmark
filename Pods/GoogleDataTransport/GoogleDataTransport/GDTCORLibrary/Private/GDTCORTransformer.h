@@ -16,7 +16,7 @@
 
 #import <Foundation/Foundation.h>
 
-#import "GoogleDataTransport/GDTCORLibrary/Public/GoogleDataTransport/GDTCORLifecycle.h"
+#import "GoogleDataTransport/GDTCORLibrary/Internal/GDTCORLifecycle.h"
 
 @class GDTCOREvent;
 
@@ -38,7 +38,8 @@ NS_ASSUME_NONNULL_BEGIN
  */
 + (instancetype)sharedInstance;
 
-/** Writes the result of applying the given transformers' -transform method on the given event.
+/** Writes the result of applying the given transformers' `transformGDTEvent:` method on the given
+ * event.
  *
  * @note If the app is suspended, a background task will be created to complete work in-progress,
  * but this method will not send any further events until the app is resumed.

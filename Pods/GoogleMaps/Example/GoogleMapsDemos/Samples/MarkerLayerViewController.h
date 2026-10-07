@@ -17,6 +17,6 @@
 
 #import <GoogleMaps/GoogleMaps.h>
 
-@interface MarkerLayerViewController : UIViewController<GMSMapViewDelegate>
+@interface MarkerLayerViewController : UIViewController <GMSMapViewDelegate>
 
 @end

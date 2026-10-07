@@ -20,9 +20,7 @@
 static int kMarkerCount = 0;
 
 // Returns a random value from 0-1.0f.
-static CGFloat randf() {
-  return (((float)arc4random() / 0x100000000) * 1.0f);
-}
+static CGFloat randf() { return (((float)arc4random() / 0x100000000) * 1.0f); }
 
 @implementation CustomMarkersViewController {
   GMSMapView *_mapView;
@@ -30,8 +28,9 @@ static CGFloat randf() {
 
 - (void)viewDidLoad {
   [super viewDidLoad];
-  GMSCameraPosition *camera =
-      [GMSCameraPosition cameraWithLatitude:-37.81969 longitude:144.966085 zoom:4];
+  GMSCameraPosition *camera = [GMSCameraPosition cameraWithLatitude:-37.81969
+                                                          longitude:144.966085
+                                                               zoom:4];
   _mapView = [GMSMapView mapWithFrame:CGRectZero camera:camera];
   [self addDefaultMarkers];
 
@@ -48,6 +47,9 @@ static CGFloat randf() {
   self.navigationItem.rightBarButtonItems = @[ addButton, clearButton ];
 
   self.view = _mapView;
+
+  // Reset count on view load
+  kMarkerCount = 0;
 }
 
 - (void)addDefaultMarkers {
@@ -68,8 +70,8 @@ static CGFloat randf() {
 
 - (void)didTapAdd {
   for (int i = 0; i < 10; ++i) {
-    // Add a marker every 0.25 seconds for the next ten markers, randomly
-    // within the bounds of the camera as it is at that point.
+    // Add a marker every 0.25 seconds for the next ten markers, randomly within the bounds of the
+    // camera as it is at that point.
     double delayInSeconds = (i * 0.25);
     dispatch_time_t popTime =
         dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC));
@@ -89,8 +91,8 @@ static CGFloat randf() {
   CLLocationDegrees latitude =
       bounds.southWest.latitude + randf() * (bounds.northEast.latitude - bounds.southWest.latitude);
 
-  // If the visible region crosses the antimeridian (the right-most point is
-  // "smaller" than the left-most point), adjust the longitude accordingly.
+  // If the visible region crosses the antimeridian (the right-most point is "smaller" than the
+  // left-most point), adjust the longitude accordingly.
   BOOL offset = (bounds.northEast.longitude < bounds.southWest.longitude);
   CLLocationDegrees longitude =
       bounds.southWest.longitude +
@@ -115,6 +117,9 @@ static CGFloat randf() {
 - (void)didTapClear {
   [_mapView clear];
   [self addDefaultMarkers];
+
+  // Reset count on clear
+  kMarkerCount = 0;
 }
 
 @end
