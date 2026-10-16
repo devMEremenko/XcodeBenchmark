@@ -9,11 +9,12 @@
 #import "SDWebImageDefine.h"
 #import "UIImage+Metadata.h"
 #import "NSImage+Compatibility.h"
+#import "SDAnimatedImage.h"
 #import "SDAssociatedObject.h"
 
 #pragma mark - Image scale
 
-static inline NSArray<NSNumber *> * _Nonnull SDImageScaleFactors() {
+static inline NSArray<NSNumber *> * _Nonnull SDImageScaleFactors(void) {
     return @[@2, @3];
 }
 
@@ -22,14 +23,7 @@ inline CGFloat SDImageScaleFactorForKey(NSString * _Nullable key) {
     if (!key) {
         return scale;
     }
-    // Check if target OS support scale
-#if SD_WATCH
-    if ([[WKInterfaceDevice currentDevice] respondsToSelector:@selector(screenScale)])
-#elif SD_UIKIT
-    if ([[UIScreen mainScreen] respondsToSelector:@selector(scale)])
-#elif SD_MAC
-    if ([[NSScreen mainScreen] respondsToSelector:@selector(backingScaleFactor)])
-#endif
+    // Now all OS supports retina display scale system
     {
         // a@2x.png -> 8
         if (key.length >= 8) {
@@ -75,13 +69,32 @@ inline UIImage * _Nullable SDScaledImageForScaleFactor(CGFloat scale, UIImage * 
         return image;
     }
     UIImage *scaledImage;
+    // Check SDAnimatedImage support for shortcut
+    if ([image.class conformsToProtocol:@protocol(SDAnimatedImage)]) {
+        if ([image respondsToSelector:@selector(animatedCoder)]) {
+            id<SDAnimatedImageCoder> coder = [(id<SDAnimatedImage>)image animatedCoder];
+            if (coder) {
+                scaledImage = [[image.class alloc] initWithAnimatedCoder:coder scale:scale];
+            }
+        } else {
+            // Some class impl does not support `animatedCoder`, keep for compatibility
+            NSData *data = [(id<SDAnimatedImage>)image animatedImageData];
+            if (data) {
+                scaledImage = [[image.class alloc] initWithData:data scale:scale];
+            }
+        }
+        if (scaledImage) {
+            return scaledImage;
+        }
+    }
     if (image.sd_isAnimated) {
         UIImage *animatedImage;
 #if SD_UIKIT || SD_WATCH
         // `UIAnimatedImage` images share the same size and scale.
-        NSMutableArray<UIImage *> *scaledImages = [NSMutableArray array];
+        NSArray<UIImage *> *images = image.images;
+        NSMutableArray<UIImage *> *scaledImages = [NSMutableArray arrayWithCapacity:images.count];
         
-        for (UIImage *tempImage in image.images) {
+        for (UIImage *tempImage in images) {
             UIImage *tempScaledImage = [[UIImage alloc] initWithCGImage:tempImage.CGImage scale:scale orientation:tempImage.imageOrientation];
             [scaledImages addObject:tempScaledImage];
         }
@@ -120,17 +133,24 @@ inline UIImage * _Nullable SDScaledImageForScaleFactor(CGFloat scale, UIImage * 
 
 SDWebImageContextOption const SDWebImageContextSetImageOperationKey = @"setImageOperationKey";
 SDWebImageContextOption const SDWebImageContextCustomManager = @"customManager";
+SDWebImageContextOption const SDWebImageContextCallbackQueue = @"callbackQueue";
 SDWebImageContextOption const SDWebImageContextImageCache = @"imageCache";
 SDWebImageContextOption const SDWebImageContextImageLoader = @"imageLoader";
 SDWebImageContextOption const SDWebImageContextImageCoder = @"imageCoder";
 SDWebImageContextOption const SDWebImageContextImageTransformer = @"imageTransformer";
+SDWebImageContextOption const SDWebImageContextImageForceDecodePolicy = @"imageForceDecodePolicy";
+SDWebImageContextOption const SDWebImageContextImageDecodeOptions = @"imageDecodeOptions";
 SDWebImageContextOption const SDWebImageContextImageScaleFactor = @"imageScaleFactor";
 SDWebImageContextOption const SDWebImageContextImagePreserveAspectRatio = @"imagePreserveAspectRatio";
 SDWebImageContextOption const SDWebImageContextImageThumbnailPixelSize = @"imageThumbnailPixelSize";
+SDWebImageContextOption const SDWebImageContextImageTypeIdentifierHint = @"imageTypeIdentifierHint";
+SDWebImageContextOption const SDWebImageContextImageScaleDownLimitBytes = @"imageScaleDownLimitBytes";
+SDWebImageContextOption const SDWebImageContextImageEncodeOptions = @"imageEncodeOptions";
 SDWebImageContextOption const SDWebImageContextQueryCacheType = @"queryCacheType";
 SDWebImageContextOption const SDWebImageContextStoreCacheType = @"storeCacheType";
 SDWebImageContextOption const SDWebImageContextOriginalQueryCacheType = @"originalQueryCacheType";
 SDWebImageContextOption const SDWebImageContextOriginalStoreCacheType = @"originalStoreCacheType";
+SDWebImageContextOption const SDWebImageContextOriginalImageCache = @"originalImageCache";
 SDWebImageContextOption const SDWebImageContextAnimatedImageClass = @"animatedImageClass";
 SDWebImageContextOption const SDWebImageContextDownloadRequestModifier = @"downloadRequestModifier";
 SDWebImageContextOption const SDWebImageContextDownloadResponseModifier = @"downloadResponseModifier";

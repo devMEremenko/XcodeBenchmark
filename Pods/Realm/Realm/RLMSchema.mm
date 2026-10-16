@@ -16,7 +16,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-#import "RLMSchema_Private.h"
+#import "RLMSchema_Private.hpp"
 
 #import "RLMAccessor.h"
 #import "RLMObjectBase_Private.h"
@@ -27,14 +27,14 @@
 #import "RLMSwiftSupport.h"
 #import "RLMUtil.hpp"
 
-#import "object_schema.hpp"
-#import "object_store.hpp"
-#import "schema.hpp"
-
 #import <realm/group.hpp>
+#import <realm/object-store/object_schema.hpp>
+#import <realm/object-store/object_store.hpp>
+#import <realm/object-store/schema.hpp>
+#import <realm/util/scope_exit.hpp>
 
+#import <mutex>
 #import <objc/runtime.h>
-#include <mutex>
 
 using namespace realm;
 
@@ -73,20 +73,52 @@ static enum class SharedSchemaState {
     realm::Schema _objectStoreSchema;
 }
 
+static void createAccessors(RLMObjectSchema *objectSchema) {
+    constexpr const size_t bufferSize
+        = sizeof("RLM:Managed  ") // includes spot for null terminator
+        + std::numeric_limits<unsigned long long>::digits10
+        + realm::Group::max_table_name_length;
+
+    char className[bufferSize] = "RLM:Managed ";
+    char *const start = className + strlen(className);
+
+    static unsigned long long count = 0;
+    snprintf(start, bufferSize - strlen(className),
+             "%llu %s", count++, objectSchema.className.UTF8String);
+    objectSchema.accessorClass = RLMManagedAccessorClassForObjectClass(objectSchema.objectClass, objectSchema, className);
+    objectSchema.unmanagedClass = RLMUnmanagedAccessorClassForObjectClass(objectSchema.objectClass, objectSchema);
+}
+
+void RLMSchemaEnsureAccessorsCreated(RLMSchema *schema) {
+    for (RLMObjectSchema *objectSchema in schema.objectSchema) {
+        if (objectSchema.accessorClass == objectSchema.objectClass) {
+            // Locking inside the loop to optimize for the common case at
+            // the expense of worse perf in the rare scenario where this is
+            // actually needed.
+            @synchronized(s_localNameToClass) {
+                createAccessors(objectSchema);
+            }
+        }
+    }
+}
+
 // Caller must @synchronize on s_localNameToClass
-static RLMObjectSchema *RLMRegisterClass(Class cls) {
+static RLMObjectSchema *registerClass(Class cls) {
     if (RLMObjectSchema *schema = s_privateSharedSchema[[cls className]]) {
         return schema;
     }
 
     auto prevState = s_sharedSchemaState;
     s_sharedSchemaState = SharedSchemaState::Initializing;
-    RLMObjectSchema *schema = [RLMObjectSchema schemaForObjectClass:cls];
-    s_sharedSchemaState = prevState;
+    RLMObjectSchema *schema;
+    {
+        util::ScopeExit cleanup([&]() noexcept {
+            s_sharedSchemaState = prevState;
+        });
+        schema = [RLMObjectSchema schemaForObjectClass:cls];
+    }
 
-    // set unmanaged class on shared shema for unmanaged object creation
-    schema.unmanagedClass = RLMUnmanagedAccessorClassForObjectClass(schema.objectClass, schema);
-
+    createAccessors(schema);
     // override sharedSchema class methods for performance
     RLMReplaceSharedSchemaMethod(cls, schema);
 
@@ -121,7 +153,7 @@ static void RLMRegisterClassLocalNames(Class *classes, NSUInteger count) {
         // but not for nested classes. _T indicates it's a Swift symbol, t
         // indicates it's a type, and C indicates it's a class.
         else if ([className hasPrefix:@"_TtC"]) {
-            @throw RLMException(@"RLMObject subclasses cannot be nested within other declarations. Please move %@ to global scope.", className);
+            @throw RLMException(@"Object subclass '%@' must explicitly set the class's objective-c name with @objc(ClassName) because it is not a top-level public class.", className);
         }
 
         if (Class existingClass = s_localNameToClass[className]) {
@@ -193,7 +225,7 @@ static void RLMRegisterClassLocalNames(Class *classes, NSUInteger count) {
             if (!RLMIsObjectSubclass(cls)) {
                 @throw RLMException(@"Can't add non-Object type '%@' to a schema.", cls);
             }
-            schema->_objectSchemaByName[[cls className]] = RLMRegisterClass(cls);
+            schema->_objectSchemaByName[[cls className]] = registerClass(cls);
         }
     }
 
@@ -223,9 +255,14 @@ static void RLMRegisterClassLocalNames(Class *classes, NSUInteger count) {
         if (s_sharedSchemaState == SharedSchemaState::Initializing) {
             return nil;
         }
+        // Don't register the base classes in the schema even if someone calls
+        // sharedSchema on them directly
+        if (cls == [RLMObjectBase class] || class_getSuperclass(cls) == [RLMObjectBase class]) {
+            return nil;
+        }
 
         RLMRegisterClassLocalNames(&cls, 1);
-        RLMObjectSchema *objectSchema = RLMRegisterClass(cls);
+        RLMObjectSchema *objectSchema = registerClass(cls);
         [cls initializeLinkedObjectSchemas];
         return objectSchema;
     }
@@ -265,7 +302,7 @@ static void RLMRegisterClassLocalNames(Class *classes, NSUInteger count) {
             }
 
             [s_localNameToClass enumerateKeysAndObjectsUsingBlock:^(NSString *, Class cls, BOOL *) {
-                RLMRegisterClass(cls);
+                registerClass(cls);
             }];
         }
         catch (...) {

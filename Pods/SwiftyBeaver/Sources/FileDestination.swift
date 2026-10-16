@@ -9,7 +9,7 @@
 
 import Foundation
 
-public class FileDestination: BaseDestination {
+open class FileDestination: BaseDestination {
 
     public var logFileURL: URL?
     public var syncAfterEachWrite: Bool = false
@@ -37,9 +37,17 @@ public class FileDestination: BaseDestination {
             }
         }
     }
+    
+    // LOGFILE ROTATION
+    // ho many bytes should a logfile have until it is rotated?
+    // default is 5 MB. Just is used if logFileAmount > 1
+    public var logFileMaxSize = (5 * 1024 * 1024)
+    // Number of log files used in rotation, default is 1 which deactivates file rotation
+    public var logFileAmount = 1
 
     override public var defaultHashValue: Int {return 2}
     let fileManager = FileManager.default
+
 
     public init(logFileURL: URL? = nil) {
         if let logFileURL = logFileURL {
@@ -84,14 +92,63 @@ public class FileDestination: BaseDestination {
     }
 
     // append to file. uses full base class functionality
-    override public func send(_ level: SwiftyBeaver.Level, msg: String, thread: String,
+    override open func send(_ level: SwiftyBeaver.Level, msg: String, thread: String,
         file: String, function: String, line: Int, context: Any? = nil) -> String? {
         let formattedString = super.send(level, msg: msg, thread: thread, file: file, function: function, line: line, context: context)
 
         if let str = formattedString {
-            _ = saveToFile(str: str)
+            _ = validateSaveFile(str: str)
         }
         return formattedString
+    }
+    
+    // check if filesize is bigger than wanted and if yes then rotate them
+    func validateSaveFile(str: String) -> Bool {
+        if self.logFileAmount > 1 {
+            guard let url = logFileURL else { return false }
+            let filePath = url.path
+            if FileManager.default.fileExists(atPath: filePath) == true {
+                do {
+                    // Get file size
+                    let attr = try FileManager.default.attributesOfItem(atPath: filePath)
+                    let fileSize = attr[FileAttributeKey.size] as! UInt64
+                    // Do file rotation
+                    if fileSize > logFileMaxSize {
+                        rotateFile(filePath)
+                    }
+                } catch {
+                    print("validateSaveFile error: \(error)")
+                }
+            }
+        }
+        return saveToFile(str: str)
+    }
+    
+    private func rotateFile(_ filePath: String) {
+       let lastIndex = (logFileAmount-1)
+       let firstIndex = 1
+       do {
+           for index in stride(from: lastIndex, through: firstIndex, by: -1) {
+               let oldFile = String.init(format: "%@.%d", filePath, index)
+
+               if FileManager.default.fileExists(atPath: oldFile) {
+                   if index == lastIndex {
+                       // Delete the last file
+                       try FileManager.default.removeItem(atPath: oldFile)
+                   } else {
+                       // Move the current file to next index
+                       let newFile = String.init(format: "%@.%d", filePath, index+1)
+                       try FileManager.default.moveItem(atPath: oldFile, toPath: newFile)
+                   }
+               }
+           }
+        
+           // Finally, move the current file
+           let newFile = String.init(format: "%@.%d", filePath, firstIndex)
+           try FileManager.default.moveItem(atPath: filePath, toPath: newFile)
+       } catch {
+           print("rotateFile error: \(error)")
+       }
     }
 
     /// appends a string as line to a file.
@@ -102,56 +159,63 @@ public class FileDestination: BaseDestination {
         let line = str + "\n"
         guard let data = line.data(using: String.Encoding.utf8) else { return false }
 
-        do {
-            if fileManager.fileExists(atPath: url.path) == false {
-                
-                let directoryURL = url.deletingLastPathComponent()
-                if fileManager.fileExists(atPath: directoryURL.path) == false {
-                    try fileManager.createDirectory(
-                        at: directoryURL,
-                        withIntermediateDirectories: true
-                    )
-                }
-                fileManager.createFile(atPath: url.path, contents: nil)
-
-                #if os(iOS) || os(watchOS)
-                if #available(iOS 10.0, watchOS 3.0, *) {
-                    var attributes = try fileManager.attributesOfItem(atPath: url.path)
-                    attributes[FileAttributeKey.protectionKey] = FileProtectionType.none
-                    try fileManager.setAttributes(attributes, ofItemAtPath: url.path)
-                }
-                #endif
-            }
-            write(data: data, to: url)
-
-            return true
-        } catch {
-            print("SwiftyBeaver File Destination could not write to file \(url).")
-            return false
-        }
+        return write(data: data, to: url)
     }
 
-    private func write(data: Data, to url: URL) {
+    private func write(data: Data, to url: URL) -> Bool {
+        
+        #if os(Linux)
+            return true
+        #else
+        var success = false
         let coordinator = NSFileCoordinator(filePresenter: nil)
         var error: NSError?
         coordinator.coordinate(writingItemAt: url, error: &error) { url in
             do {
+                if fileManager.fileExists(atPath: url.path) == false {
+
+                    let directoryURL = url.deletingLastPathComponent()
+                    if fileManager.fileExists(atPath: directoryURL.path) == false {
+                        try fileManager.createDirectory(
+                            at: directoryURL,
+                            withIntermediateDirectories: true
+                        )
+                    }
+                    fileManager.createFile(atPath: url.path, contents: nil)
+
+                    #if os(iOS) || os(watchOS)
+                    if #available(iOS 10.0, watchOS 3.0, *) {
+                        var attributes = try fileManager.attributesOfItem(atPath: url.path)
+                        attributes[FileAttributeKey.protectionKey] = FileProtectionType.none
+                        try fileManager.setAttributes(attributes, ofItemAtPath: url.path)
+                    }
+                    #endif
+                }
+
                 let fileHandle = try FileHandle(forWritingTo: url)
                 fileHandle.seekToEndOfFile()
-                fileHandle.write(data)
+                if #available(iOS 13.4, watchOS 6.2, tvOS 13.4, macOS 10.15.4, *) {
+                    try fileHandle.write(contentsOf: data)
+                } else {
+                    fileHandle.write(data)
+                }
                 if syncAfterEachWrite {
                     fileHandle.synchronizeFile()
                 }
                 fileHandle.closeFile()
+                success = true
             } catch {
                 print("SwiftyBeaver File Destination could not write to file \(url).")
-                return
             }
         }
 
         if let error = error {
             print("Failed writing file with error: \(String(describing: error))")
+            return false
         }
+
+        return success
+        #endif
     }
 
     /// deletes log file.

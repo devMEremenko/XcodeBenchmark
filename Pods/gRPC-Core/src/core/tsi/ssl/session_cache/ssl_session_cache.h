@@ -1,43 +1,41 @@
-/*
- *
- * Copyright 2018 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+//
+//
+// Copyright 2018 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 
-#ifndef GRPC_CORE_TSI_SSL_SESSION_CACHE_SSL_SESSION_CACHE_H
-#define GRPC_CORE_TSI_SSL_SESSION_CACHE_SSL_SESSION_CACHE_H
+#ifndef GRPC_SRC_CORE_TSI_SSL_SESSION_CACHE_SSL_SESSION_CACHE_H
+#define GRPC_SRC_CORE_TSI_SSL_SESSION_CACHE_SSL_SESSION_CACHE_H
 
-#include <grpc/support/port_platform.h>
-
-#include "src/core/tsi/grpc_shadow_boringssl.h"
-
+#include <grpc/impl/grpc_types.h>
 #include <grpc/slice.h>
+#include <grpc/support/port_platform.h>
 #include <grpc/support/sync.h>
-
-extern "C" {
 #if COCOAPODS==1
   #include <openssl_grpc/ssl.h>
 #else
   #include <openssl/ssl.h>
 #endif
-}
 
-#include "src/core/lib/avl/avl.h"
-#include "src/core/lib/gprpp/memory.h"
-#include "src/core/lib/gprpp/ref_counted.h"
+#include <map>
+
 #include "src/core/tsi/ssl/session_cache/ssl_session.h"
+#include "src/core/util/cpp_impl_of.h"
+#include "src/core/util/memory.h"
+#include "src/core/util/ref_counted.h"
+#include "src/core/util/sync.h"
 
 /// Cache for SSL sessions for sessions resumption.
 ///
@@ -50,7 +48,10 @@ extern "C" {
 
 namespace tsi {
 
-class SslSessionLRUCache : public grpc_core::RefCounted<SslSessionLRUCache> {
+class SslSessionLRUCache
+    : public grpc_core::CppImplOf<SslSessionLRUCache,
+                                  struct tsi_ssl_session_cache>,
+      public grpc_core::RefCounted<SslSessionLRUCache> {
  public:
   /// Create new LRU cache with the given capacity.
   static grpc_core::RefCountedPtr<SslSessionLRUCache> Create(size_t capacity) {
@@ -59,11 +60,15 @@ class SslSessionLRUCache : public grpc_core::RefCounted<SslSessionLRUCache> {
 
   // Use Create function instead of using this directly.
   explicit SslSessionLRUCache(size_t capacity);
-  ~SslSessionLRUCache();
+  ~SslSessionLRUCache() override;
 
   // Not copyable nor movable.
   SslSessionLRUCache(const SslSessionLRUCache&) = delete;
   SslSessionLRUCache& operator=(const SslSessionLRUCache&) = delete;
+
+  static absl::string_view ChannelArgName() {
+    return GRPC_SSL_SESSION_CACHE_ARG;
+  }
 
   /// Returns current number of sessions in the cache.
   size_t Size();
@@ -77,20 +82,20 @@ class SslSessionLRUCache : public grpc_core::RefCounted<SslSessionLRUCache> {
  private:
   class Node;
 
-  Node* FindLocked(const grpc_slice& key);
+  Node* FindLocked(const std::string& key);
   void Remove(Node* node);
   void PushFront(Node* node);
   void AssertInvariants();
 
-  gpr_mu lock_;
+  grpc_core::Mutex lock_;
   size_t capacity_;
 
   Node* use_order_list_head_ = nullptr;
   Node* use_order_list_tail_ = nullptr;
   size_t use_order_list_size_ = 0;
-  grpc_avl entry_by_key_;
+  std::map<std::string, Node*> entry_by_key_;
 };
 
 }  // namespace tsi
 
-#endif /* GRPC_CORE_TSI_SSL_SESSION_CACHE_SSL_SESSION_CACHE_H */
+#endif  // GRPC_SRC_CORE_TSI_SSL_SESSION_CACHE_SSL_SESSION_CACHE_H

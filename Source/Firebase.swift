@@ -6,29 +6,23 @@
 //
 
 import Foundation
-import Firebase
-import FirebaseStorage
-import FirebaseDatabase
-import FirebaseABTesting
-import FirebaseMessaging
+import FirebaseCore
 import FirebaseFirestore
-import FirebaseInstanceID
-import FirebaseCoreDiagnostics
-import FirebaseInstallations
-import FirebaseCrashlytics
-import FirebaseFirestoreSwift
+import FirebaseAuth
+import FirebaseAnalytics
 import FirebaseRemoteConfig
+import FirebaseStorage
+import FirebaseMessaging
+import FirebaseABTesting
+import FirebaseInstallations
 
 public enum Factory {
-    
     public static func printAll() {
         print(Storage.self)
-        print(Database.self)
+        print(Firestore.self)
         print(Messaging.self)
         print(RemoteConfig.self)
         print(Firestore.self)
-        print(InstanceID.self)
-        print(Crashlytics.self)
         print(Analytics.self)
         print(RemoteConfig.self)
     }

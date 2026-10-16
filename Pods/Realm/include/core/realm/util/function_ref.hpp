@@ -22,8 +22,19 @@
 #include <functional>
 #include <utility>
 
-namespace realm {
-namespace util {
+namespace realm::util {
+
+template <typename Signature>
+class UniqueFunction;
+
+#ifdef _WIN32
+// VC++ warns about multiple copy constructors, but we want both const and
+// non-const version to ensure they're a better match than the wrapping
+// constructor. We could instead use enable_if to make the wrapping constructor
+// ineligible, but that tends to do bad things to compile times.
+#pragma warning(push)
+#pragma warning(disable : 4521 4522)
+#endif
 
 /// A lightweight non-owning reference to a callable.
 ///
@@ -40,20 +51,51 @@ class FunctionRef;
 template <typename Return, typename... Args>
 class FunctionRef<Return(Args...)> {
 public:
+    using ThisType = FunctionRef<Return(Args...)>;
     // A FunctionRef is never empty, and so cannot be default-constructed.
     constexpr FunctionRef() noexcept = delete;
 
     // FunctionRef is copyable and moveable.
 #if defined(__GNUC__) && __GNUC__ == 4 && __GNUC_MINOR__ <= 9 && !defined(__clang__)
-    FunctionRef(FunctionRef<Return(Args...)> const&) noexcept = default;
-    FunctionRef<Return(Args...)>& operator=(const FunctionRef<Return(Args...)>&) noexcept = default;
-    FunctionRef(FunctionRef<Return(Args...)>&&) noexcept = default;
-    FunctionRef<Return(Args...)>& operator=(FunctionRef<Return(Args...)>&&) noexcept = default;
+    FunctionRef(ThisType&) noexcept = default;
+    FunctionRef(ThisType const&) noexcept = default;
+    ThisType& operator=(ThisType&) noexcept = default;
+    ThisType& operator=(const ThisType&) noexcept = default;
+    FunctionRef(ThisType&&) noexcept = default;
+    ThisType& operator=(ThisType&&) noexcept = default;
 #else
-    constexpr FunctionRef(FunctionRef<Return(Args...)> const&) noexcept = default;
-    constexpr FunctionRef<Return(Args...)>& operator=(const FunctionRef<Return(Args...)>&) noexcept = default;
-    constexpr FunctionRef(FunctionRef<Return(Args...)>&&) noexcept = default;
-    constexpr FunctionRef<Return(Args...)>& operator=(FunctionRef<Return(Args...)>&&) noexcept = default;
+#ifdef _WIN32
+    // VC++ incorrectly rejects multiple versions of a defaulted special member function
+    constexpr FunctionRef(ThisType& o) noexcept
+        : m_obj(o.m_obj)
+        , m_callback(o.m_callback)
+    {
+    }
+    constexpr ThisType& operator=(ThisType& o) noexcept
+    {
+        m_obj = o.m_obj;
+        m_callback = o.m_callback;
+        return *this;
+    }
+    constexpr FunctionRef(ThisType const& o) noexcept
+        : m_obj(o.m_obj)
+        , m_callback(o.m_callback)
+    {
+    }
+    constexpr ThisType& operator=(ThisType const& o) noexcept
+    {
+        m_obj = o.m_obj;
+        m_callback = o.m_callback;
+        return *this;
+    }
+#else
+    constexpr FunctionRef(ThisType&) noexcept = default;
+    constexpr ThisType& operator=(ThisType&) noexcept = default;
+    constexpr FunctionRef(ThisType const&) noexcept = default;
+    constexpr ThisType& operator=(const ThisType&) noexcept = default;
+#endif
+    constexpr FunctionRef(ThisType&&) noexcept = default;
+    constexpr ThisType& operator=(ThisType&&) noexcept = default;
 #endif
 
     // Construct a FunctionRef which wraps the given callable.
@@ -66,7 +108,7 @@ public:
     {
     }
 
-    constexpr void swap(FunctionRef<Return(Args...)>& rhs) noexcept
+    constexpr void swap(ThisType& rhs) noexcept
     {
         std::swap(m_obj, rhs.m_obj);
         std::swap(m_callback, rhs.m_callback);
@@ -76,6 +118,20 @@ public:
     {
         return m_callback(m_obj, std::forward<Args>(args)...);
     }
+
+    // Converting FunctionRef to std::function technically can work, but is
+    // almost guaranteed to be a bug
+    template <typename Signature>
+    operator std::function<Signature>() const = delete;
+    template <typename Signature>
+    operator std::function<Signature>() = delete;
+    template <typename Signature>
+    operator UniqueFunction<Signature>() const = delete;
+    template <typename Signature>
+    operator UniqueFunction<Signature>() = delete;
+
+    // FunctionRef cannot be null
+    constexpr FunctionRef(std::nullptr_t) noexcept = delete;
 
 private:
     void* m_obj;
@@ -88,7 +144,10 @@ constexpr void swap(FunctionRef<R(Args...)>& lhs, FunctionRef<R(Args...)>& rhs) 
     lhs.swap(rhs);
 }
 
-} // namespace util
-} // namespace realm
+} // namespace realm::util
+
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 
 #endif

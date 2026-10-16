@@ -41,6 +41,7 @@
 #include <realm/util/assert.hpp>
 #include <realm/util/terminate.hpp>
 #include <memory>
+#include <stdexcept>
 
 #include <atomic>
 
@@ -217,7 +218,11 @@ public:
     RobustMutex();
     ~RobustMutex() noexcept;
 
-    static bool is_robust_on_this_platform() noexcept;
+#ifdef REALM_HAVE_ROBUST_PTHREAD_MUTEX
+    constexpr static bool is_robust_on_this_platform = true;
+#else
+    constexpr static bool is_robust_on_this_platform = false;
+#endif
 
     class NotRecoverable;
 
@@ -736,7 +741,7 @@ inline void CondVar::wait(RobustMutex& m, Func recover_func, const struct timesp
             if (r == ERROR_TIMEOUT)
                 return;
         } else {
-            r = 0
+            r = 0;
         }
 #else
         r = pthread_cond_timedwait(&m_impl, &m.m_impl, tp);

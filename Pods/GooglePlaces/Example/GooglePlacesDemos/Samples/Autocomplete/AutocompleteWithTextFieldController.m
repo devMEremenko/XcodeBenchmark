@@ -17,6 +17,7 @@
 
 #import <GooglePlaces/GooglePlaces.h>
 
+
 @interface AutocompleteWithTextFieldController () <UITextFieldDelegate,
                                                    GMSAutocompleteTableDataSourceDelegate>
 @end
@@ -37,13 +38,15 @@
 
 - (void)viewDidLoad {
   [super viewDidLoad];
-  self.view.backgroundColor = [UIColor whiteColor];
+
+  self.view.backgroundColor = [UIColor systemBackgroundColor];
 
   // Configure the text field to our linking.
   _searchField = [[UITextField alloc] initWithFrame:CGRectZero];
+
   _searchField.translatesAutoresizingMaskIntoConstraints = NO;
   _searchField.borderStyle = UITextBorderStyleNone;
-  _searchField.backgroundColor = [UIColor whiteColor];
+  _searchField.backgroundColor = [UIColor systemBackgroundColor];
   _searchField.placeholder = NSLocalizedString(@"Demo.Content.Autocomplete.EnterTextPrompt",
                                                @"Prompt to enter text for autocomplete demo");
   _searchField.autocorrectionType = UITextAutocorrectionTypeNo;
@@ -62,7 +65,8 @@
   _tableDataSource.delegate = self;
   _tableDataSource.autocompleteFilter = self.autocompleteFilter;
   _tableDataSource.placeFields = self.placeFields;
-  _tableDataSource.tableCellBackgroundColor = [UIColor whiteColor];
+  _tableDataSource.tableCellBackgroundColor = [UIColor systemBackgroundColor];
+
   _resultsController = [[UITableViewController alloc] initWithStyle:UITableViewStylePlain];
   _resultsController.tableView.delegate = _tableDataSource;
   _resultsController.tableView.dataSource = _tableDataSource;
@@ -135,13 +139,12 @@
                                                         @"_searchField" : _searchField,
                                                         @"resultView" : _resultsController.view
                                                       }]];
-  [self.view addConstraints:[NSLayoutConstraint
-                                constraintsWithVisualFormat:@"H:|-(0)-[resultView]-(0)-|"
-                                                    options:0
-                                                    metrics:nil
-                                                      views:@{
-                                                        @"resultView" : _resultsController.view
-                                                      }]];
+  [self.view
+      addConstraints:[NSLayoutConstraint
+                         constraintsWithVisualFormat:@"H:|-(0)-[resultView]-(0)-|"
+                                             options:0
+                                             metrics:nil
+                                               views:@{@"resultView" : _resultsController.view}]];
 
   // Force a layout pass otherwise the table will animate in weirdly.
   [self.view layoutIfNeeded];
@@ -182,13 +185,13 @@
   // Dismiss the results.
   [_resultsController willMoveToParentViewController:nil];
   [UIView animateWithDuration:0.5
-                   animations:^{
-                     _resultsController.view.alpha = 0.0f;
-                   }
-                   completion:^(BOOL finished) {
-                     [_resultsController.view removeFromSuperview];
-                     [_resultsController removeFromParentViewController];
-                   }];
+      animations:^{
+        _resultsController.view.alpha = 0.0f;
+      }
+      completion:^(BOOL finished) {
+        [_resultsController.view removeFromSuperview];
+        [_resultsController removeFromParentViewController];
+      }];
 }
 
 @end

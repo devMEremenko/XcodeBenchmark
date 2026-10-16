@@ -25,15 +25,13 @@
 #include <map>
 #include <set>
 
+#include <external/mpark/variant.hpp>
 #include <realm/global_key.hpp>
 #include <realm/string_data.hpp>
 #include <realm/data_type.hpp>
 #include <realm/keys.hpp>
 #include <realm/db.hpp>
-#include <realm/util/metered/map.hpp>
-#include <realm/util/metered/set.hpp>
-#include <realm/util/metered/string.hpp>
-
+#include <realm/mixed.hpp>
 
 namespace realm {
 
@@ -41,41 +39,53 @@ class Group;
 
 namespace sync {
 
+// Any unambiguous object identifier. Monostate represents NULL (can't use realm::None or std::nullptr_t because they
+// do not implement operator<).
+using PrimaryKey = mpark::variant<mpark::monostate, int64_t, StringData, GlobalKey, ObjectId, UUID>;
+
+/// FIXME: Since PrimaryKey is a typedef to an `std` type, ADL for operator<<
+/// doesn't work properly. This struct exists solely for passing PrimaryKey
+/// instances to various output streams.
+struct format_pk {
+    const PrimaryKey& pk;
+    explicit format_pk(const PrimaryKey& pk)
+        : pk(pk)
+    {
+    }
+};
+std::ostream& operator<<(std::ostream& os, format_pk);
+
+
 // ObjectIDSet is a set of (table name, object id)
 class ObjectIDSet {
 public:
-
-    void insert(StringData table, GlobalKey object_id);
-    void erase(StringData table, GlobalKey object_id);
-    bool contains(StringData table, GlobalKey object_id) const noexcept;
+    void insert(StringData table, const PrimaryKey& object_id);
+    void erase(StringData table, const PrimaryKey& object_id);
+    bool contains(StringData table, const PrimaryKey& object_id) const noexcept;
     bool empty() const noexcept;
 
     // A map from table name to a set of object ids.
-    util::metered::map<std::string, util::metered::set<GlobalKey>> m_objects;
+    std::map<std::string, std::set<PrimaryKey>> m_objects;
 };
 
 // FieldSet is a set of fields in tables. A field is defined by a
 // table name, a column in the table and an object id for the row.
 class FieldSet {
 public:
-
-    void insert(StringData table, StringData column, GlobalKey object_id);
-    void erase(StringData table, StringData column, GlobalKey object_id);
-    bool contains(StringData table, GlobalKey object_id) const noexcept;
-    bool contains(StringData table, StringData column, GlobalKey object_id) const noexcept;
+    void insert(StringData table, StringData column, const PrimaryKey& object_id);
+    void erase(StringData table, StringData column, const PrimaryKey& object_id);
+    bool contains(StringData table, const PrimaryKey& object_id) const noexcept;
+    bool contains(StringData table, StringData column, const PrimaryKey& object_id) const noexcept;
     bool empty() const noexcept;
 
     // A map from table name to a map from column name to a set of
     // object ids.
-    util::metered::map<
-        std::string,
-        util::metered::map<std::string, util::metered::set<GlobalKey>>
-    >  m_fields;
+    std::map<std::string, std::map<std::string, std::set<PrimaryKey>>> m_fields;
 };
 
 struct GlobalID {
     StringData table_name;
-    GlobalKey object_id;
+    PrimaryKey object_id;
 
     bool operator==(const GlobalID& other) const;
     bool operator!=(const GlobalID& other) const;
@@ -116,4 +126,3 @@ inline bool FieldSet::empty() const noexcept
 } // namespace realm
 
 #endif // REALM_SYNC_OBJECT_ID_HPP
-

@@ -1,6 +1,7 @@
 ## Build generated
 build/
 DerivedData/
+.xcodebenchmark.*/
 
 ## Settings
 *.pbxuser
@@ -11,7 +12,7 @@ DerivedData/
 !default.mode2v3
 *.perspectivev3
 !default.perspectivev3
-# xcuserdata/
+xcuserdata/
 # *.xcuserstate
 
 ## Other
@@ -35,6 +36,9 @@ playground.xcworkspace
 # Package.pins
 # Package.resolved
 .build/
+
+# OSX
+.DS_Store
 
 # CocoaPods
 # Pods/

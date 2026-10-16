@@ -19,137 +19,59 @@
 #ifndef REALM_EXCEPTIONS_HPP
 #define REALM_EXCEPTIONS_HPP
 
-#include <stdexcept>
+#include <realm/status.hpp>
 
-#include <realm/util/features.h>
-#include <realm/util/backtrace.hpp>
+#include <stdexcept>
+#include <system_error>
 
 namespace realm {
 
-using util::ExceptionWithBacktrace;
-
-/// Thrown by various functions to indicate that a specified table does not
-/// exist.
-class NoSuchTable : public ExceptionWithBacktrace<std::exception> {
+class Exception : public std::exception {
 public:
-    const char* message() const noexcept override;
+    Exception(ErrorCodes::Error err, std::string_view str);
+    explicit Exception(Status status);
+
+    const char* what() const noexcept final;
+    const Status& to_status() const;
+    std::string_view reason() const noexcept;
+    ErrorCodes::Error code() const noexcept;
+    ErrorCategory category() const noexcept;
+    std::string_view code_string() const noexcept;
+
+private:
+    Status m_status;
 };
 
-
-/// Thrown by various functions to indicate that a specified table name is
-/// already in use.
-class TableNameInUse : public ExceptionWithBacktrace<std::exception> {
-public:
-    const char* message() const noexcept override;
-};
-
-
-// Thrown by functions that require a table to **not** be the target of link
-// columns, unless those link columns are part of the table itself.
-class CrossTableLinkTarget : public ExceptionWithBacktrace<std::exception> {
-public:
-    const char* message() const noexcept override;
-};
-
-
-/// Thrown by various functions to indicate that the dynamic type of a table
-/// does not match a particular other table type (dynamic or static).
-class DescriptorMismatch : public ExceptionWithBacktrace<std::exception> {
-public:
-    const char* message() const noexcept override;
-};
+/*
+ * This will convert an exception in a catch(...) block into a Status. For `Exception`s, it returns the
+ * status held in the exception directly. Otherwise it returns a status with an UnknownError error code and a
+ * reason string holding the exception type and message.
+ *
+ * Currently this works for exceptions that derive from std::exception or Exception only.
+ */
+Status exception_to_status() noexcept;
 
 
 /// The UnsupportedFileFormatVersion exception is thrown by DB::open()
 /// constructor when opening a database that uses a deprecated file format
 /// and/or a deprecated history schema which this version of Realm cannot
 /// upgrade from.
-class UnsupportedFileFormatVersion : public ExceptionWithBacktrace<std::exception> {
-public:
-    UnsupportedFileFormatVersion(int source_version);
+struct UnsupportedFileFormatVersion : Exception {
+    UnsupportedFileFormatVersion(int version);
+    ~UnsupportedFileFormatVersion() noexcept override;
     /// The unsupported version of the file.
     int source_version = 0;
-    const char* message() const noexcept override;
 };
 
 
-/// Thrown when a sync agent attempts to join a session in which there is
-/// already a sync agent. A session may only contain one sync agent at any given
-/// time.
-class MultipleSyncAgents : public ExceptionWithBacktrace<std::exception> {
-public:
-    const char* message() const noexcept override;
-};
-
-
-/// Thrown when memory can no longer be mapped to. When mmap/remap fails.
-class AddressSpaceExhausted : public std::runtime_error {
-public:
-    AddressSpaceExhausted(const std::string& msg);
-    /// runtime_error::what() returns the msg provided in the constructor.
-};
-
-/// Thrown when creating references that are too large to be contained in our ref_type (size_t)
-class MaximumFileSizeExceeded : public std::runtime_error {
-public:
-    MaximumFileSizeExceeded(const std::string& msg);
-    /// runtime_error::what() returns the msg provided in the constructor.
-};
-
-/// Thrown when writing fails because the disk is full.
-class OutOfDiskSpace : public std::runtime_error {
-public:
-    OutOfDiskSpace(const std::string& msg);
-    /// runtime_error::what() returns the msg provided in the constructor.
-};
-
-/// Thrown when a key can not be used (either not found or already existing
-/// when trying to create a new object)
-class InvalidKey : public std::runtime_error {
-public:
-    InvalidKey(const std::string& msg)
-        : std::runtime_error(msg)
+/// Thrown when a key is already existing when trying to create a new object
+struct KeyAlreadyUsed : Exception {
+    KeyAlreadyUsed(std::string_view msg)
+        : Exception(ErrorCodes::KeyAlreadyUsed, msg)
     {
     }
+    ~KeyAlreadyUsed() noexcept override;
 };
-
-// SerialisationError intentionally does not inherit ExceptionWithBacktrace
-// because the query-based-sync permissions queries generated on the server
-// use a LinksToNode which is not currently serialisable (this limitation can
-// be lifted in core 6 given stable ids). Coupled with query metrics which
-// serialize all queries, the capturing of the stack for these frequent
-// permission queries shows up in performance profiles.
-class SerialisationError : public std::runtime_error {
-public:
-    SerialisationError(const std::string& msg);
-    /// runtime_error::what() returns the msg provided in the constructor.
-};
-
-// thrown when a user constructed link path is not a valid input
-class InvalidPathError : public std::runtime_error {
-public:
-    InvalidPathError(const std::string& msg);
-    /// runtime_error::what() returns the msg provided in the constructor.
-};
-
-class DuplicatePrimaryKeyValueException : public std::logic_error {
-public:
-    DuplicatePrimaryKeyValueException(std::string object_type, std::string property);
-
-    std::string const& object_type() const
-    {
-        return m_object_type;
-    }
-    std::string const& property() const
-    {
-        return m_property;
-    }
-
-private:
-    std::string m_object_type;
-    std::string m_property;
-};
-
 
 /// The \c LogicError exception class is intended to be thrown only when
 /// applications (or bindings) violate rules that are stated (or ought to have
@@ -180,198 +102,310 @@ private:
 /// exception being thrown. The whole point of properly documenting "Undefined
 /// Behaviour" cases is to help the user know what the limits are, without
 /// constraining the database to handle every and any use-case thrown at it.
-///
-/// FIXME: This exception class should probably be moved to the `_impl`
-/// namespace, in order to avoid some confusion.
-class LogicError : public ExceptionWithBacktrace<std::exception> {
-public:
-    enum ErrorKind {
-        string_too_big,
-        binary_too_big,
-        table_name_too_long,
-        column_name_too_long,
-        column_name_in_use,
-        invalid_column_name,
-        table_index_out_of_range,
-        row_index_out_of_range,
-        column_index_out_of_range,
-        string_position_out_of_range,
-        link_index_out_of_range,
-        bad_version,
-        illegal_type,
+struct LogicError : Exception {
+    LogicError(ErrorCodes::Error code, std::string_view msg);
+    ~LogicError() noexcept override;
+};
 
-        /// Indicates that an argument has a value that is illegal in combination
-        /// with another argument, or with the state of an involved object.
-        illegal_combination,
+struct RuntimeError : Exception {
+    RuntimeError(ErrorCodes::Error code, std::string_view msg);
+    RuntimeError(Status&& status);
+    ~RuntimeError() noexcept override;
+};
 
-        /// Indicates a data type mismatch, such as when `Table::find_pkey_int()` is
-        /// called and the type of the primary key is not `type_Int`.
-        type_mismatch,
+/// Thrown when creating references that are too large to be contained in our ref_type (size_t)
+struct MaximumFileSizeExceeded : RuntimeError {
+    MaximumFileSizeExceeded(std::string_view msg)
+        : RuntimeError(ErrorCodes::MaximumFileSizeExceeded, msg)
+    {
+    }
+    ~MaximumFileSizeExceeded() noexcept override;
+};
 
-        /// Indicates that two involved tables are not in the same group.
-        group_mismatch,
+/// Thrown when writing fails because the disk is full.
+struct OutOfDiskSpace : RuntimeError {
+    OutOfDiskSpace(std::string_view msg)
+        : RuntimeError(ErrorCodes::OutOfDiskSpace, msg)
+    {
+    }
+    ~OutOfDiskSpace() noexcept override;
+};
 
-        /// Indicates that an involved descriptor is of the wrong kind, i.e., if
-        /// it is a subtable descriptor, and the function requires a root table
-        /// descriptor.
-        wrong_kind_of_descriptor,
-
-        /// Indicates that an involved table is of the wrong kind, i.e., if it
-        /// is a subtable, and the function requires a root table, or if it is a
-        /// free-standing table, and the function requires a group-level table.
-        wrong_kind_of_table,
-
-        /// Indicates that an involved accessor is was detached, i.e., was not
-        /// attached to an underlying object.
-        detached_accessor,
-
-        /// Indicates that a specified row index of a target table (a link) is
-        /// out of range. This is used for disambiguation in cases such as
-        /// Table::set_link() where one specifies both a row index of the origin
-        /// table, and a row index of the target table.
-        target_row_index_out_of_range,
-
-        // Indicates that an involved column lacks a search index.
-        no_search_index,
-
-        /// Indicates that a modification was attempted that would have produced a
-        /// duplicate primary value.
-        unique_constraint_violation,
-
-        /// User attempted to insert null in non-nullable column
-        column_not_nullable,
-
-        /// Group::open() is called on a group accessor that is already in the
-        /// attached state. Or Group::open() or Group::commit() is called on a
-        /// group accessor that is managed by a SharedGroup object.
-        wrong_group_state,
-
-        /// No active transaction on a particular SharedGroup object (e.g.,
-        /// SharedGroup::commit()), or the active transaction on the SharedGroup
-        /// object is of the wrong type (read/write), or an attampt was made to
-        /// initiate a new transaction while one is already in progress on the
-        /// same SharedGroup object.
-        wrong_transact_state,
-
-        /// Attempted use of a continuous transaction through a SharedGroup
-        /// object with no history. See Replication::get_history().
-        no_history,
-
-        /// Durability setting (as passed to the SharedGroup constructor) was
-        /// not consistent across the session.
-        mixed_durability,
-
-        /// History type (as specified by the Replication implementation passed
-        /// to the SharedGroup constructor) was not consistent across the
-        /// session.
-        mixed_history_type,
-
-        /// History schema version (as specified by the Replication
-        /// implementation passed to the SharedGroup constructor) was not
-        /// consistent across the session.
-        mixed_history_schema_version,
-
-        /// Adding rows to a table with no columns is not supported.
-        table_has_no_columns,
-
-        /// Referring to a column that has been deleted.
-        column_does_not_exist,
-
-        /// You can not add index on a subtable of a subtable
-        subtable_of_subtable_index,
-
-        /// You try to instantiate a list object not matching column type
-        list_type_mismatch
-    };
-
-    LogicError(ErrorKind message);
-
-    const char* message() const noexcept override;
-    ErrorKind kind() const noexcept;
-
-private:
-    ErrorKind m_kind;
+/// Thrown when a sync agent attempts to join a session in which there is
+/// already a sync agent. A session may only contain one sync agent at any given
+/// time.
+struct MultipleSyncAgents : RuntimeError {
+    MultipleSyncAgents()
+        : RuntimeError(ErrorCodes::MultipleSyncAgents, "Multiple sync agents attempted to join the same session")
+    {
+    }
+    ~MultipleSyncAgents() noexcept override;
 };
 
 
-// Implementation:
+/// Thrown when memory can no longer be mapped to. When mmap/remap fails.
+struct AddressSpaceExhausted : RuntimeError {
+    AddressSpaceExhausted(std::string_view msg)
+        : RuntimeError(ErrorCodes::AddressSpaceExhausted, msg)
+    {
+    }
+    ~AddressSpaceExhausted() noexcept override;
+};
 
-// LCOV_EXCL_START (Wording of what() strings are not to be tested)
+struct InvalidArgument : LogicError {
+    InvalidArgument(std::string_view msg);
+    InvalidArgument(ErrorCodes::Error code, std::string_view msg);
+    ~InvalidArgument() noexcept override;
+};
 
-inline const char* NoSuchTable::message() const noexcept
-{
-    return "No such table exists";
-}
+struct InvalidColumnKey : InvalidArgument {
+    template <class T>
+    InvalidColumnKey(const T& name)
+        : InvalidArgument(ErrorCodes::InvalidProperty, util::format("Invalid property for object type %1", name))
+    {
+    }
+    InvalidColumnKey()
+        : InvalidArgument(ErrorCodes::InvalidProperty, "Invalid column key")
+    {
+    }
+    ~InvalidColumnKey() noexcept override;
+};
 
-inline const char* TableNameInUse::message() const noexcept
-{
-    return "The specified table name is already in use";
-}
+/// Thrown by various functions to indicate that a specified table does not
+/// exist.
+struct NoSuchTable : InvalidArgument {
+    NoSuchTable()
+        : InvalidArgument(ErrorCodes::NoSuchTable, "No such table exists")
+    {
+    }
+    ~NoSuchTable() noexcept override;
+};
 
-inline const char* CrossTableLinkTarget::message() const noexcept
-{
-    return "Table is target of cross-table link columns";
-}
-
-inline const char* DescriptorMismatch::message() const noexcept
-{
-    return "Table descriptor mismatch";
-}
-
-inline UnsupportedFileFormatVersion::UnsupportedFileFormatVersion(int version)
-: source_version(version)
-{
-}
-
-inline const char* UnsupportedFileFormatVersion::message() const noexcept
-{
-    return "Database has an unsupported version and cannot be upgraded";
-}
-
-inline const char* MultipleSyncAgents::message() const noexcept
-{
-    return "Multiple sync agents attempted to join the same session";
-}
-
-// LCOV_EXCL_STOP
-
-inline AddressSpaceExhausted::AddressSpaceExhausted(const std::string& msg)
-    : std::runtime_error(msg)
-{
-}
-
-inline MaximumFileSizeExceeded::MaximumFileSizeExceeded(const std::string& msg)
-    : std::runtime_error(msg)
-{
-}
-
-inline OutOfDiskSpace::OutOfDiskSpace(const std::string& msg)
-    : std::runtime_error(msg)
-{
-}
-
-inline SerialisationError::SerialisationError(const std::string& msg)
-    : std::runtime_error(msg)
-{
-}
-
-inline InvalidPathError::InvalidPathError(const std::string& msg)
-    : runtime_error(msg)
-{
-}
-
-inline LogicError::LogicError(LogicError::ErrorKind k)
-    : m_kind(k)
-{
-}
-
-inline LogicError::ErrorKind LogicError::kind() const noexcept
-{
-    return m_kind;
-}
+/// Thrown by various functions to indicate that a specified table name is
+/// already in use.
+struct TableNameInUse : InvalidArgument {
+    TableNameInUse()
+        : InvalidArgument(ErrorCodes::TableNameInUse, "The specified table name is already in use")
+    {
+    }
+    ~TableNameInUse() noexcept override;
+};
 
 
+/// Thrown when a key can not by found
+struct KeyNotFound : InvalidArgument {
+    KeyNotFound(std::string_view msg)
+        : InvalidArgument(ErrorCodes::KeyNotFound, msg)
+    {
+    }
+    ~KeyNotFound() noexcept override;
+};
+
+
+struct NotNullable : InvalidArgument {
+    NotNullable(std::string_view msg)
+        : InvalidArgument(ErrorCodes::PropertyNotNullable, msg)
+    {
+    }
+    template <class T, class U>
+    NotNullable(const T& object_type, const U& property_name)
+        : NotNullable(
+              util::format("Invalid null value for non-nullable property '%1.%2'.", object_type, property_name))
+    {
+    }
+    ~NotNullable() noexcept override;
+};
+
+struct PropertyTypeMismatch : InvalidArgument {
+    template <class T, class U>
+    PropertyTypeMismatch(const T& object_type, const U& property_name)
+        : InvalidArgument(ErrorCodes::TypeMismatch,
+                          util::format("Type mismatch for property '%1.%2'.", object_type, property_name))
+    {
+    }
+    ~PropertyTypeMismatch() noexcept override;
+};
+
+struct OutOfBounds : InvalidArgument {
+    OutOfBounds(std::string_view msg, size_t idx, size_t sz);
+    ~OutOfBounds() noexcept override;
+    size_t index;
+    size_t size;
+};
+
+struct InvalidEncryptionKey : InvalidArgument {
+    InvalidEncryptionKey()
+        : InvalidArgument(ErrorCodes::InvalidEncryptionKey, "Encryption key must be 64 bytes.")
+    {
+    }
+    ~InvalidEncryptionKey() noexcept override;
+};
+
+struct StaleAccessor : LogicError {
+    StaleAccessor(std::string_view msg)
+        : LogicError(ErrorCodes::StaleAccessor, msg)
+    {
+    }
+    ~StaleAccessor() noexcept override;
+};
+
+struct IllegalOperation : LogicError {
+    IllegalOperation(std::string_view msg)
+        : LogicError(ErrorCodes::IllegalOperation, msg)
+    {
+    }
+    ~IllegalOperation() noexcept override;
+};
+
+struct NoSubscriptionForWrite : RuntimeError {
+    NoSubscriptionForWrite(std::string_view msg)
+        : RuntimeError(ErrorCodes::NoSubscriptionForWrite, msg)
+    {
+    }
+    ~NoSubscriptionForWrite() noexcept override;
+};
+
+
+struct WrongTransactionState : LogicError {
+    WrongTransactionState(std::string_view msg)
+        : LogicError(ErrorCodes::WrongTransactionState, msg)
+    {
+    }
+    ~WrongTransactionState() noexcept override;
+};
+
+struct InvalidTableRef : LogicError {
+    InvalidTableRef(const char* cause)
+        : LogicError(ErrorCodes::InvalidTableRef, cause)
+    {
+    }
+    ~InvalidTableRef() noexcept override;
+};
+
+struct SerializationError : LogicError {
+    SerializationError(std::string_view msg)
+        : LogicError(ErrorCodes::SerializationError, msg)
+    {
+    }
+    ~SerializationError() noexcept override;
+};
+
+struct NotImplemented : LogicError {
+    NotImplemented()
+        : LogicError(ErrorCodes::IllegalOperation, "Not implemented")
+    {
+    }
+    ~NotImplemented() noexcept override;
+};
+
+struct MigrationFailed : LogicError {
+    MigrationFailed(std::string_view msg)
+        : LogicError(ErrorCodes::MigrationFailed, msg)
+    {
+    }
+    ~MigrationFailed() noexcept override;
+};
+
+struct ObjectAlreadyExists : RuntimeError {
+    template <class T, class U>
+    ObjectAlreadyExists(const U& object_type, T pk_val)
+        : RuntimeError(
+              ErrorCodes::ObjectAlreadyExists,
+              util::format("Attempting to create an object of type '%1' with an existing primary key value '%2'",
+                           object_type, pk_val))
+    {
+    }
+    ~ObjectAlreadyExists() noexcept override;
+};
+
+// Thrown by functions that require a table to **not** be the target of link
+// columns, unless those link columns are part of the table itself.
+struct CrossTableLinkTarget : LogicError {
+    template <class T>
+    CrossTableLinkTarget(T table_name)
+        : LogicError(ErrorCodes::CrossTableLinkTarget,
+                     util::format("Cannot remove %1 that is target of outside links", table_name))
+    {
+    }
+    ~CrossTableLinkTarget() noexcept override;
+};
+
+
+/// Used for any I/O related exception. Note the derived exception
+/// types that are used for various specific types of errors.
+class FileAccessError : public RuntimeError {
+public:
+    FileAccessError(ErrorCodes::Error code, std::string_view msg, std::string_view path, int err = 0);
+    ~FileAccessError() noexcept override;
+
+    /// Return the associated file system path, or the empty string if there is
+    /// no associated file system path, or if the file system path is unknown.
+    std::string_view get_path() const
+    {
+        return m_path;
+    }
+    int get_errno() const
+    {
+        return m_errno;
+    }
+
+private:
+    std::string m_path;
+    int m_errno = 0;
+};
+
+struct SystemError : RuntimeError {
+    SystemError(std::error_code err, std::string_view msg)
+        : RuntimeError(make_status(err, msg, false))
+    {
+    }
+
+    SystemError(int err_no, std::string_view msg)
+        : RuntimeError(make_status(std::error_code(err_no, std::generic_category()), msg, true))
+    {
+    }
+
+    ~SystemError() noexcept override;
+
+private:
+    static Status make_status(std::error_code err, std::string_view msg, bool msg_is_prefix)
+    {
+        return Status(ErrorCodes::SystemError,
+                      msg_is_prefix ? util::format("%1: %2 (%3)", msg, err.message(), err.value()) : msg);
+    }
+};
+
+namespace query_parser {
+
+/// Exception thrown when parsing fails due to invalid syntax.
+struct SyntaxError : InvalidArgument {
+    SyntaxError(std::string_view msg)
+        : InvalidArgument(ErrorCodes::SyntaxError, msg)
+    {
+    }
+    ~SyntaxError() noexcept override;
+};
+
+/// Exception thrown when binding a syntactically valid query string in a
+/// context where it does not make sense.
+struct InvalidQueryError : InvalidArgument {
+    InvalidQueryError(std::string_view msg)
+        : InvalidArgument(ErrorCodes::InvalidQuery, msg)
+    {
+    }
+    ~InvalidQueryError() noexcept override;
+};
+
+/// Exception thrown when there is a problem accessing the arguments in a query string
+struct InvalidQueryArgError : InvalidArgument {
+    InvalidQueryArgError(std::string_view msg)
+        : InvalidArgument(ErrorCodes::InvalidQueryArg, msg)
+    {
+    }
+    ~InvalidQueryArgError() noexcept override;
+};
+
+} // namespace query_parser
 } // namespace realm
-
 
 #endif // REALM_EXCEPTIONS_HPP

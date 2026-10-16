@@ -1,9 +1,13 @@
 //
-//  DateInRegion+Compare.swift
 //  SwiftDate
+//  Parse, validate, manipulate, and display dates, time and timezones in Swift
 //
-//  Created by Daniele Margutti on 07/06/2018.
-//  Copyright © 2018 SwiftDate. All rights reserved.
+//  Created by Daniele Margutti
+//   - Web: https://www.danielemargutti.com
+//   - Twitter: https://twitter.com/danielemargutti
+//   - Mail: hello@danielemargutti.com
+//
+//  Copyright © 2019 Daniele Margutti. Licensed under MIT License.
 //
 
 import Foundation
@@ -11,7 +15,7 @@ import Foundation
 // MARK: - Comparing DateInRegion
 
 public func == (lhs: DateInRegion, rhs: DateInRegion) -> Bool {
-	return (lhs.date.timeIntervalSince1970 == rhs.date.timeIntervalSince1970)
+    (lhs.date.timeIntervalSince1970 == rhs.date.timeIntervalSince1970)
 }
 
 public func <= (lhs: DateInRegion, rhs: DateInRegion) -> Bool {
@@ -25,11 +29,11 @@ public func >= (lhs: DateInRegion, rhs: DateInRegion) -> Bool {
 }
 
 public func < (lhs: DateInRegion, rhs: DateInRegion) -> Bool {
-	return lhs.date.compare(rhs.date) == .orderedAscending
+    lhs.date.compare(rhs.date) == .orderedAscending
 }
 
 public func > (lhs: DateInRegion, rhs: DateInRegion) -> Bool {
-	return lhs.date.compare(rhs.date) == .orderedDescending
+    lhs.date.compare(rhs.date) == .orderedDescending
 }
 
 // The type of comparison to do against today's date or with the suplied date.
@@ -115,15 +119,15 @@ public extension DateInRegion {
 	///   - refDate: reference date compare against to.
 	///   - precision: The precision of the comparison (default is 5 minutes, or 300 seconds).
 	/// - Returns: A boolean; true if close by, false otherwise.
-	public func compareCloseTo(_ refDate: DateInRegion, precision: TimeInterval = 300) -> Bool {
-		return (abs(date.timeIntervalSince(refDate.date)) <= precision)
+	func compareCloseTo(_ refDate: DateInRegion, precision: TimeInterval = 300) -> Bool {
+        (abs(date.timeIntervalSince(refDate.date)) <= precision)
 	}
 
 	/// Compare the date with the rule specified in the `compareType` parameter.
 	///
 	/// - Parameter compareType: comparison type.
 	/// - Returns: `true` if comparison succeded, `false` otherwise
-	public func compare(_ compareType: DateComparisonType) -> Bool {
+	func compare(_ compareType: DateComparisonType) -> Bool {
 		switch compareType {
 		case .isToday:
 			return compare(.isSameDay(region.nowInThisRegion()))
@@ -169,7 +173,7 @@ public extension DateInRegion {
 			return compare(.isSameMonth(lastMonth))
 
 		case .isSameMonth(let refDate):
-			return (date.year == refDate.date.year) && (date.month == refDate.date.month)
+			return (year == refDate.year) && (month == refDate.month)
 
 		case .isThisYear:
 			return compare(.isSameYear(region.nowInThisRegion()))
@@ -183,7 +187,7 @@ public extension DateInRegion {
 			return compare(.isSameYear(lastYear))
 
 		case .isSameYear(let refDate):
-			return (date.year == refDate.date.year)
+			return (year == refDate.year)
 
 		case .isInTheFuture:
 			return compare(.isLater(than: region.nowInThisRegion()))
@@ -247,7 +251,7 @@ public extension DateInRegion {
 	///   - orEqual: `true` to also check for equality
 	///   - granularity: smallest unit that must, along with all larger units, be less for the given dates
 	/// - Returns: Boolean
-	public func isBeforeDate(_ date: DateInRegion, orEqual: Bool = false, granularity: Calendar.Component) -> Bool {
+	func isBeforeDate(_ date: DateInRegion, orEqual: Bool = false, granularity: Calendar.Component) -> Bool {
 		let result = compare(toDate: date, granularity: granularity)
 		return (orEqual ? (result == .orderedSame || result == .orderedAscending) : result == .orderedAscending)
 	}
@@ -259,7 +263,7 @@ public extension DateInRegion {
 	///   - orEqual: `true` to also check for equality
 	///   - granularity: Smallest unit that must, along with all larger units, be greater for the given dates.
 	/// - Returns: Boolean
-	public func isAfterDate(_ refDate: DateInRegion, orEqual: Bool = false, granularity: Calendar.Component) -> Bool {
+	func isAfterDate(_ refDate: DateInRegion, orEqual: Bool = false, granularity: Calendar.Component) -> Bool {
 		let result = compare(toDate: refDate, granularity: granularity)
 		return (orEqual ? (result == .orderedSame || result == .orderedDescending) : result == .orderedDescending)
 	}
@@ -272,8 +276,26 @@ public extension DateInRegion {
 	///         dates to be considered the same.
 	///
 	/// - returns: `true` if the dates are the same down to the given granularity, otherwise `false`
-	public func isInside(date: DateInRegion, granularity: Calendar.Component) -> Bool {
-		return (compare(toDate: date, granularity: granularity) == .orderedSame)
+	func isInside(date: DateInRegion, granularity: Calendar.Component) -> Bool {
+        (compare(toDate: date, granularity: granularity) == .orderedSame)
+	}
+
+	/// Returns a value between 0.0 and 1.0 or nil, that is the position of current date between 2 other dates.
+	///
+	/// - Parameters:
+	///   - startDate: range upper bound date
+	///   - endDate: range lower bound date
+	/// - Returns: `nil` if current date is not between `startDate` and `endDate`. Otherwise returns position between `startDate` and `endDate`.
+	func positionInRange(date startDate: DateInRegion, and endDate: DateInRegion) -> Double? {
+		let diffCurrentDateAndStartDate = self - startDate
+		guard diffCurrentDateAndStartDate >= 0 else {
+			return nil
+		}
+		let diffEndDateAndStartDate = endDate - startDate
+		guard diffEndDateAndStartDate > 0, diffCurrentDateAndStartDate <= diffEndDateAndStartDate else {
+			return nil
+		}
+		return diffCurrentDateAndStartDate / diffEndDateAndStartDate
 	}
 
 	/// Return `true` if receiver data is contained in the range specified by two dates.
@@ -284,8 +306,8 @@ public extension DateInRegion {
 	///   - orEqual: `true` to also check for equality on date and date2, default is `true`
 	///   - granularity: smallest unit that must, along with all larger units, be greater
 	/// - Returns: Boolean
-	public func isInRange(date startDate: DateInRegion, and endDate: DateInRegion, orEqual: Bool = true, granularity: Calendar.Component = .nanosecond) -> Bool {
-		return isAfterDate(startDate, orEqual: orEqual, granularity: granularity) && isBeforeDate(endDate, orEqual: orEqual, granularity: granularity)
+	func isInRange(date startDate: DateInRegion, and endDate: DateInRegion, orEqual: Bool = true, granularity: Calendar.Component = .nanosecond) -> Bool {
+        isAfterDate(startDate, orEqual: orEqual, granularity: granularity) && isBeforeDate(endDate, orEqual: orEqual, granularity: granularity)
 	}
 
 	// MARK: - Date Earlier/Later
@@ -294,16 +316,29 @@ public extension DateInRegion {
 	///
 	/// - Parameter date: The date to compare to self
 	/// - Returns: The date that is earlier
-	public func earlierDate(_ date: DateInRegion) -> DateInRegion {
-		return (self.date.timeIntervalSince1970 <= date.date.timeIntervalSince1970) ? self : date
+	func earlierDate(_ date: DateInRegion) -> DateInRegion {
+        self.date.timeIntervalSince(date.date) <= 0 ? self : date
 	}
 
 	/// Return the later of two dates, between self and a given date.
 	///
 	/// - Parameter date: The date to compare to self
 	/// - Returns: The date that is later
-	public func laterDate(_ date: DateInRegion) -> DateInRegion {
-		return (self.date.timeIntervalSince1970 >= date.date.timeIntervalSince1970) ? self : date
+	func laterDate(_ date: DateInRegion) -> DateInRegion {
+        self.date.timeIntervalSince(date.date) >= 0 ? self : date
 	}
+
+    /// Returns the difference in the calendar component given (like day, month or year)
+    /// with respect to the other date as a positive integer
+    func difference(in component: Calendar.Component, from other: DateInRegion) -> Int? {
+        self.date.difference(in: component, from: other.date)
+    }
+
+    /// Returns the differences in the calendar components given (like day, month and year)
+    /// with respect to the other date as dictionary with the calendar component as the key
+    /// and the diffrence as a positive integer as the value
+    func differences(in components: Set<Calendar.Component>, from other: DateInRegion) -> [Calendar.Component: Int] {
+        self.date.differences(in: components, from: other.date)
+    }
 
 }

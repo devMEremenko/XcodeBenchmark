@@ -26,10 +26,11 @@
 import Foundation
 import UIKit
 import DTModelStorage
+import SwiftUI
 
 /// Adopting this protocol will automatically inject manager property to your object, that lazily instantiates DTCollectionViewManager object.
 /// Target is not required to be UICollectionViewController, and can be a regular UIViewController with UICollectionView, or any other view, that contains UICollectionView.
-public protocol DTCollectionViewManageable : class
+public protocol DTCollectionViewManageable : AnyObject
 {
     /// Collection view, that will be managed by DTCollectionViewManager. This property or `optionalCollectionView` property must be implemented in order for `DTCollectionViewManager` to work.
     var collectionView : UICollectionView! { get }
@@ -84,7 +85,7 @@ open class DTCollectionViewManager {
         return nil
     }
     
-    fileprivate weak var delegate : AnyObject?
+    weak var delegate : AnyObject?
     
     /// Bool property, that will be true, after `startManagingWithDelegate` method is called on `DTCollectionViewManager`.
     open var isManagingCollectionView : Bool { collectionView != nil }
@@ -92,11 +93,12 @@ open class DTCollectionViewManager {
     ///  Factory for creating cells and reusable views for UICollectionView
     final lazy var viewFactory: CollectionViewFactory = {
         precondition(self.isManagingCollectionView, "Please call manager.startManagingWithDelegate(self) before calling any other DTCollectionViewManager methods")
-        //swiftlint:disable:next force_unwrapping
+        // swiftlint:disable:next force_unwrapping
         let factory = CollectionViewFactory(collectionView: self.collectionView!)
         factory.resetDelegates = { [weak self] in
             self?.collectionDataSource?.delegateWasReset()
             self?.collectionDelegate?.delegateWasReset()
+            self?.collectionPrefetchDataSource?.delegateWasReset()
             
             #if os(iOS)
             self?.collectionDropDelegate?.delegateWasReset()
@@ -160,32 +162,26 @@ open class DTCollectionViewManager {
         }
     }
     
-    #if os(iOS)
-    // Yeah, @availability macros does not work on stored properties ¯\_(ツ)_/¯
-    private var _collectionDragDelegatePrivate : AnyObject?
-
-    /// Object, that is responsible for implementing `UICollectionViewDragDelegate` protocol
-    open var collectionDragDelegate : DTCollectionViewDragDelegate? {
-        get {
-            return _collectionDragDelegatePrivate as? DTCollectionViewDragDelegate
-        }
-        set {
-            _collectionDragDelegatePrivate = newValue
-            collectionView?.dragDelegate = newValue
+    /// Object, responsible for implementing `UICollectionViewDataSourcePrefetching` protocol
+    open var collectionPrefetchDataSource: DTCollectionViewPrefetchDataSource? {
+        didSet {
+            collectionView?.prefetchDataSource = collectionPrefetchDataSource
         }
     }
     
-    // Yeah, @availability macros does not work on stored properties ¯\_(ツ)_/¯
-    private var _collectionDropDelegatePrivate : AnyObject?
+    #if os(iOS)
+
+    /// Object, that is responsible for implementing `UICollectionViewDragDelegate` protocol
+    open var collectionDragDelegate : DTCollectionViewDragDelegate? {
+        didSet {
+            collectionView?.dragDelegate = collectionDragDelegate
+        }
+    }
 
     /// Object, that is responsible for implementing `UICOllectionViewDropDelegate` protocol
     open var collectionDropDelegate : DTCollectionViewDropDelegate? {
-        get {
-            return _collectionDropDelegatePrivate as? DTCollectionViewDropDelegate
-        }
-        set {
-            _collectionDropDelegatePrivate = newValue
-            collectionView?.dropDelegate = newValue
+        didSet {
+            collectionView?.dropDelegate = collectionDropDelegate
         }
     }
     #endif
@@ -215,7 +211,6 @@ open class DTCollectionViewManager {
         startManaging(with: collectionView)
     }
     
-#if compiler(>=5.1)
     @available(iOS 13.0, tvOS 13.0, *)
     /// Configures `UICollectionViewDiffableDataSource` to be used with `DTCollectionViewManager`.
     ///  Because `UICollectionViewDiffableDataSource` handles UICollectionView updates, `collectionViewUpdater` property on `DTCollectionViewManager` will be set to nil.
@@ -231,39 +226,17 @@ open class DTCollectionViewManager {
         collectionViewUpdater = nil
         
         // Cell is provided by `DTCollectionViewDataSource` without actually calling closure that is passed to `UICollectionViewDiffableDataSource`.
-        let dataSource = UICollectionViewDiffableDataSource<SectionIdentifier, ItemIdentifier>(collectionView: collectionView) { _, _, _ in nil }
-        storage = ProxyDiffableDataSourceStorage(collectionView: collectionView,
-                                                                 dataSource: dataSource,
-                                                                 modelProvider: modelProvider)
-        collectionView.dataSource = collectionDataSource
+        let dataSource = DTCollectionViewDiffableDataSource<SectionIdentifier, ItemIdentifier>(
+            collectionView: collectionView,
+            viewFactory: viewFactory,
+            manager: self,
+            cellProvider: { _, _, _ in nil },
+            modelProvider: modelProvider)
+        storage = dataSource
+        collectionView.dataSource = dataSource
         
         return dataSource
     }
-    
-    @available(iOS 13.0, tvOS 13.0, *)
-    @available(*, deprecated, message: "Please use configureDiffableDataSource method for models, that are Hashable. From Apple documentation: If you’re working in a Swift codebase, always use UICollectionViewDiffableDataSource instead.")
-    /// Configures `UICollectionViewDiffableDataSourceReference` to be used with `DTCollectionViewManager`.
-    ///  Because `UICollectionViewDiffableDataSourceReference` handles UICollectionView updates, `collectionViewUpdater` property on `DTCollectionViewManager` will be set to nil.
-    /// - Parameter modelProvider: closure that provides `DTCollectionViewManager` models.
-    /// This closure mirrors `cellProvider` property on `UICollectionViewDiffableDataSourceReference`, but strips away collectionView, and asks for data model instead of a cell. Cell mapping is then executed in the same way as without diffable data sources.
-    open func configureDiffableDataSource(modelProvider: @escaping (IndexPath, Any) -> Any) -> UICollectionViewDiffableDataSourceReference
-    {
-        guard let collectionView = collectionView else {
-            fatalError("Attempt to configure diffable datasource before collectionView have been initialized")
-        }
-        // UICollectionViewDiffableDataSourceReference will update UICollectionView instead of `CollectionViewUpdater` object.
-        collectionViewUpdater = nil
-        
-        // Cell is provided by `DTCollectionViewDataSource` without actually calling closure that is passed to `UICollectionViewDiffableDataSourceReference`.
-        let dataSource = UICollectionViewDiffableDataSourceReference(collectionView: collectionView) { _, _, _ in nil }
-        storage = ProxyDiffableDataSourceStorage(collectionView: collectionView,
-                                                                 dataSource: dataSource,
-                                                                 modelProvider: modelProvider)
-        collectionView.dataSource = collectionDataSource
-        
-        return dataSource
-    }
-#endif
     
     fileprivate var isConfigured = false
     
@@ -273,6 +246,7 @@ open class DTCollectionViewManager {
         collectionViewUpdater = CollectionViewUpdater(collectionView: collectionView)
         collectionDataSource = DTCollectionViewDataSource(delegate: delegate, collectionViewManager: self)
         collectionDelegate = DTCollectionViewDelegate(delegate: delegate, collectionViewManager: self)
+        collectionPrefetchDataSource = DTCollectionViewPrefetchDataSource(delegate: delegate, collectionViewManager: self)
         
         #if os(iOS)
         collectionDragDelegate = DTCollectionViewDragDelegate(delegate: delegate, collectionViewManager: self)
@@ -398,6 +372,8 @@ internal enum EventMethodSignature: String {
     case shouldUpdateFocusInContext = "collectionView:shouldUpdateFocusInContext:"
     case didUpdateFocusInContext = "collectionView:didUpdateFocusInContext:withAnimationCoordinator:"
     case indexPathForPreferredFocusedView = "indexPathForPreferredFocusedViewInCollectionView:"
+    
+    @available(iOS, deprecated: 15.0)
     case targetIndexPathForMoveFromItemAtTo = "collectionView:targetIndexPathForMoveFromItemAtIndexPath:toProposedIndexPath:"
     case targetContentOffsetForProposedContentOffset = "collectionView:targetContentOffsetForProposedContentOffset:"
     case shouldSpringLoadItem = "collectionView:shouldSpringLoadItemAtIndexPath:withContext:"
@@ -408,8 +384,16 @@ internal enum EventMethodSignature: String {
     case contextMenuConfigurationForItemAtIndexPath = "collectionView:contextMenuConfigurationForItemAtIndexPath:point:"
     case previewForHighlightingContextMenu = "collectionView:previewForHighlightingContextMenuWithConfiguration:"
     case previewForDismissingContextMenu = "collectionView:previewForDismissingContextMenuWithConfiguration:"
-    case willCommitMenuWithAnimator = "collectionView:willCommitMenuWithAnimator:"
     case canEditItemAtIndexPath = "collectionView:canEditItemAtIndexPath:"
+    case selectionFollowsFocusForItemAtIndexPath = "collectionView:selectionFollowsFocusForItemAtIndexPath:"
+    case targetIndexPathForMoveOfItemFromOriginalIndexPath = "collectionView:targetIndexPathForMoveOfItemFromOriginalIndexPath:atCurrentIndexPath:toProposedIndexPath:"
+    case canPerformPrimaryActionForItemAtIndexPath = "collectionView:canPerformPrimaryActionForItemAtIndexPath:"
+    case performPrimaryActionForItemAtIndexPath = "collectionView:performPrimaryActionForItemAtIndexPath:"
+    
+    // iOS 16 SDK
+    case contextMenuConfigurationForItemsAtIndexPaths = "collectionView:contextMenuConfigurationForItemsAtIndexPaths:point:"
+    case highlightPreviewForItemAtIndexPath = "collectionView:contextMenuConfiguration:highlightPreviewForItemAtIndexPath:"
+    case dismissalPreviewForItemAtIndexPath = "collectionView:contextMenuConfiguration:dismissalPreviewForItemAtIndexPath:"
     
     // UICollectionViewDelegateFlowLayout
     case sizeForItemAtIndexPath = "collectionView:layout:sizeForItemAtIndexPath:"
@@ -438,6 +422,10 @@ internal enum EventMethodSignature: String {
     case dropSessionDidExit = "collectionView:dropSessionDidExit:"
     case dropSessionDidEnd = "collectionView:dropSessionDidEnd:"
     case dropPreviewParametersForItemAtIndexPath = "collectionView:dropPreviewParametersForItemAtIndexPath:"
+    
+    /// UICollectionViewDataSourcePrefetching
+    case prefetchItemsAtIndexPaths = "collectionView:prefetchItemsAtIndexPaths:"
+    case cancelPrefetchingForItemsAtIndexPaths = "collectionView:cancelPrefetchingForItemsAtIndexPaths:"
     
     // TVCollectionViewDelegateFullScreenLayout
     

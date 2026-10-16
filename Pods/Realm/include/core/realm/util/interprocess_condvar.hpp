@@ -28,8 +28,12 @@
 #include <sys/stat.h>
 #include <mutex>
 
+#if REALM_PLATFORM_APPLE
+#include <sys/time.h>
+#endif
+
 // Condvar Emulation is required if RobustMutex emulation is enabled
-#if defined(REALM_ROBUST_MUTEX_EMULATION) || defined(_WIN32)
+#if REALM_ROBUST_MUTEX_EMULATION || defined(_WIN32)
 #define REALM_CONDVAR_EMULATION
 #endif
 
@@ -56,19 +60,21 @@ public:
     InterprocessCondVar(const InterprocessCondVar&) = delete;
     InterprocessCondVar& operator=(const InterprocessCondVar&) = delete;
 
-/// To use the InterprocessCondVar, you also must place a structure of type
-/// InterprocessCondVar::SharedPart in memory shared by multiple processes
-/// or in a memory mapped file, and use set_shared_part() to associate
-/// the condition variable with it's shared part. You must initialize
-/// the shared part using InterprocessCondVar::init_shared_part(), but only before
-/// first use and only when you have exclusive access to the shared part.
+    /// To use the InterprocessCondVar, you also must place a structure of type
+    /// InterprocessCondVar::SharedPart in memory shared by multiple processes
+    /// or in a memory mapped file, and use set_shared_part() to associate
+    /// the condition variable with it's shared part. You must initialize
+    /// the shared part using InterprocessCondVar::init_shared_part(), but only before
+    /// first use and only when you have exclusive access to the shared part.
 
 #ifdef REALM_CONDVAR_EMULATION
     struct SharedPart {
 #ifdef _WIN32
-        // Number of waiting threads.
-        int32_t m_waiters_count;
-        size_t m_was_broadcast;
+        // See top of .cpp for description of how windows implementation works.
+        std::atomic_int32_t m_max_process_num;
+        bool m_any_waiters; // guarded by mutex associated with this CondVar.
+
+        static_assert(std::atomic_int32_t::is_always_lock_free);
 #else
         uint64_t signal_counter;
         uint64_t wait_counter;
@@ -93,20 +99,50 @@ public:
     /// be used *only* when you are certain, that nobody is using it.
     void release_shared_part();
 
-    /// Wait for someone to call notify() or notify_all() on this condition
+    /// Wait for someone to call notify_all() on this condition
     /// variable. The call to wait() may return spuriously, so the caller should
     /// always re-evaluate the condition on which to wait and loop on wait()
     /// if necessary.
     void wait(InterprocessMutex& m, const struct timespec* tp);
 
-    /// If any threads are waiting for this condition, wake up at least one.
-    /// (Current implementation may actually wake all :-O ). The caller must
-    /// hold the lock associated with the condvar at the time of calling notify()
-    void notify() noexcept;
+    /// While cond() returns false, waits for a call to notify_all(). This is
+    /// the preferred overload to use because it correctly handles spurious
+    /// wakeups, and avoids some condvar anti-patterns, by pushing callers into
+    /// the correct pattern.
+    template <typename Cond>
+    void wait(InterprocessMutex& m, const struct timespec* tp, Cond&& cond)
+    {
+        while (!cond()) {
+            wait(m, tp);
+            if (tp) {
+                struct timespec now;
+#ifdef _WIN32
+                timespec_get(&now, TIME_UTC);
+#elif REALM_PLATFORM_APPLE
+                if (__builtin_available(iOS 10, macOS 12, tvOS 10, watchOS 3, *)) {
+                    clock_gettime(CLOCK_REALTIME, &now);
+                }
+                else {
+                    timeval tv;
+                    gettimeofday(&tv, 0);
+                    now.tv_sec = tv.tv_sec;
+                    now.tv_nsec = tv.tv_usec * 1000;
+                }
+#else
+                clock_gettime(CLOCK_REALTIME, &now);
+#endif
+                if (std::tie(now.tv_sec, now.tv_nsec) >= std::tie(tp->tv_sec, tp->tv_nsec))
+                    return;
+            }
+        }
+    }
 
     /// Wake up every thread that is currently waiting on this condition.
     /// The caller must hold the lock associated with the condvar at the time
     /// of calling notify_all().
+    /// In order to avoid missed wakeups in the case of sudden process termination, it is important
+    /// to notify the CV *prior* to changing the state that the condition variable is protecting,
+    /// within the same mutex hold.
     void notify_all() noexcept;
 
     /// Cleanup and release system resources if possible.
@@ -115,6 +151,7 @@ public:
 private:
     // non-zero if a shared part has been registered (always 0 on process local instances)
     SharedPart* m_shared_part = nullptr;
+
 #ifdef REALM_CONDVAR_EMULATION
     // keep the path to allocated system resource so we can remove them again
     std::string m_resource_path;
@@ -122,21 +159,85 @@ private:
     // When using an anonymous pipe (currently only for tvOS) m_fd_read is read-only and m_fd_write is write-only.
     int m_fd_read = -1;
     int m_fd_write = -1;
-
-#ifdef _WIN32
-    // Semaphore used to queue up threads waiting for the condition to
-    // become signaled. 
-    HANDLE m_sema = 0;
-    // An auto-reset event used by the broadcast/signal thread to wait
-    // for all the waiting thread(s) to wake up and be released from the
-    // semaphore. 
-    HANDLE m_waiters_done = 0;
-    std::string m_name;
-
-    // Serialize access to m_waiters_count
-    InterprocessMutex m_waiters_lockcount;
 #endif
 
+#ifdef _WIN32
+    // A wrapper around HANDLE that auto-closes.
+    struct HandleHolder {
+        HandleHolder() = default;
+        /*implicit*/ HandleHolder(HANDLE h)
+            : handle(h)
+        {
+        }
+        ~HandleHolder()
+        {
+            if (handle)
+                REALM_ASSERT_RELEASE(CloseHandle(handle));
+        }
+        HandleHolder(HandleHolder&& other) noexcept
+            : handle(std::exchange(other.handle, {}))
+        {
+        }
+        HandleHolder& operator=(HandleHolder&& other) noexcept
+        {
+            if (handle)
+                REALM_ASSERT_RELEASE(CloseHandle(handle));
+            handle = std::exchange(other.handle, {});
+            return *this;
+        }
+
+        /*implicit*/ operator HANDLE() const
+        {
+            return handle;
+        }
+
+        explicit operator bool() const
+        {
+            return bool(handle);
+        }
+
+        HANDLE handle = {};
+    };
+
+    struct Event {
+        void wait(DWORD millis = INFINITE) noexcept;
+        void set() noexcept;
+        void reset() noexcept;
+        HandleHolder handle;
+    };
+
+    struct Mutex {
+        void lock() noexcept;
+        bool try_lock() noexcept;
+        void unlock() noexcept;
+        HandleHolder handle;
+    };
+
+    void update_event_handles();
+    Event open_event(int32_t n);
+    Mutex open_mutex(int32_t n);
+    Mutex open_mutex(std::string name);
+
+    Event& my_event() noexcept
+    {
+        return m_events[m_my_id];
+    }
+
+    int32_t m_my_id = -1;
+    std::vector<Event> m_events;
+
+    // Held whole time this condvar object lives.
+    Mutex m_my_mutex;
+
+    // The main algorithm only supports one waiter per process.
+    // These members exist to extend that to support N waiters per process.
+    // They are guarded by the mutex associated with this cv.
+    std::condition_variable_any m_waiter_cv;
+    int64_t m_highest_waiter = 0;
+    int64_t m_signaled_waiters = 0;
+    bool m_have_waiter = false;
+
+    std::string m_name_with_path;
 #endif
 };
 

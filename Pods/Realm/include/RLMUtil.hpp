@@ -17,44 +17,46 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #import <Realm/RLMConstants.h>
-#import <Realm/RLMOptionalBase.h>
-#import <objc/runtime.h>
+#import <Realm/RLMSwiftValueStorage.h>
+#import <Realm/RLMValue.h>
 
 #import <realm/array.hpp>
 #import <realm/binary_data.hpp>
+#import <realm/object-store/object.hpp>
 #import <realm/string_data.hpp>
 #import <realm/timestamp.hpp>
 #import <realm/util/file.hpp>
 
+#import <objc/runtime.h>
+#import <os/lock.h>
+
 namespace realm {
-    class Mixed;
+class Decimal128;
+class Exception;
+class Mixed;
 }
+
+class RLMClassInfo;
 
 @class RLMObjectSchema;
 @class RLMProperty;
 
-namespace realm {
-    class RealmFileException;
-}
-
 __attribute__((format(NSString, 1, 2)))
 NSException *RLMException(NSString *fmt, ...);
 NSException *RLMException(std::exception const& exception);
-
-NSError *RLMMakeError(RLMError code, std::exception const& exception);
-NSError *RLMMakeError(RLMError code, const realm::util::File::AccessError&);
-NSError *RLMMakeError(RLMError code, const realm::RealmFileException&);
-NSError *RLMMakeError(std::system_error const& exception);
+NSException *RLMException(realm::Exception const& exception);
 
 void RLMSetErrorOrThrow(NSError *error, NSError **outError);
+
+RLM_HIDDEN_BEGIN
 
 // returns if the object can be inserted as the given type
 BOOL RLMIsObjectValidForProperty(id obj, RLMProperty *prop);
 // throw an exception if the object is not a valid value for the property
 void RLMValidateValueForProperty(id obj, RLMObjectSchema *objectSchema,
                                  RLMProperty *prop, bool validateObjects=false);
-BOOL RLMValidateValue(id value, RLMPropertyType type, bool optional, bool array,
-                      NSString *objectClassName);
+id RLMValidateValue(id value, RLMPropertyType type, bool optional, bool collection,
+                    NSString *objectClassName);
 
 void RLMThrowTypeError(id obj, RLMObjectSchema *objectSchema, RLMProperty *prop);
 
@@ -86,8 +88,8 @@ static inline id RLMCoerceToNil(__unsafe_unretained id obj) {
     if (static_cast<id>(obj) == NSNull.null) {
         return nil;
     }
-    else if (__unsafe_unretained auto optional = RLMDynamicCast<RLMOptionalBase>(obj)) {
-        return RLMCoerceToNil(RLMGetOptional(optional));
+    else if (__unsafe_unretained auto optional = RLMDynamicCast<RLMSwiftValueStorage>(obj)) {
+        return RLMCoerceToNil(RLMGetSwiftValueStorage(optional));
     }
     return obj;
 }
@@ -98,9 +100,12 @@ static inline T RLMCoerceToNil(__unsafe_unretained T obj) {
 }
 
 id<NSFastEnumeration> RLMAsFastEnumeration(id obj);
+id RLMBridgeSwiftValue(id obj);
+
+bool RLMIsSwiftObjectClass(Class cls);
 
 // String conversion utilities
-static inline NSString * RLMStringDataToNSString(realm::StringData stringData) {
+static inline NSString *RLMStringDataToNSString(realm::StringData stringData) {
     static_assert(sizeof(NSUInteger) >= sizeof(size_t),
                   "Need runtime overflow check for size_t to NSUInteger conversion");
     if (stringData.is_null()) {
@@ -111,6 +116,15 @@ static inline NSString * RLMStringDataToNSString(realm::StringData stringData) {
                                         length:stringData.size()
                                       encoding:NSUTF8StringEncoding];
     }
+}
+
+static inline NSString *RLMStringViewToNSString(std::string_view stringView) {
+    if (stringView.size() == 0) {
+        return nil;
+    }
+    return [[NSString alloc] initWithBytes:stringView.data()
+                                    length:stringView.size()
+                                  encoding:NSUTF8StringEncoding];
 }
 
 static inline realm::StringData RLMStringDataWithNSString(__unsafe_unretained NSString *const string) {
@@ -172,11 +186,130 @@ static inline NSUInteger RLMConvertNotFound(size_t index) {
     return index == realm::not_found ? NSNotFound : index;
 }
 
-id RLMMixedToObjc(realm::Mixed const& value);
+static inline void RLMNSStringToStdString(std::string &out, NSString *in) {
+    if (!in)
+        return;
+    
+    out.resize([in maximumLengthOfBytesUsingEncoding:NSUTF8StringEncoding]);
+    if (out.empty()) {
+        return;
+    }
+
+    NSUInteger size = out.size();
+    [in getBytes:&out[0]
+       maxLength:size
+      usedLength:&size
+        encoding:NSUTF8StringEncoding
+         options:0 range:{0, in.length} remainingRange:nullptr];
+    out.resize(size);
+}
+
+realm::Mixed RLMObjcToMixed(__unsafe_unretained id value,
+                            __unsafe_unretained RLMRealm *realm=nil,
+                            realm::CreatePolicy createPolicy={});
+id RLMMixedToObjc(realm::Mixed const& value,
+                  __unsafe_unretained RLMRealm *realm=nil,
+                  RLMClassInfo *classInfo=nullptr);
+
+realm::Decimal128 RLMObjcToDecimal128(id value);
+realm::UUID RLMObjcToUUID(__unsafe_unretained id const value);
 
 // Given a bundle identifier, return the base directory on the disk within which Realm database and support files should
 // be stored.
+FOUNDATION_EXTERN RLM_VISIBLE
 NSString *RLMDefaultDirectoryForBundleIdentifier(NSString *bundleIdentifier);
 
 // Get a NSDateFormatter for ISO8601-formatted strings
 NSDateFormatter *RLMISO8601Formatter();
+
+template<typename Fn>
+static auto RLMTranslateError(Fn&& fn) {
+    try {
+        return fn();
+    }
+    catch (std::exception const& e) {
+        @throw RLMException(e);
+    }
+}
+
+static inline bool numberIsInteger(__unsafe_unretained NSNumber *const obj) {
+    char data_type = [obj objCType][0];
+    return data_type == *@encode(bool) ||
+           data_type == *@encode(char) ||
+           data_type == *@encode(short) ||
+           data_type == *@encode(int) ||
+           data_type == *@encode(long) ||
+           data_type == *@encode(long long) ||
+           data_type == *@encode(unsigned short) ||
+           data_type == *@encode(unsigned int) ||
+           data_type == *@encode(unsigned long) ||
+           data_type == *@encode(unsigned long long);
+}
+
+static inline bool numberIsBool(__unsafe_unretained NSNumber *const obj) {
+    // @encode(BOOL) is 'B' on iOS 64 and 'c'
+    // objcType is always 'c'. Therefore compare to "c".
+    if ([obj objCType][0] == 'c') {
+        return true;
+    }
+
+    if (numberIsInteger(obj)) {
+        int value = [obj intValue];
+        return value == 0 || value == 1;
+    }
+
+    return false;
+}
+
+static inline bool numberIsFloat(__unsafe_unretained NSNumber *const obj) {
+    char data_type = [obj objCType][0];
+    return data_type == *@encode(float) ||
+           data_type == *@encode(short) ||
+           data_type == *@encode(int) ||
+           data_type == *@encode(long) ||
+           data_type == *@encode(long long) ||
+           data_type == *@encode(unsigned short) ||
+           data_type == *@encode(unsigned int) ||
+           data_type == *@encode(unsigned long) ||
+           data_type == *@encode(unsigned long long) ||
+           // A double is like float if it fits within float bounds or is NaN.
+           (data_type == *@encode(double) && (ABS([obj doubleValue]) <= FLT_MAX || isnan([obj doubleValue])));
+}
+
+static inline bool numberIsDouble(__unsafe_unretained NSNumber *const obj) {
+    char data_type = [obj objCType][0];
+    return data_type == *@encode(double) ||
+           data_type == *@encode(float) ||
+           data_type == *@encode(short) ||
+           data_type == *@encode(int) ||
+           data_type == *@encode(long) ||
+           data_type == *@encode(long long) ||
+           data_type == *@encode(unsigned short) ||
+           data_type == *@encode(unsigned int) ||
+           data_type == *@encode(unsigned long) ||
+           data_type == *@encode(unsigned long long);
+}
+
+class RLMUnfairMutex {
+public:
+    RLMUnfairMutex() = default;
+
+    void lock() noexcept {
+        os_unfair_lock_lock(&_lock);
+    }
+
+    bool try_lock() noexcept {
+        return os_unfair_lock_trylock(&_lock);
+    }
+
+    void unlock() noexcept {
+        os_unfair_lock_unlock(&_lock);
+    }
+
+private:
+    os_unfair_lock _lock = OS_UNFAIR_LOCK_INIT;
+    RLMUnfairMutex(RLMUnfairMutex const&) = delete;
+    RLMUnfairMutex& operator=(RLMUnfairMutex const&) = delete;
+};
+
+RLM_HIDDEN_END

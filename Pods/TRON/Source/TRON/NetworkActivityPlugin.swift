@@ -29,6 +29,8 @@ import Foundation
 import UIKit
 import Alamofire
 
+// swiftlint:disable:next line_length
+@available(iOS, deprecated: 13, message: "UIApplication.isNetworkActivityIndicatorVisible is deprecated on iOS 13 and higher. Therefore, this plugin is also deprecated for iOS 13 and higher.")
 /**
  Plugin, that monitors sent api requests, and automatically sets UIApplication networkActivityIndicatorVisible property.
  

@@ -154,7 +154,7 @@ NSArray *SCOPE = @[@"friends", @"email"];
     if (state == VKAuthorizationAuthorized) {
         // Authorized and ready to go
     } else if (error) {
-        // Some error happend, but you may try later
+        // Some error happened, but you may try later
     }
 }];
 ```

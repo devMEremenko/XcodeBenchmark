@@ -1,0 +1,6 @@
+framework module Google_Mobile_Ads_SDK {
+  umbrella header "Google-Mobile-Ads-SDK-umbrella.h"
+
+  export *
+  module * { export * }
+}

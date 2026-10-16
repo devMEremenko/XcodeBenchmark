@@ -1,7 +1,7 @@
 //
 //  CryptoSwift
 //
-//  Copyright (C) 2014-2017 Marcin Krzyżanowski <marcin@krzyzanowskim.com>
+//  Copyright (C) 2014-2022 Marcin Krzyżanowski <marcin@krzyzanowskim.com>
 //  This software is provided 'as-is', without any express or implied warranty.
 //
 //  In no event will the authors be held liable for any damages arising from the use of this software.
@@ -22,6 +22,8 @@ import Darwin
 import Glibc
 #elseif canImport(ucrt)
 import ucrt
+#elseif canImport(WASILibc)
+import WASILibc
 #endif
 
 public extension PKCS5 {
@@ -47,7 +49,7 @@ public extension PKCS5 {
     ///   - iterations: iteration count, a positive integer
     ///   - keyLength: intended length of derived key
     ///   - variant: MAC variant. Defaults to SHA256
-    public init(password: Array<UInt8>, salt: Array<UInt8>, iterations: Int = 4096 /* c */, keyLength: Int? = nil /* dkLen */, variant: HMAC.Variant = .sha256) throws {
+    public init(password: Array<UInt8>, salt: Array<UInt8>, iterations: Int = 4096 /* c */, keyLength: Int? = nil /* dkLen */, variant: HMAC.Variant = .sha2(.sha256)) throws {
       precondition(iterations > 0)
 
       let prf = HMAC(key: password, variant: variant)
@@ -80,6 +82,10 @@ public extension PKCS5 {
         }
       }
       return Array(ret.prefix(self.dkLen))
+    }
+
+    public func callAsFunction() throws -> Array<UInt8> {
+      try calculate()
     }
   }
 }

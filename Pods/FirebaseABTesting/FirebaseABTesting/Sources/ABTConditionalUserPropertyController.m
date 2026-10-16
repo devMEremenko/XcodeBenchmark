@@ -16,7 +16,7 @@
 
 #import "FirebaseABTesting/Sources/ABTConstants.h"
 #import "FirebaseABTesting/Sources/Public/FirebaseABTesting/FIRLifecycleEvents.h"
-#import "FirebaseCore/Sources/Private/FirebaseCoreInternal.h"
+#import "FirebaseCore/Extension/FirebaseCoreInternal.h"
 #import "Interop/Analytics/Public/FIRAnalyticsInterop.h"
 
 @implementation ABTConditionalUserPropertyController {
@@ -84,6 +84,13 @@
   if (!experiments) {
     FIRLogInfo(kFIRLoggerABTesting, @"I-ABT000003",
                @"Failed to get conditional user properties from Firebase Analytics.");
+    return;
+  }
+
+  if (payload.experimentId == nil) {
+    // When doing experiment test on devices, the payload could be empty. Returning here to prevent
+    // app crash.
+    FIRLogInfo(kFIRLoggerABTesting, @"I-ABT000020", @"Experiment Id in payload is empty.");
     return;
   }
 

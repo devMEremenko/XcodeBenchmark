@@ -19,6 +19,7 @@
 #ifndef REALM_TABLE_REF_HPP
 #define REALM_TABLE_REF_HPP
 
+#include <cstdint>
 #include <cstddef>
 #include <ostream>
 namespace realm {
@@ -29,8 +30,8 @@ class TableRef;
 
 class ConstTableRef {
 public:
-    ConstTableRef() noexcept {}
-    ConstTableRef(std::nullptr_t) noexcept {}
+    constexpr ConstTableRef() noexcept = default;
+    constexpr ConstTableRef(std::nullptr_t) noexcept {}
     ConstTableRef(const TableRef& other) noexcept;
 
     const Table* operator->() const;
@@ -91,14 +92,8 @@ protected:
 
 class TableRef : public ConstTableRef {
 public:
-    TableRef() noexcept
-        : ConstTableRef()
-    {
-    }
-    TableRef(std::nullptr_t) noexcept
-        : ConstTableRef()
-    {
-    }
+    constexpr TableRef() noexcept = default;
+    constexpr TableRef(std::nullptr_t) noexcept {}
 
     Table* operator->() const;
     Table& operator*() const;

@@ -24,7 +24,8 @@
 
 @implementation VKApiWall
 - (VKRequest *)post:(NSDictionary *)params {
-    return [self prepareRequestWithMethodName:@"post" parameters:params];
+    return [self prepareRequestWithMethodName:@"post"
+                                   parameters:params];
 }
 
 @end

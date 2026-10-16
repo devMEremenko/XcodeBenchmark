@@ -91,24 +91,24 @@
     dispatch_async(_schedulerQueue, ^{
         NSTimeInterval now = [[NSDate new] timeIntervalSince1970];
         NSInteger thisSecond = (NSInteger) now;
-        if (!_scheduleDict) {
-            _scheduleDict = [NSMutableDictionary new];
+        if (!self->_scheduleDict) {
+            self->_scheduleDict = [NSMutableDictionary new];
         }
-        NSArray *keysToRemove = [[_scheduleDict allKeys] filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"SELF < %d", thisSecond]];
-        [_scheduleDict removeObjectsForKeys:keysToRemove];
-        NSInteger countForSecond = [_scheduleDict[@(thisSecond)] integerValue];
-        if (countForSecond < _currentLimitPerSecond) {
-            _scheduleDict[@(thisSecond)] = @(++countForSecond);
+        NSArray *keysToRemove = [[self->_scheduleDict allKeys] filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"SELF < %d", thisSecond]];
+        [self->_scheduleDict removeObjectsForKeys:keysToRemove];
+        NSInteger countForSecond = [self->_scheduleDict[@(thisSecond)] integerValue];
+        if (countForSecond < self->_currentLimitPerSecond) {
+            self->_scheduleDict[@(thisSecond)] = @(++countForSecond);
             [req start];
         } else {
             CGFloat delay = [self currentAvailableInterval], step = delay;
-            while ([_scheduleDict[@(thisSecond)] integerValue] >= _currentLimitPerSecond) {
+            while ([self->_scheduleDict[@(thisSecond)] integerValue] >= self->_currentLimitPerSecond) {
                 delay += step;
                 thisSecond = (NSInteger) (now + delay);
             }
-            NSInteger nextSecCount = [_scheduleDict[@(thisSecond)] integerValue];
+            NSInteger nextSecCount = [self->_scheduleDict[@(thisSecond)] integerValue];
             delay += step * nextSecCount;
-            _scheduleDict[@(thisSecond)] = @(++nextSecCount);
+            self->_scheduleDict[@(thisSecond)] = @(++nextSecCount);
             dispatch_sync(dispatch_get_main_queue(), ^{
                 [req performSelector:@selector(start) withObject:nil afterDelay:delay inModes:@[NSRunLoopCommonModes]];
             });

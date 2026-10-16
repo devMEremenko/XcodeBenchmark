@@ -1,11 +1,11 @@
 
 
 <p align="center">
-  <img src="https://github.com/MLSDev/TRON/raw/master/TRON.png" />
+  <img src="https://github.com/MLSDev/TRON/raw/main/TRON.png" />
 </p>
 
 ![CI](https://github.com/MLSDev/TRON/workflows/CI/badge.svg)
-[![codecov.io](https://codecov.io/github/MLSDev/TRON/coverage.svg?branch=master)](https://codecov.io/github/MLSDev/TRON?branch=master)
+[![codecov.io](https://codecov.io/github/MLSDev/TRON/coverage.svg?branch=main)](https://codecov.io/github/MLSDev/TRON?branch=main)
 ![CocoaPod platform](https://cocoapod-badges.herokuapp.com/p/TRON/badge.svg)
 ![CocoaPod version](https://cocoapod-badges.herokuapp.com/v/TRON/badge.svg)
 [![Swift Package Manager compatible](https://img.shields.io/badge/Swift%20Package%20Manager-compatible-brightgreen.svg)](https://github.com/apple/swift-package-manager)
@@ -58,25 +58,25 @@ TRON framework includes Codable implementation. To use SwiftyJSON, `import TRONS
 ### CocoaPods
 
 ```ruby
-pod 'TRON', '~> 5.0.0'
+pod 'TRON', '~> 5.3.0'
 ```
 
 Only Core subspec, without SwiftyJSON dependency:
 
 ```ruby
-pod 'TRON/Core', '~> 5.0.0'
+pod 'TRON/Core', '~> 5.3.0'
 ```
 
 RxSwift extension for TRON:
 
 ```ruby
-pod 'TRON/RxSwift', '~> 5.0.0'
+pod 'TRON/RxSwift', '~> 5.3.0'
 ```
 
 ## Migration Guides
 
-- [TRON 5.0 Migration Guide](https://github.com/MLSDev/TRON/blob/master/Guides/5.0%20Migration%20Guide.md)
-- [TRON 4.0 Migration Guide](https://github.com/MLSDev/TRON/blob/master/Guides/4.0%20Migration%20Guide.md)
+- [TRON 5.0 Migration Guide](https://github.com/MLSDev/TRON/blob/main/Guides/5.0%20Migration%20Guide.md)
+- [TRON 4.0 Migration Guide](https://github.com/MLSDev/TRON/blob/main/Guides/4.0%20Migration%20Guide.md)
 
 ## Project status
 
@@ -217,7 +217,7 @@ request.perform(withSuccess: { status in
 
 You can also use `Alamofire.Empty` struct in cases where you don't care about actual response.
 
-Some concepts for response serialization, including array response serializer, are described in [Container Types Parsing document](https://github.com/MLSDev/TRON/blob/master/Docs/ContainerTypesParsing.md)
+Some concepts for response serialization, including array response serializer, are described in [Container Types Parsing document](https://github.com/MLSDev/TRON/blob/main/Docs/ContainerTypesParsing.md)
 
 It's possible to customize `JSONSerialization.ReadingOptions`, that are used by `SwiftyJSON.JSON` object while parsing data of the response:
 
@@ -405,7 +405,7 @@ There are some very cool concepts for local plugins, some of them are described 
 
 We are dedicated to building best possible tool for interacting with RESTful web-services. However, we understand, that every tool has it's purpose, and therefore it's always useful to know, what other tools can be used to achieve the same goal.
 
-`TRON` was heavily inspired by [Moya framework](https://github.com/Moya/Moya) and [LevelUPSDK](https://github.com/TheLevelUp/levelup-sdk-ios/blob/master/Source/API/Client/LUAPIClient.h)
+`TRON` was heavily inspired by [Moya framework](https://github.com/Moya/Moya) and LevelUPSDK, which is no longer available in open-source.
 
 ## License
 

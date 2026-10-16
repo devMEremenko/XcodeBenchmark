@@ -31,6 +31,7 @@ enum misc_errors {
 };
 
 std::error_code make_error_code(misc_errors);
+const std::error_category& misc_error_category();
 
 } // namespace error
 } // namespace util

@@ -25,7 +25,7 @@
 #include <realm/array_binary.hpp>
 #include <realm/array_string.hpp>
 #include <realm/array_timestamp.hpp>
-#include <realm/array_integer.hpp>
+#include <realm/array_key.hpp>
 
 namespace realm {
 
@@ -54,6 +54,7 @@ public:
     }
 
     void init_from_mem(MemRef mem) noexcept;
+
     void init_from_ref(ref_type ref) noexcept override
     {
         init_from_mem(MemRef(m_alloc.translate(ref), ref, m_alloc));
@@ -65,7 +66,7 @@ public:
     void init_from_parent()
     {
         ref_type ref = get_ref_from_parent();
-        init_from_ref(ref);
+        ArrayMixed::init_from_ref(ref);
     }
 
     size_t size() const
@@ -78,16 +79,23 @@ public:
     void set_null(size_t ndx);
     void insert(size_t ndx, Mixed value);
     Mixed get(size_t ndx) const;
+    Mixed get_any(size_t ndx) const override
+    {
+        return get(ndx);
+    }
     bool is_null(size_t ndx) const
     {
         return m_composite.get(ndx) == 0;
     }
 
+    void clear();
     void erase(size_t ndx);
     void truncate_and_destroy_children(size_t ndx);
     void move(ArrayMixed& dst, size_t ndx);
 
     size_t find_first(Mixed value, size_t begin = 0, size_t end = realm::npos) const noexcept;
+
+    void verify() const;
 
 private:
     enum { payload_idx_type, payload_idx_int, payload_idx_pair, payload_idx_str, payload_idx_size };

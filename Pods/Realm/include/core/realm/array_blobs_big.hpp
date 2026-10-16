@@ -75,10 +75,7 @@ public:
     /// underlying node. It is not owned by the accessor.
     void create();
 
-#ifdef REALM_DEBUG
     void verify() const;
-    void to_dot(std::ostream&, bool is_strings, StringData title = StringData()) const;
-#endif
 
 private:
     bool m_nullable;

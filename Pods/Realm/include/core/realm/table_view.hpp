@@ -23,6 +23,8 @@
 #include <realm/table.hpp>
 #include <realm/util/features.h>
 #include <realm/obj_list.hpp>
+#include <realm/list.hpp>
+#include <realm/set.hpp>
 
 namespace realm {
 
@@ -74,18 +76,14 @@ namespace realm {
 // mode, it is not modified within the transaction, and it is not used to modify data in
 // other parts of the database.
 //
-// 2. Handover
-// The second use case is "handover." The implicit rerun of the query in our first use case
+// 2. Background execution
+// This is the second use case. The implicit rerun of the query in our first use case
 // may be too costly to be acceptable on the main thread. Instead you want to run the query
 // on a worker thread, but display it on the main thread. To achieve this, you need two
-// SharedGroups locked on to the same version of the database. If you have that, you can
-// *handover* a view from one thread/SharedGroup to the other.
-//
-// Handover is a two-step procedure. First, the accessors are *exported* from one SharedGroup,
-// called the sourcing group, then it is *imported* into another SharedGroup, called the
-// receiving group. The thread associated with the sourcing SharedGroup will be
-// responsible for the export operation, while the thread associated with the receiving
-// SharedGroup will do the import operation.
+// Transactions locked on to the same version of the database. If you have that, you can
+// import_copy_of() a view from one transaction to the other. See also db.hpp for more
+// information. Technically, you can also import_copy_of into a transaction locked to a
+// different version. The imported view will automatically match the importing version.
 //
 // 3. Iterating a view and changing data
 // The third use case (and a motivator behind the imperative view) is when you want
@@ -95,7 +93,7 @@ namespace realm {
 //    promote_to_write();
 //    view = table.where().less_than(salary_column,limit).find_all();
 //    for (size_t i = 0; i < view.size(); ++i) {
-//        view.set_int(salary_column, i, limit);
+//        view[i].set(salary_column, limit);
 //        // add this to get reflective mode: view.sync_if_needed();
 //    }
 //    commit_and_continue_as_read();
@@ -116,7 +114,7 @@ namespace realm {
 //    view = table.where().less_than(salary_column,limit).find_all();
 //    for (size_t i = 0; i < view.size(); ++i) {
 //        promote_to_write();
-//        view.set_int(salary_column, i, limit);
+//        view[i].set(salary_column, limit);
 //        commit_and_continue_as_write();
 //    }
 //
@@ -129,14 +127,14 @@ namespace realm {
 //    for (size_t i = 0; i < view.size(); ++i) {
 //        promote_to_write();
 //        // add r.sync_if_needed(); to get reflective mode
-//        if (r.is_row_attached(i)) {
-//            Row r = view[i];
-//            r.set_int(salary_column, limit);
+//        if (r.is_obj_valid(i)) {
+//            auto r = view[i];
+//            view[i].set(salary_column, limit);
 //        }
 //        commit_and_continue_as_write();
 //    }
 //
-// This is safe, and we just aim for providing low level safety: is_row_attached() can tell
+// This is safe, and we just aim for providing low level safety: is_obj_valid() can tell
 // if the reference is valid, and the references in the view continue to point to the
 // same object at all times, also following implicit updates. The rest is up to the
 // application logic.
@@ -149,61 +147,46 @@ namespace realm {
 // However, these are problems that you should expect, since the activity is spread over multiple
 // transactions.
 
-
-/// A ConstTableView gives read access to the parent table, but no
-/// write access. The view itself, though, can be changed, for
-/// example, it can be sorted.
-///
-/// Note that methods are declared 'const' if, and only if they leave
-/// the view unmodified, and this is irrespective of whether they
-/// modify the parent table.
-///
-/// A ConstTableView has both copy and move semantics. See TableView
-/// for more on this.
-class ConstTableView : public ObjList {
+class TableView : public ObjList {
 public:
-
     /// Construct null view (no memory allocated).
-    ConstTableView()
-        : ObjList(&m_table_view_key_values)
-        , m_table_view_key_values(Allocator::get_default())
-    {
-    }
-
+    TableView() {}
 
     /// Construct empty view, ready for addition of row indices.
-    ConstTableView(ConstTableRef parent);
-    ConstTableView(ConstTableRef parent, Query& query, size_t start, size_t end, size_t limit);
-    ConstTableView(ConstTableRef parent, ColKey column, const ConstObj& obj);
-    ConstTableView(ConstTableRef parent, ConstLnkLstPtr link_list);
-
-    enum DistinctViewTag { DistinctView };
-    ConstTableView(DistinctViewTag, ConstTableRef parent, ColKey column_key);
+    explicit TableView(ConstTableRef parent);
+    TableView(const Query& query, size_t limit);
+    TableView(ConstTableRef parent, ColKey column, const Obj& obj);
+    TableView(LinkCollectionPtr&& collection);
 
     /// Copy constructor.
-    ConstTableView(const ConstTableView&);
+    TableView(const TableView&);
 
     /// Move constructor.
-    ConstTableView(ConstTableView&&) noexcept;
+    TableView(TableView&&) noexcept;
 
-    ConstTableView& operator=(const ConstTableView&);
-    ConstTableView& operator=(ConstTableView&&) noexcept;
+    TableView& operator=(const TableView&);
+    TableView& operator=(TableView&&) noexcept;
 
-    ConstTableView(const ConstTableView& source, Transaction* tr, PayloadPolicy mode);
-    ConstTableView(ConstTableView& source, Transaction* tr, PayloadPolicy mode);
+    TableView(TableView& source, Transaction* tr, PayloadPolicy mode);
 
-    ~ConstTableView()
+    ~TableView() {}
+
+    TableRef get_parent() const noexcept
     {
-        m_key_values->destroy(); // Shallow
+        return m_table.cast_away_const();
     }
-    // - not in use / implemented yet:   ... explicit calls to sync_if_needed() must be used
-    //                                       to get 'reflective' mode.
-    //    enum mode { mode_Reflective, mode_Imperative };
-    //    void set_operating_mode(mode);
-    //    mode get_operating_mode();
+
+    TableRef get_target_table() const final
+    {
+        return m_table.cast_away_const();
+    }
+    size_t size() const final
+    {
+        return m_key_values.size();
+    }
     bool is_empty() const noexcept
     {
-        return m_key_values->size() == 0;
+        return m_key_values.size() == 0;
     }
 
     // Tells if the table that this TableView points at still exists or has been deleted.
@@ -212,68 +195,94 @@ public:
         return bool(m_table);
     }
 
-    bool is_obj_valid(size_t row_ndx) const noexcept
+    ObjKey get_key(size_t ndx) const final
     {
-        return m_table->is_valid(ObjKey(m_key_values->get(row_ndx)));
+        return m_key_values.get(ndx);
+    }
+
+    bool is_obj_valid(size_t ndx) const noexcept
+    {
+        return m_table->is_valid(get_key(ndx));
+    }
+
+    Obj get_object(size_t ndx) const noexcept final
+    {
+        REALM_ASSERT(ndx < size());
+        ObjKey key(m_key_values.get(ndx));
+        return m_table->try_get_object(key);
     }
 
     // Get the query used to create this TableView
     // The query will have a null source table if this tv was not created from
     // a query
-    const Query& get_query() const noexcept
+    const std::optional<Query>& get_query() const noexcept
     {
         return m_query;
     }
 
-    std::unique_ptr<ConstTableView> clone() const
+    void clear();
+
+    // Change the TableView to be backed by another query
+    // only works if the TableView is already backed by a query, and both
+    // queries points to the same Table
+    void update_query(const Query& q);
+
+    std::unique_ptr<TableView> clone() const
     {
-        return std::unique_ptr<ConstTableView>(new ConstTableView(*this));
+        return std::unique_ptr<TableView>(new TableView(*this));
     }
 
-    // handover machinery entry points based on dynamic type. These methods:
+    LinkCollectionPtr clone_obj_list() const final
+    {
+        return std::unique_ptr<TableView>(new TableView(*this));
+    }
+
+    // import_copy_of() machinery entry points based on dynamic type. These methods:
     // a) forward their calls to the static type entry points.
     // b) new/delete patch data structures.
-    std::unique_ptr<ConstTableView> clone_for_handover(Transaction* tr, PayloadPolicy mode) const
+    std::unique_ptr<TableView> clone_for_handover(Transaction* tr, PayloadPolicy mode)
     {
-        std::unique_ptr<ConstTableView> retval(new ConstTableView(*this, tr, mode));
+        std::unique_ptr<TableView> retval(new TableView(*this, tr, mode));
         return retval;
     }
-    template <Action action, typename T, typename R>
-    R aggregate(ColKey column_key, size_t* result_count = nullptr, ObjKey* return_key = nullptr) const;
+    template <Action action, typename T>
+    Mixed aggregate(ColKey column_key, size_t* result_count = nullptr, ObjKey* return_key = nullptr) const;
     template <typename T>
     size_t aggregate_count(ColKey column_key, T count_target) const;
 
-    int64_t sum_int(ColKey column_key) const;
-    int64_t maximum_int(ColKey column_key, ObjKey* return_key = nullptr) const;
-    int64_t minimum_int(ColKey column_key, ObjKey* return_key = nullptr) const;
-    double average_int(ColKey column_key, size_t* value_count = nullptr) const;
     size_t count_int(ColKey column_key, int64_t target) const;
-
-    double sum_float(ColKey column_key) const;
-    float maximum_float(ColKey column_key, ObjKey* return_key = nullptr) const;
-    float minimum_float(ColKey column_key, ObjKey* return_key = nullptr) const;
-    double average_float(ColKey column_key, size_t* value_count = nullptr) const;
     size_t count_float(ColKey column_key, float target) const;
-
-    double sum_double(ColKey column_key) const;
-    double maximum_double(ColKey column_key, ObjKey* return_key = nullptr) const;
-    double minimum_double(ColKey column_key, ObjKey* return_key = nullptr) const;
-    double average_double(ColKey column_key, size_t* value_count = nullptr) const;
     size_t count_double(ColKey column_key, double target) const;
-
-    Timestamp minimum_timestamp(ColKey column_key, ObjKey* return_key = nullptr) const;
-    Timestamp maximum_timestamp(ColKey column_key, ObjKey* return_key = nullptr) const;
     size_t count_timestamp(ColKey column_key, Timestamp target) const;
+    size_t count_decimal(ColKey column_key, Decimal128 target) const;
+    size_t count_mixed(ColKey column_key, Mixed target) const;
+
+    /// Get the min element, according to whatever comparison function is
+    /// meaningful for the collection, or none if min is not supported for this type.
+    util::Optional<Mixed> min(ColKey column_key, ObjKey* return_key = nullptr) const;
+
+    /// Get the max element, according to whatever comparison function is
+    /// meaningful for the collection, or none if max is not supported for this type.
+    util::Optional<Mixed> max(ColKey column_key, ObjKey* return_key = nullptr) const;
+
+    /// For collections of arithmetic types, return the sum of all elements.
+    /// For non arithmetic types, returns none.
+    util::Optional<Mixed> sum(ColKey column_key) const;
+
+    /// For collections of arithmetic types, return the average of all elements.
+    /// For non arithmetic types, returns none.
+    util::Optional<Mixed> avg(ColKey column_key, size_t* value_count = nullptr) const;
 
     /// Search this view for the specified key. If found, the index of that row
     /// within this view is returned, otherwise `realm::not_found` is returned.
     size_t find_by_source_ndx(ObjKey key) const noexcept
     {
-        return m_key_values->find_first(key);
+        return m_key_values.find_first(key);
     }
 
     // Conversion
-    void to_json(std::ostream&, size_t link_depth = 0, std::map<std::string, std::string>* renames = nullptr) const;
+    void to_json(std::ostream&, size_t link_depth = 0, const std::map<std::string, std::string>& renames = {},
+                 JSONOutputMode mode = output_mode_json) const;
 
     // Determine if the view is 'in sync' with the underlying table
     // as well as other views used to generate the view. Note that updates
@@ -282,11 +291,14 @@ public:
     // is generated from another view (not a table), updates may cause
     // that view to be outdated, AND as the generated view depends upon
     // it, it too will become outdated.
-    bool is_in_sync() const override;
+    bool is_in_sync() const final;
 
     // A TableView is frozen if it is a) obtained from a query against a frozen table
     // and b) is synchronized (is_in_sync())
-    bool is_frozen() { return m_table->is_frozen() && is_in_sync(); }
+    bool is_frozen()
+    {
+        return m_table->is_frozen() && is_in_sync();
+    }
     // Tells if this TableView depends on a LinkList or row that has been deleted.
     bool depends_on_deleted_object() const;
 
@@ -295,13 +307,10 @@ public:
     // query used to generate the view. If derived from another view, that
     // view will be synchronized as well.
     //
-    // "live" or "reactive" views are implemented by calling sync_if_needed
+    // "live" or "reactive" views are implemented by calling sync_if_needed()
     // before any of the other access-methods whenever the view may have become
     // outdated.
-    //
-    // This will make the TableView empty and in sync with the highest possible table version
-    // if the TableView depends on an object (LinkView or row) that has been deleted.
-    void sync_if_needed() const override;
+    void sync_if_needed() const final;
     // Return the version of the source it was created from.
     TableVersions get_dependency_versions() const
     {
@@ -310,6 +319,10 @@ public:
         return ret;
     }
 
+    bool has_changed() const
+    {
+        return m_last_seen_versions != get_dependency_versions();
+    }
 
     // Sort m_key_values according to one column
     void sort(ColKey column, bool ascending = true);
@@ -317,16 +330,21 @@ public:
     // Sort m_key_values according to multiple columns
     void sort(SortDescriptor order);
 
+    // Get the number of total results which have been filtered out because a number of "LIMIT" operations have
+    // been applied. This number only applies to the last sync.
+    size_t get_num_results_excluded_by_limit() const noexcept
+    {
+        return m_limit_count;
+    }
+
     // Remove rows that are duplicated with respect to the column set passed as argument.
     // distinct() will preserve the original order of the row pointers, also if the order is a result of sort()
-    // If two rows are indentical (for the given set of distinct-columns), then the last row is removed.
+    // If two rows are identical (for the given set of distinct-columns), then the last row is removed.
     // You can call sync_if_needed() to update the distinct view, just like you can for a sorted view.
     // Each time you call distinct() it will compound on the previous calls
     void distinct(ColKey column);
     void distinct(DistinctDescriptor columns);
     void limit(LimitDescriptor limit);
-    void include(IncludeDescriptor include_paths);
-    IncludeDescriptor get_include_descriptors();
 
     // Replace the order of sort and distinct operations, bypassing manually
     // calling sort and distinct. This is a convenience method for bindings.
@@ -354,362 +372,174 @@ protected:
     // - Table::get_distinct_view()
     // - Table::get_backlink_view()
 
-    void get_dependencies(TableVersions&) const override;
+    void get_dependencies(TableVersions&) const final;
 
     void do_sync();
+    void do_sort(const DescriptorOrdering&);
 
+    mutable ConstTableRef m_table;
     // The source column index that this view contain backlinks for.
     ColKey m_source_column_key;
     // The target object that rows in this view link to.
-    ObjKey m_linked_obj_key;
-    ConstTableRef m_linked_table;
+    Obj m_linked_obj;
 
-    // If this TableView was created from a LinkList, then this reference points to it. Otherwise it's 0
-    mutable ConstLnkLstPtr m_linklist_source;
-
-    // m_distinct_column_source != ColKey() if this view was created from distinct values in a column of m_table.
-    ColKey m_distinct_column_source;
+    // If this TableView was created from an Object Collection, then this reference points to it. Otherwise it's 0
+    mutable LinkCollectionPtr m_collection_source;
 
     // Stores the ordering criteria of applied sort and distinct operations.
     DescriptorOrdering m_descriptor_ordering;
+    size_t m_limit_count = 0;
 
     // A valid query holds a reference to its table which must match our m_table.
-    // hence we can use a query with a null table reference to indicate that the view
-    // was NOT generated by a query, but follows a table directly.
-    Query m_query;
+    std::optional<Query> m_query;
     // parameters for findall, needed to rerun the query
-    size_t m_start = 0;
-    size_t m_end = size_t(-1);
     size_t m_limit = size_t(-1);
 
+    // FIXME: This class should eventually be replaced by std::vector<ObjKey>
+    // It implements a vector of ObjKey, where the elements are held in the
+    // heap (default allocator is the only option)
+    class KeyValues : public KeyColumn {
+    public:
+        KeyValues()
+            : KeyColumn(Allocator::get_default())
+        {
+        }
+        KeyValues(const KeyValues&) = delete;
+        ~KeyValues()
+        {
+            destroy();
+        }
+        void move_from(KeyValues&);
+        void copy_from(const KeyValues&);
+    };
+
     mutable TableVersions m_last_seen_versions;
+    KeyValues m_key_values;
 
 private:
-    KeyColumn m_table_view_key_values; // We should generally not use this name
     ObjKey find_first_integer(ColKey column_key, int64_t value) const;
-    template <class oper>
-    Timestamp minmax_timestamp(ColKey column_key, ObjKey* return_key) const;
-    RaceDetector m_race_detector;
+    template <Action action>
+    std::optional<Mixed> aggregate(ColKey column_key, size_t* count, ObjKey* return_key) const;
+
+    util::RaceDetector m_race_detector;
 
     friend class Table;
-    friend class ConstObj;
+    friend class Obj;
     friend class Query;
     friend class DB;
-};
-
-enum class RemoveMode { ordered, unordered };
-
-
-/// A TableView gives read and write access to the parent table.
-///
-/// A 'const TableView' cannot be changed (e.g. sorted), nor can the
-/// parent table be modified through it.
-///
-/// A TableView is both copyable and movable.
-class TableView : public ConstTableView {
-public:
-    using ConstTableView::ConstTableView;
-
-    TableView() = default;
-
-    TableRef get_parent() noexcept
-    {
-        return m_table.cast_away_const();
-    }
-
-    // Rows
-    Obj get(size_t row_ndx);
-    Obj front();
-    Obj back();
-    Obj operator[](size_t row_ndx);
-
-    /// \defgroup table_view_removes
-    //@{
-    /// \brief Remove the specified row (or rows) from the underlying table.
-    ///
-    /// remove() removes the specified row from the underlying table,
-    /// remove_last() removes the last row in the table view from the underlying
-    /// table, and clear removes all the rows in the table view from the
-    /// underlying table.
-    ///
-    /// When rows are removed from the underlying table, they will by necessity
-    /// also be removed from the table view. The order of the remaining rows in
-    /// the the table view will be maintained.
-    ///
-    /// \param row_ndx The index within this table view of the row to be removed.
-    void remove(size_t row_ndx);
-    void remove_last();
-    void clear();
-    //@}
-
-    std::unique_ptr<TableView> clone() const
-    {
-        return std::unique_ptr<TableView>(new TableView(*this));
-    }
-
-    std::unique_ptr<TableView> clone_for_handover(Transaction* tr, PayloadPolicy policy) const
-    {
-        std::unique_ptr<TableView> retval(new TableView(*this, tr, policy));
-        return retval;
-    }
-
-private:
-    TableView(TableRef parent);
-    TableView(TableRef parent, Query& query, size_t start, size_t end, size_t limit);
-    TableView(TableRef parent, ConstLnkLstPtr);
-    TableView(DistinctViewTag, TableRef parent, ColKey column_key);
-
-    friend class ConstTableView;
-    friend class Table;
-    friend class Query;
+    friend class ObjList;
     friend class LnkLst;
 };
 
 
-
-
 // ================================================================================================
-// ConstTableView Implementation:
+// TableView Implementation:
 
-inline ConstTableView::ConstTableView(ConstTableRef parent)
-    : ObjList(&m_table_view_key_values, parent) // Throws
-    , m_table_view_key_values(Allocator::get_default())
+inline TableView::TableView(ConstTableRef parent)
+    : m_table(parent) // Throws
 {
-    m_table_view_key_values.create();
+    m_key_values.create();
     if (m_table) {
         m_last_seen_versions.emplace_back(m_table->get_key(), m_table->get_content_version());
     }
 }
 
-inline ConstTableView::ConstTableView(ConstTableRef parent, Query& query, size_t start, size_t end, size_t lim)
-    : ObjList(&m_table_view_key_values, parent)
+inline TableView::TableView(const Query& query, size_t lim)
+    : m_table(query.get_table())
     , m_query(query)
-    , m_start(start)
-    , m_end(end)
     , m_limit(lim)
-    , m_table_view_key_values(Allocator::get_default())
 {
-    m_table_view_key_values.create();
+    m_key_values.create();
+    REALM_ASSERT(query.m_table);
 }
 
-inline ConstTableView::ConstTableView(ConstTableRef src_table, ColKey src_column_key, const ConstObj& obj)
-    : ObjList(&m_table_view_key_values, src_table) // Throws
+inline TableView::TableView(ConstTableRef src_table, ColKey src_column_key, const Obj& obj)
+    : m_table(src_table) // Throws
     , m_source_column_key(src_column_key)
-    , m_linked_obj_key(obj.get_key())
-    , m_linked_table(obj.get_table())
-    , m_table_view_key_values(Allocator::get_default())
+    , m_linked_obj(obj)
 {
-    m_table_view_key_values.create();
+    m_key_values.create();
     if (m_table) {
         m_last_seen_versions.emplace_back(m_table->get_key(), m_table->get_content_version());
         m_last_seen_versions.emplace_back(obj.get_table()->get_key(), obj.get_table()->get_content_version());
     }
 }
 
-inline ConstTableView::ConstTableView(DistinctViewTag, ConstTableRef parent, ColKey column_key)
-    : ObjList(&m_table_view_key_values, parent) // Throws
-    , m_distinct_column_source(column_key)
-    , m_table_view_key_values(Allocator::get_default())
+inline TableView::TableView(LinkCollectionPtr&& collection)
+    : m_table(collection->get_target_table()) // Throws
+    , m_collection_source(std::move(collection))
 {
-    REALM_ASSERT(m_distinct_column_source != ColKey());
-    m_table_view_key_values.create();
+    REALM_ASSERT(m_collection_source);
+    m_key_values.create();
     if (m_table) {
         m_last_seen_versions.emplace_back(m_table->get_key(), m_table->get_content_version());
     }
 }
 
-inline ConstTableView::ConstTableView(ConstTableRef parent, ConstLnkLstPtr link_list)
-    : ObjList(&m_table_view_key_values, parent) // Throws
-    , m_linklist_source(std::move(link_list))
-    , m_table_view_key_values(Allocator::get_default())
-{
-    REALM_ASSERT(m_linklist_source);
-    m_table_view_key_values.create();
-    if (m_table) {
-        m_last_seen_versions.emplace_back(m_table->get_key(), m_table->get_content_version());
-    }
-}
-
-inline ConstTableView::ConstTableView(const ConstTableView& tv)
-    : ObjList(&m_table_view_key_values, tv.m_table)
+inline TableView::TableView(const TableView& tv)
+    : m_table(tv.m_table)
     , m_source_column_key(tv.m_source_column_key)
-    , m_linked_obj_key(tv.m_linked_obj_key)
-    , m_linked_table(tv.m_linked_table)
-    , m_linklist_source(tv.m_linklist_source ? tv.m_linklist_source->clone() : LnkLstPtr{})
-    , m_distinct_column_source(tv.m_distinct_column_source)
+    , m_linked_obj(tv.m_linked_obj)
+    , m_collection_source(tv.m_collection_source ? tv.m_collection_source->clone_obj_list() : LinkCollectionPtr{})
     , m_descriptor_ordering(tv.m_descriptor_ordering)
     , m_query(tv.m_query)
-    , m_start(tv.m_start)
-    , m_end(tv.m_end)
     , m_limit(tv.m_limit)
     , m_last_seen_versions(tv.m_last_seen_versions)
-    , m_table_view_key_values(tv.m_table_view_key_values)
 {
+    m_key_values.copy_from(tv.m_key_values);
     m_limit_count = tv.m_limit_count;
 }
 
-inline ConstTableView::ConstTableView(ConstTableView&& tv) noexcept
-    : ObjList(&m_table_view_key_values, tv.m_table)
+inline TableView::TableView(TableView&& tv) noexcept
+    : m_table(tv.m_table)
     , m_source_column_key(tv.m_source_column_key)
-    , m_linked_obj_key(tv.m_linked_obj_key)
-    , m_linked_table(tv.m_linked_table)
-    , m_linklist_source(std::move(tv.m_linklist_source))
-    , m_distinct_column_source(tv.m_distinct_column_source)
+    , m_linked_obj(tv.m_linked_obj)
+    , m_collection_source(std::move(tv.m_collection_source))
     , m_descriptor_ordering(std::move(tv.m_descriptor_ordering))
     , m_query(std::move(tv.m_query))
-    , m_start(tv.m_start)
-    , m_end(tv.m_end)
     , m_limit(tv.m_limit)
     // if we are created from a table view which is outdated, take care to use the outdated
     // version number so that we can later trigger a sync if needed.
     , m_last_seen_versions(std::move(tv.m_last_seen_versions))
-    , m_table_view_key_values(std::move(tv.m_table_view_key_values))
 {
+    m_key_values.move_from(tv.m_key_values);
     m_limit_count = tv.m_limit_count;
 }
 
-inline ConstTableView& ConstTableView::operator=(ConstTableView&& tv) noexcept
+inline TableView& TableView::operator=(TableView&& tv) noexcept
 {
     m_table = std::move(tv.m_table);
 
-    m_table_view_key_values = std::move(tv.m_table_view_key_values);
+    m_key_values.move_from(tv.m_key_values);
     m_query = std::move(tv.m_query);
     m_last_seen_versions = tv.m_last_seen_versions;
-    m_start = tv.m_start;
-    m_end = tv.m_end;
     m_limit = tv.m_limit;
     m_limit_count = tv.m_limit_count;
     m_source_column_key = tv.m_source_column_key;
-    m_linked_obj_key = tv.m_linked_obj_key;
-    m_linked_table = tv.m_linked_table;
-    m_linklist_source = std::move(tv.m_linklist_source);
+    m_linked_obj = tv.m_linked_obj;
+    m_collection_source = std::move(tv.m_collection_source);
     m_descriptor_ordering = std::move(tv.m_descriptor_ordering);
-    m_distinct_column_source = tv.m_distinct_column_source;
 
     return *this;
 }
 
-inline ConstTableView& ConstTableView::operator=(const ConstTableView& tv)
+inline TableView& TableView::operator=(const TableView& tv)
 {
     if (this == &tv)
         return *this;
 
-    m_table_view_key_values = tv.m_table_view_key_values;
+    m_key_values.copy_from(tv.m_key_values);
 
     m_query = tv.m_query;
     m_last_seen_versions = tv.m_last_seen_versions;
-    m_start = tv.m_start;
-    m_end = tv.m_end;
     m_limit = tv.m_limit;
     m_limit_count = tv.m_limit_count;
     m_source_column_key = tv.m_source_column_key;
-    m_linked_obj_key = tv.m_linked_obj_key;
-    m_linked_table = tv.m_linked_table;
-    m_linklist_source = tv.m_linklist_source ? tv.m_linklist_source->clone() : LnkLstPtr{};
+    m_linked_obj = tv.m_linked_obj;
+    m_collection_source = tv.m_collection_source ? tv.m_collection_source->clone_obj_list() : LinkCollectionPtr{};
     m_descriptor_ordering = tv.m_descriptor_ordering;
-    m_distinct_column_source = tv.m_distinct_column_source;
 
     return *this;
-}
-
-#define REALM_ASSERT_COLUMN(column_key)                                                                              \
-    m_table.check();                                                                                                 \
-    REALM_ASSERT(m_table->colkey2ndx(column_key))
-
-#define REALM_ASSERT_ROW(row_ndx)                                                                                    \
-    m_table.check();                                                                                                 \
-    REALM_ASSERT(row_ndx < m_key_values->size())
-
-#define REALM_ASSERT_COLUMN_AND_TYPE(column_key, column_type)                                                        \
-    REALM_ASSERT_COLUMN(column_key);                                                                                 \
-    REALM_DIAG_PUSH();                                                                                               \
-    REALM_DIAG_IGNORE_TAUTOLOGICAL_COMPARE();                                                                        \
-    REALM_ASSERT(m_table->get_column_type(column_key) == column_type);                                               \
-    REALM_DIAG_POP()
-
-#define REALM_ASSERT_INDEX(column_key, row_ndx)                                                                      \
-    REALM_ASSERT_COLUMN(column_key);                                                                                 \
-    REALM_ASSERT(row_ndx < m_key_values->size())
-
-#define REALM_ASSERT_INDEX_AND_TYPE(column_key, row_ndx, column_type)                                                \
-    REALM_ASSERT_COLUMN_AND_TYPE(column_key, column_type);                                                           \
-    REALM_ASSERT(row_ndx < m_key_values->size())
-
-#define REALM_ASSERT_INDEX_AND_TYPE_TABLE_OR_MIXED(column_key, row_ndx)                                              \
-    REALM_ASSERT_COLUMN(column_key);                                                                                 \
-    REALM_DIAG_PUSH();                                                                                               \
-    REALM_DIAG_IGNORE_TAUTOLOGICAL_COMPARE();                                                                        \
-    REALM_ASSERT(m_table->get_column_type(column_key) == type_Table ||                                               \
-                 (m_table->get_column_type(column_key) == type_Mixed));                                              \
-    REALM_DIAG_POP();                                                                                                \
-    REALM_ASSERT(row_ndx < m_key_values->size())
-
-template <class T>
-ConstTableView ObjList::find_all(ColKey column_key, T value)
-{
-    ConstTableView tv(m_table);
-    auto keys = tv.m_key_values;
-    for_each([column_key, value, &keys](ConstObj& o) {
-        if (o.get<T>(column_key) == value) {
-            keys->add(o.get_key());
-        }
-        return false;
-    });
-    return tv;
-}
-
-//-------------------------- TableView, ConstTableView implementation:
-
-
-inline void TableView::remove_last()
-{
-    if (!is_empty())
-        remove(size() - 1);
-}
-
-inline TableView::TableView(TableRef parent)
-    : ConstTableView(parent)
-{
-}
-
-inline TableView::TableView(TableRef parent, Query& query, size_t start, size_t end, size_t lim)
-    : ConstTableView(parent, query, start, end, lim)
-{
-}
-
-inline TableView::TableView(TableRef parent, ConstLnkLstPtr link_list)
-    : ConstTableView(parent, std::move(link_list))
-{
-}
-
-inline TableView::TableView(ConstTableView::DistinctViewTag, TableRef parent, ColKey column_key)
-    : ConstTableView(ConstTableView::DistinctView, parent, column_key)
-{
-}
-
-// Rows
-inline Obj TableView::get(size_t row_ndx)
-{
-    REALM_ASSERT_ROW(row_ndx);
-    ObjKey key(m_key_values->get(row_ndx));
-    REALM_ASSERT(key != realm::null_key);
-    return get_parent()->get_object(key);
-}
-
-inline Obj TableView::front()
-{
-    return get(0);
-}
-
-inline Obj TableView::back()
-{
-    size_t last_row_ndx = size() - 1;
-    return get(last_row_ndx);
-}
-
-inline Obj TableView::operator[](size_t row_ndx)
-{
-    return get(row_ndx);
 }
 
 } // namespace realm

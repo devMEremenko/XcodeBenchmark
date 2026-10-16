@@ -20,6 +20,7 @@
 #define REALM_ARRAY_LIST_HPP
 
 #include <realm/array.hpp>
+#include <realm/mixed.hpp>
 
 namespace realm {
 
@@ -74,6 +75,11 @@ public:
     ref_type get(size_t ndx) const
     {
         return Array::get_as_ref(ndx);
+    }
+    Mixed get_any(size_t) const override
+    {
+        REALM_ASSERT_DEBUG(false);
+        return {};
     }
     bool is_null(size_t ndx) const
     {

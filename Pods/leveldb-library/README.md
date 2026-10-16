@@ -1,3 +1,9 @@
+> [!NOTE]
+> See this fork's CocoaPods-specific build and publishing instructions
+> [here](#cocoapods).
+
+---
+
 **LevelDB is a fast key-value storage library written at Google that provides an ordered mapping from string keys to string values.**
 
 [![Build Status](https://travis-ci.org/google/leveldb.svg?branch=master)](https://travis-ci.org/google/leveldb)
@@ -26,6 +32,12 @@ Authors: Sanjay Ghemawat (sanjay@google.com) and Jeff Dean (jeff@google.com)
   * This is not a SQL database.  It does not have a relational data model, it does not support SQL queries, and it has no support for indexes.
   * Only a single process (possibly multi-threaded) can access a particular database at a time.
   * There is no client-server support builtin to the library.  An application that needs such support will have to wrap their own server around the library.
+
+# Getting the Source
+
+```bash
+git clone --recurse-submodules https://github.com/google/leveldb.git
+```
 
 # Building
 
@@ -189,37 +201,67 @@ uncompressed blocks in memory, the read performance improves again:
 See [doc/index.md](doc/index.md) for more explanation. See
 [doc/impl.md](doc/impl.md) for a brief overview of the implementation.
 
-The public interface is in include/*.h.  Callers should not include or
+The public interface is in include/leveldb/*.h.  Callers should not include or
 rely on the details of any other header files in this package.  Those
 internal APIs may be changed without warning.
 
 Guide to header files:
 
-* **include/db.h**: Main interface to the DB: Start here
+* **include/leveldb/db.h**: Main interface to the DB: Start here.
 
-* **include/options.h**: Control over the behavior of an entire database,
+* **include/leveldb/options.h**: Control over the behavior of an entire database,
 and also control over the behavior of individual reads and writes.
 
-* **include/comparator.h**: Abstraction for user-specified comparison function.
+* **include/leveldb/comparator.h**: Abstraction for user-specified comparison function.
 If you want just bytewise comparison of keys, you can use the default
 comparator, but clients can write their own comparator implementations if they
-want custom ordering (e.g. to handle different character encodings, etc.)
+want custom ordering (e.g. to handle different character encodings, etc.).
 
-* **include/iterator.h**: Interface for iterating over data. You can get
+* **include/leveldb/iterator.h**: Interface for iterating over data. You can get
 an iterator from a DB object.
 
-* **include/write_batch.h**: Interface for atomically applying multiple
+* **include/leveldb/write_batch.h**: Interface for atomically applying multiple
 updates to a database.
 
-* **include/slice.h**: A simple module for maintaining a pointer and a
+* **include/leveldb/slice.h**: A simple module for maintaining a pointer and a
 length into some other byte array.
 
-* **include/status.h**: Status is returned from many of the public interfaces
+* **include/leveldb/status.h**: Status is returned from many of the public interfaces
 and is used to report success and various kinds of errors.
 
-* **include/env.h**:
+* **include/leveldb/env.h**:
 Abstraction of the OS environment.  A posix implementation of this interface is
-in util/env_posix.cc
+in util/env_posix.cc.
 
-* **include/table.h, include/table_builder.h**: Lower-level modules that most
-clients probably won't use directly
+* **include/leveldb/table.h, include/leveldb/table_builder.h**: Lower-level modules that most
+clients probably won't use directly.
+
+---
+
+## CocoaPods
+
+CocoaPods 1.x currently does not support libraries with C++ headers. See
+https://github.com/CocoaPods/CocoaPods/issues/5152. The workaround is to use
+the CocoaPods option `--skip-import-validation`.
+
+## Updating the podspec (assuming the library is not changing)
+
+  * Update `s.version` within `leveldb-library.podspec` to the next semantic
+    version.
+  * Locally validate the pod via:
+    ```console
+    pod spec lint leveldb-library.podspec --skip-import-validation
+    ```
+  * Open a pull request with the podspec change, and request review.
+  * Once merged, tag the `firebase-release` branch with `CocoaPods-X.Y.Z` where
+    `X.Y.Z` is the next version that was specified in the podspec.
+  * Stage the podspec for pre-releasting testing via:
+    ```console
+    pod repo push --use-json staging leveldb-library.podspec --skip-import-validation
+    ```
+  * After a nightly CI run (or a manually triggered global CI run) in the
+    firebase-ios-sdk repo indicates there are no issues with the staged pod,
+    the pod can be published with:
+    ```console
+    pod trunk push ~/.cocoapods/repos/staging/leveldb-library/{version}/leveldb-library.podspec.json --skip-import-validation
+    ```

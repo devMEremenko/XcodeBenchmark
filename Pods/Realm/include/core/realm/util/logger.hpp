@@ -19,31 +19,27 @@
 #ifndef REALM_UTIL_LOGGER_HPP
 #define REALM_UTIL_LOGGER_HPP
 
-#include <cstring>
-#include <utility>
-#include <string>
-#include <locale>
-#include <sstream>
-#include <iostream>
-
 #include <realm/util/features.h>
 #include <realm/util/thread.hpp>
 #include <realm/util/file.hpp>
 
-namespace realm {
-namespace util {
+#include <cstring>
+#include <ostream>
+#include <string>
+#include <utility>
 
+namespace realm::util {
 
-/// All Logger objects store a reference to a LevelThreshold object which it
-/// uses to efficiently query about the current log level threshold
-/// (`level_threshold.get()`). All messages logged with a level that is lower
-/// than the current threshold will be dropped. For the sake of efficiency, this
-/// test happens before the message is formatted.
+/// All messages logged with a level that is lower than the current threshold
+/// will be dropped. For the sake of efficiency, this test happens before the
+/// message is formatted. This class allows for the log level threshold to be
+/// changed over time and any subclasses will share the same reference to a
+/// log level threshold instance. The default log level threshold is
+/// Logger::Level::info and is defined by Logger::default_log_level.
 ///
-/// A logger is not inherently thread-safe, but specific implementations can be
-/// (see ThreadSafeLogger). For a logger to be thread-safe, the implementation
-/// of do_log() must be thread-safe and the referenced LevelThreshold object
-/// must have a thread-safe get() method.
+/// The Logger threshold level is intrinsically thread safe since it uses an
+/// atomic to store the value. However, the do_log() operation is not, so it
+/// is up to the subclass to ensure thread safety of the output operation.
 ///
 /// Examples:
 ///
@@ -79,39 +75,77 @@ public:
     ///             attention to efficiency.
     ///     trace   A version of 'debug' that allows for very high volume
     ///             output.
-    enum class Level { all, trace, debug, detail, info, warn, error, fatal, off };
+    // equivalent to realm_log_level_e in realm.h and must be kept in sync -
+    // this is enforced in logging.cpp.
+    enum class Level { all = 0, trace = 1, debug = 2, detail = 3, info = 4, warn = 5, error = 6, fatal = 7, off = 8 };
 
     template <class... Params>
     void log(Level, const char* message, Params&&...);
 
-    /// Shorthand for `int(level) >= int(level_threshold.get())`.
-    bool would_log(Level level) const noexcept;
+    virtual Level get_level_threshold() const noexcept
+    {
+        // Don't need strict ordering, mainly that the gets/sets are atomic
+        return m_level_threshold.load(std::memory_order_relaxed);
+    }
 
-    class LevelThreshold;
+    virtual void set_level_threshold(Level level) noexcept
+    {
+        // Don't need strict ordering, mainly that the gets/sets are atomic
+        m_level_threshold.store(level, std::memory_order_relaxed);
+    }
 
-    const LevelThreshold& level_threshold;
+    /// Shorthand for `int(level) >= int(m_level_threshold)`.
+    inline bool would_log(Level level) const noexcept
+    {
+        return static_cast<int>(level) >= static_cast<int>(get_level_threshold());
+    }
 
-    virtual ~Logger() noexcept;
+    virtual inline ~Logger() noexcept = default;
+
+    static void set_default_logger(std::shared_ptr<util::Logger>) noexcept;
+    static std::shared_ptr<util::Logger>& get_default_logger() noexcept;
+    static void set_default_level_threshold(Level level) noexcept;
+    static Level get_default_level_threshold() noexcept;
+    static const std::string_view level_to_string(Level level) noexcept;
 
 protected:
-    Logger(const LevelThreshold&) noexcept;
+    // Used by subclasses that link to a base logger
+    std::shared_ptr<Logger> m_base_logger_ptr;
 
-    static void do_log(Logger&, Level, std::string message);
+    // Shared level threshold for subclasses that link to a base logger
+    // See PrefixLogger and ThreadSafeLogger
+    std::atomic<Level>& m_level_threshold;
 
-    virtual void do_log(Level, std::string message) = 0;
+    Logger() noexcept
+        : m_level_threshold{m_threshold_base}
+        , m_threshold_base{get_default_level_threshold()}
+    {
+    }
+
+    explicit Logger(Level level) noexcept
+        : m_level_threshold{m_threshold_base}
+        , m_threshold_base{level}
+    {
+    }
+
+    explicit Logger(const std::shared_ptr<Logger>& base_logger) noexcept
+        : m_base_logger_ptr{base_logger}
+        , m_level_threshold{m_base_logger_ptr->m_level_threshold}
+    {
+    }
+
+    static void do_log(Logger&, Level, const std::string& message);
+
+    virtual void do_log(Level, const std::string& message) = 0;
 
     static const char* get_level_prefix(Level) noexcept;
 
 private:
-    struct State;
+    // Only used by the base Logger class
+    std::atomic<Level> m_threshold_base;
 
     template <class... Params>
     REALM_NOINLINE void do_log(Level, const char* message, Params&&...);
-    void log_impl(State&);
-    template <class Param, class... Params>
-    void log_impl(State&, Param&&, Params&&...);
-    template <class Param>
-    static void subst(State&, Param&&);
 };
 
 template <class C, class T>
@@ -120,58 +154,43 @@ std::basic_ostream<C, T>& operator<<(std::basic_ostream<C, T>&, Logger::Level);
 template <class C, class T>
 std::basic_istream<C, T>& operator>>(std::basic_istream<C, T>&, Logger::Level&);
 
-class Logger::LevelThreshold {
+/// A logger that writes to STDERR, which is thread safe.
+/// Since this class is a subclass of Logger, it maintains its own modifiable log
+/// level threshold.
+class StderrLogger : public Logger {
 public:
-    virtual Level get() const noexcept = 0;
-};
+    StderrLogger() noexcept = default;
 
-
-/// A root logger that is not thread-safe and allows for the log level threshold
-/// to be changed over time. The initial log level threshold is
-/// Logger::Level::info.
-class RootLogger : private Logger::LevelThreshold, public Logger {
-public:
-    void set_level_threshold(Level) noexcept;
+    StderrLogger(Level level) noexcept
+        : Logger{level}
+    {
+    }
 
 protected:
-    RootLogger();
-
-private:
-    Level m_level_threshold = Level::info;
-    Level get() const noexcept override final;
-};
-
-
-/// A logger that writes to STDERR. This logger is not thread-safe.
-///
-/// Since this class is a RootLogger, it contains modifiable a log level
-/// threshold.
-class StderrLogger : public RootLogger {
-protected:
-    void do_log(Level, std::string) override final;
+    void do_log(Level, const std::string&) final;
 };
 
 
 /// A logger that writes to a stream. This logger is not thread-safe.
 ///
-/// Since this class is a RootLogger, it contains modifiable a log level
-/// threshold.
-class StreamLogger : public RootLogger {
+/// Since this class is a subclass of Logger, it maintains its own modifiable log
+/// level threshold.
+class StreamLogger : public Logger {
 public:
     explicit StreamLogger(std::ostream&) noexcept;
 
 protected:
-    void do_log(Level, std::string) override final;
+    void do_log(Level, const std::string&) final;
 
 private:
     std::ostream& m_out;
 };
 
 
-/// A logger that writes to a file. This logger is not thread-safe.
+/// A logger that writes to a new file. This logger is not thread-safe.
 ///
-/// Since this class is a RootLogger, it contains modifiable a log level
-/// threshold.
+/// Since this class is a subclass of Logger, it maintains its own thread safe log
+/// level threshold.
 class FileLogger : public StreamLogger {
 public:
     explicit FileLogger(std::string path);
@@ -183,58 +202,101 @@ private:
     std::ostream m_out;
 };
 
-
-/// A thread-safe logger. This logger ignores the level threshold of the base
-/// logger. Instead, it introduces new a LevelThreshold object with a fixed
-/// value to achieve thread safety.
-class ThreadSafeLogger : private Logger::LevelThreshold, public Logger {
+/// A logger that appends to a file. This logger is not thread-safe.
+///
+/// Since this class is a subclass of Logger, it maintains its own thread safe log
+/// level threshold.
+class AppendToFileLogger : public StreamLogger {
 public:
-    explicit ThreadSafeLogger(Logger& base_logger, Level = Level::info);
-
-protected:
-    void do_log(Level, std::string) override final;
+    explicit AppendToFileLogger(std::string path);
+    explicit AppendToFileLogger(util::File);
 
 private:
-    const Level m_level_threshold; // Immutable for thread safety
-    Logger& m_base_logger;
-    Mutex m_mutex;
-    Level get() const noexcept override final;
+    util::File m_file;
+    util::File::Streambuf m_streambuf;
+    std::ostream m_out;
 };
 
 
-/// A logger that adds a fixed prefix to each message. This logger inherits the
-/// LevelThreshold object of the specified base logger. This logger is
-/// thread-safe if, and only if the base logger is thread-safe.
-class PrefixLogger : public Logger {
+/// A thread-safe logger where do_log() is thread safe. The log level is already
+/// thread safe since Logger uses an atomic to store the log level threshold.
+class ThreadSafeLogger : public Logger {
 public:
-    PrefixLogger(std::string prefix, Logger& base_logger) noexcept;
+    explicit ThreadSafeLogger(const std::shared_ptr<Logger>& base_logger) noexcept;
 
 protected:
-    void do_log(Level, std::string) override final;
+    void do_log(Level, const std::string&) final;
+
+private:
+    Mutex m_mutex;
+};
+
+
+/// A logger that adds a fixed prefix to each message.
+class PrefixLogger : public Logger {
+public:
+    // A PrefixLogger must initially be created from a base Logger shared_ptr
+    PrefixLogger(std::string prefix, const std::shared_ptr<Logger>& base_logger) noexcept;
+
+    // Used for chaining a series of prefixes together for logging that combines prefix values
+    PrefixLogger(std::string prefix, PrefixLogger& chained_logger) noexcept;
+
+protected:
+    void do_log(Level, const std::string&) final;
 
 private:
     const std::string m_prefix;
-    Logger& m_base_logger;
+    // The next logger in the chain for chained PrefixLoggers or the base_logger
+    Logger& m_chained_logger;
+};
+
+
+// Logger with a local log level that is independent of the parent log level threshold
+// The LocalThresholdLogger will define its own atomic log level threshold and
+// will be unaffected by changes to the log level threshold of the parent.
+// In addition, any changes to the log level threshold of this class or any
+// subsequent linked loggers will not change the log level threshold of the
+// parent. The parent will only be used for outputting log messages.
+class LocalThresholdLogger : public Logger {
+public:
+    // A shared_ptr parent must be provided for this class for log output
+    // Local log level is initialized with the current value from the provided logger
+    LocalThresholdLogger(const std::shared_ptr<Logger>&);
+
+    // A shared_ptr parent must be provided for this class for log output
+    LocalThresholdLogger(const std::shared_ptr<Logger>&, Level);
+
+    void do_log(Logger::Level level, std::string const& message) override;
+
+protected:
+    std::shared_ptr<Logger> m_chained_logger;
+};
+
+
+/// A logger that essentially performs a noop when logging functions are called
+/// The log level threshold for this logger is always Logger::Level::off and
+/// cannot be changed.
+class NullLogger : public Logger {
+public:
+    NullLogger()
+        : Logger{Level::off}
+    {
+    }
+
+    Level get_level_threshold() const noexcept override
+    {
+        return Level::off;
+    }
+
+    void set_level_threshold(Level) noexcept override {}
+
+protected:
+    // Since we don't want to log anything, do_log() does nothing
+    void do_log(Level, const std::string&) override {}
 };
 
 
 // Implementation
-
-struct Logger::State {
-    Logger::Level m_level;
-    std::string m_message;
-    std::string m_search;
-    int m_param_num = 1;
-    std::ostringstream m_formatter;
-    std::locale m_locale = std::locale::classic();
-    State(Logger::Level level, const char* s)
-        : m_level(level)
-        , m_message(s)
-        , m_search(m_message)
-    {
-        m_formatter.imbue(m_locale);
-    }
-};
 
 template <class... Params>
 inline void Logger::trace(const char* message, Params&&... params)
@@ -283,23 +345,16 @@ inline void Logger::log(Level level, const char* message, Params&&... params)
 {
     if (would_log(level))
         do_log(level, message, std::forward<Params>(params)...); // Throws
+#if REALM_DEBUG
+    else {
+        // Do the string formatting even if it won't be logged to hopefully
+        // catch invalid format strings
+        static_cast<void>(format(message, std::forward<Params>(params)...)); // Throws
+    }
+#endif
 }
 
-inline bool Logger::would_log(Level level) const noexcept
-{
-    return int(level) >= int(level_threshold.get());
-}
-
-inline Logger::~Logger() noexcept
-{
-}
-
-inline Logger::Logger(const LevelThreshold& lt) noexcept
-    : level_threshold(lt)
-{
-}
-
-inline void Logger::do_log(Logger& logger, Level level, std::string message)
+inline void Logger::do_log(Logger& logger, Level level, const std::string& message)
 {
     logger.do_log(level, std::move(message)); // Throws
 }
@@ -307,72 +362,13 @@ inline void Logger::do_log(Logger& logger, Level level, std::string message)
 template <class... Params>
 void Logger::do_log(Level level, const char* message, Params&&... params)
 {
-    State state(level, message);
-    log_impl(state, std::forward<Params>(params)...); // Throws
-}
-
-inline void Logger::log_impl(State& state)
-{
-    do_log(state.m_level, std::move(state.m_message)); // Throws
-}
-
-template <class Param, class... Params>
-inline void Logger::log_impl(State& state, Param&& param, Params&&... params)
-{
-    subst(state, std::forward<Param>(param));         // Throws
-    log_impl(state, std::forward<Params>(params)...); // Throws
-}
-
-template <class Param>
-void Logger::subst(State& state, Param&& param)
-{
-    state.m_formatter << "%" << state.m_param_num;
-    std::string key = state.m_formatter.str();
-    state.m_formatter.str(std::string());
-    std::string::size_type j = state.m_search.find(key);
-    if (j != std::string::npos) {
-        state.m_formatter << std::forward<Param>(param);
-        std::string str = state.m_formatter.str();
-        state.m_formatter.str(std::string());
-        state.m_message.replace(j, key.size(), str);
-        state.m_search.replace(j, key.size(), std::string(str.size(), '\0'));
-    }
-    ++state.m_param_num;
+    do_log(level, format(message, std::forward<Params>(params)...)); // Throws
 }
 
 template <class C, class T>
 std::basic_ostream<C, T>& operator<<(std::basic_ostream<C, T>& out, Logger::Level level)
 {
-    switch (level) {
-        case Logger::Level::all:
-            out << "all";
-            return out;
-        case Logger::Level::trace:
-            out << "trace";
-            return out;
-        case Logger::Level::debug:
-            out << "debug";
-            return out;
-        case Logger::Level::detail:
-            out << "detail";
-            return out;
-        case Logger::Level::info:
-            out << "info";
-            return out;
-        case Logger::Level::warn:
-            out << "warn";
-            return out;
-        case Logger::Level::error:
-            out << "error";
-            return out;
-        case Logger::Level::fatal:
-            out << "fatal";
-            return out;
-        case Logger::Level::off:
-            out << "off";
-            return out;
-    }
-    REALM_ASSERT(false);
+    out << Logger::level_to_string(level);
     return out;
 }
 
@@ -425,37 +421,9 @@ std::basic_istream<C, T>& operator>>(std::basic_istream<C, T>& in, Logger::Level
     return in;
 }
 
-inline void RootLogger::set_level_threshold(Level new_level_threshold) noexcept
-{
-    m_level_threshold = new_level_threshold;
-}
-
-inline RootLogger::RootLogger()
-    : Logger::LevelThreshold()
-    , Logger(static_cast<Logger::LevelThreshold&>(*this))
-{
-}
-
-inline Logger::Level RootLogger::get() const noexcept
-{
-    return m_level_threshold;
-}
-
-inline void StderrLogger::do_log(Level level, std::string message)
-{
-    std::cerr << get_level_prefix(level) << message << '\n'; // Throws
-    std::cerr.flush();                                       // Throws
-}
-
 inline StreamLogger::StreamLogger(std::ostream& out) noexcept
     : m_out(out)
 {
-}
-
-inline void StreamLogger::do_log(Level level, std::string message)
-{
-    m_out << get_level_prefix(level) << message << '\n'; // Throws
-    m_out.flush();                                       // Throws
 }
 
 inline FileLogger::FileLogger(std::string path)
@@ -474,38 +442,68 @@ inline FileLogger::FileLogger(util::File file)
 {
 }
 
-inline ThreadSafeLogger::ThreadSafeLogger(Logger& base_logger, Level threshold)
-    : Logger::LevelThreshold()
-    , Logger(static_cast<Logger::LevelThreshold&>(*this))
-    , m_level_threshold(threshold)
-    , m_base_logger(base_logger)
+inline AppendToFileLogger::AppendToFileLogger(std::string path)
+    : StreamLogger(m_out)
+    , m_file(path, util::File::mode_Append) // Throws
+    , m_streambuf(&m_file)                  // Throws
+    , m_out(&m_streambuf)                   // Throws
 {
 }
 
-inline void ThreadSafeLogger::do_log(Level level, std::string message)
-{
-    LockGuard l(m_mutex);
-    Logger::do_log(m_base_logger, level, message); // Throws
-}
-
-inline Logger::Level ThreadSafeLogger::get() const noexcept
-{
-    return m_level_threshold;
-}
-
-inline PrefixLogger::PrefixLogger(std::string prefix, Logger& base_logger) noexcept
-    : Logger(base_logger.level_threshold)
-    , m_prefix(std::move(prefix))
-    , m_base_logger(base_logger)
+inline AppendToFileLogger::AppendToFileLogger(util::File file)
+    : StreamLogger(m_out)
+    , m_file(std::move(file))
+    , m_streambuf(&m_file) // Throws
+    , m_out(&m_streambuf)  // Throws
 {
 }
 
-inline void PrefixLogger::do_log(Level level, std::string message)
+inline ThreadSafeLogger::ThreadSafeLogger(const std::shared_ptr<Logger>& base_logger) noexcept
+    : Logger(base_logger)
 {
-    Logger::do_log(m_base_logger, level, m_prefix + message); // Throws
 }
 
-} // namespace util
-} // namespace realm
+// Construct a PrefixLogger from another PrefixLogger object for chaining the prefixes on log output
+inline PrefixLogger::PrefixLogger(std::string prefix, PrefixLogger& prefix_logger) noexcept
+    // Save an alias of the base_logger shared_ptr from the passed in PrefixLogger
+    : Logger(prefix_logger.m_base_logger_ptr)
+    , m_prefix{std::move(prefix)}
+    , m_chained_logger{prefix_logger} // do_log() writes to the chained logger
+{
+}
+
+// Construct a PrefixLogger from any Logger shared_ptr (PrefixLogger, StdErrLogger, etc.)
+// The first PrefixLogger must always be created from a Logger shared_ptr, subsequent PrefixLoggers
+// created, will point back to this logger shared_ptr for referencing the level_threshold when
+// logging output.
+inline PrefixLogger::PrefixLogger(std::string prefix, const std::shared_ptr<Logger>& base_logger) noexcept
+    : Logger(base_logger) // Save an alias of the passed in base_logger shared_ptr
+    , m_prefix{std::move(prefix)}
+    , m_chained_logger{*base_logger} // do_log() writes to the chained logger
+{
+}
+
+// Construct a LocalThresholdLogger using the current log level value from the parent
+inline LocalThresholdLogger::LocalThresholdLogger(const std::shared_ptr<Logger>& base_logger)
+    : Logger(base_logger->get_level_threshold())
+    , m_chained_logger{base_logger}
+{
+}
+
+// Construct a LocalThresholdLogger using the provided log level threshold value
+inline LocalThresholdLogger::LocalThresholdLogger(const std::shared_ptr<Logger>& base_logger, Level threshold)
+    : Logger(threshold)
+    , m_chained_logger{base_logger}
+{
+    // Verify the passed in shared ptr is not null
+    REALM_ASSERT(m_chained_logger);
+}
+
+// Intended to be used to get a somewhat smaller number derived from 'this' pointer
+inline unsigned gen_log_id(void* p)
+{
+    return (size_t(p) >> 4) & 0xffff;
+}
+} // namespace realm::util
 
 #endif // REALM_UTIL_LOGGER_HPP

@@ -10,17 +10,7 @@
 #endif
 #endif
 
-#import "FirebaseStorage.h"
-#import "FIRStorage.h"
-#import "FIRStorageConstants.h"
-#import "FIRStorageDownloadTask.h"
-#import "FIRStorageListResult.h"
-#import "FIRStorageMetadata.h"
-#import "FIRStorageObservableTask.h"
-#import "FIRStorageReference.h"
-#import "FIRStorageTask.h"
-#import "FIRStorageTaskSnapshot.h"
-#import "FIRStorageUploadTask.h"
+#import "FIRStorageTypedefs.h"
 
 FOUNDATION_EXPORT double FirebaseStorageVersionNumber;
 FOUNDATION_EXPORT const unsigned char FirebaseStorageVersionString[];

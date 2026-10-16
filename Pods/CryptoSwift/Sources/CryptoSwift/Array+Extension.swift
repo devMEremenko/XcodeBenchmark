@@ -1,7 +1,7 @@
 //
 //  CryptoSwift
 //
-//  Copyright (C) 2014-2017 Marcin Krzyżanowski <marcin@krzyzanowskim.com>
+//  Copyright (C) 2014-2022 Marcin Krzyżanowski <marcin@krzyzanowskim.com>
 //  This software is provided 'as-is', without any express or implied warranty.
 //
 //  In no event will the authors be held liable for any damages arising from the use of this software.
@@ -23,6 +23,11 @@ extension Array {
   @inlinable
   var slice: ArraySlice<Element> {
     self[self.startIndex ..< self.endIndex]
+  }
+  
+  @inlinable
+  subscript (safe index: Index) -> Element? {
+    return indices.contains(index) ? self[index] : nil
   }
 }
 

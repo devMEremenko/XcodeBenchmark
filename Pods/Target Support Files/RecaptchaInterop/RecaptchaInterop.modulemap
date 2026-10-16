@@ -1,0 +1,6 @@
+framework module RecaptchaInterop {
+  umbrella header "RecaptchaInterop-umbrella.h"
+
+  export *
+  module * { export * }
+}

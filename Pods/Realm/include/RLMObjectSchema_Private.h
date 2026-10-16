@@ -20,7 +20,7 @@
 
 #import <objc/runtime.h>
 
-NS_ASSUME_NONNULL_BEGIN
+RLM_HEADER_AUDIT_BEGIN(nullability)
 
 // RLMObjectSchema private
 @interface RLMObjectSchema () {
@@ -34,16 +34,20 @@ NS_ASSUME_NONNULL_BEGIN
 // writable redeclaration
 @property (nonatomic, readwrite, copy) NSArray<RLMProperty *> *properties;
 @property (nonatomic, readwrite, assign) bool isSwiftClass;
+@property (nonatomic, readwrite, assign) BOOL isEmbedded;
+@property (nonatomic, readwrite, assign) BOOL isAsymmetric;
 
 // class used for this object schema
 @property (nonatomic, readwrite, assign) Class objectClass;
 @property (nonatomic, readwrite, assign) Class accessorClass;
 @property (nonatomic, readwrite, assign) Class unmanagedClass;
 
+@property (nonatomic, readwrite, assign) bool hasCustomEventSerialization;
+
 @property (nonatomic, readwrite, nullable) RLMProperty *primaryKeyProperty;
 
 @property (nonatomic, copy) NSArray<RLMProperty *> *computedProperties;
-@property (nonatomic, readonly) NSArray<RLMProperty *> *swiftGenericProperties;
+@property (nonatomic, readonly, nullable) NSArray<RLMProperty *> *swiftGenericProperties;
 
 // returns a cached or new schema for a given object class
 + (instancetype)schemaForObjectClass:(Class)objectClass;
@@ -68,4 +72,4 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithClassName:(NSString *)objectClassName objectClass:(Class)objectClass properties:(NSArray *)properties;
 @end
 
-NS_ASSUME_NONNULL_END
+RLM_HEADER_AUDIT_END(nullability)

@@ -1,22 +1,3 @@
-/*************************************************************************
- *
- * REALM CONFIDENTIAL
- * __________________
- *
- *  [2011] - [2015] Realm Inc
- *  All Rights Reserved.
- *
- * NOTICE:  All information contained herein is, and remains
- * the property of Realm Incorporated and its suppliers,
- * if any.  The intellectual and technical concepts contained
- * herein are proprietary to Realm Incorporated
- * and its suppliers and may be covered by U.S. and Foreign Patents,
- * patents in process, and are protected by trade secret or copyright law.
- * Dissemination of this information or reproduction of this material
- * is strictly forbidden unless prior written permission is obtained
- * from Realm Incorporated.
- *
- **************************************************************************/
 #ifndef REALM_UTIL_URI_HPP
 #define REALM_UTIL_URI_HPP
 
@@ -98,14 +79,14 @@ public:
     /// Reconstruct a URI reference from its 5 components.
     std::string recompose() const;
 
-/*
-    /// Resolve this URI reference against the specified base URI reference
-    /// according to the rules described in section 5.2 of RFC 3986.
-    ///
-    /// Be aware that a fragment identifier on the base URI reference is never
-    /// carried over to the result. This is in accordance with the RFC.
-    void resolve(const Uri& base, bool strict = true);
-*/
+    /*
+        /// Resolve this URI reference against the specified base URI reference
+        /// according to the rules described in section 5.2 of RFC 3986.
+        ///
+        /// Be aware that a fragment identifier on the base URI reference is never
+        /// carried over to the result. This is in accordance with the RFC.
+        void resolve(const Uri& base, bool strict = true);
+    */
 
     /// Remove empty URI components. Also, for URI references having either a
     /// scheme part or an authority part, replace an absent path with "/".
@@ -167,12 +148,12 @@ public:
     /// according to the specified rules.
     void set_query(const std::string&);
 
-/*
-    /// Set the query string to the serialized form of the specified set of
-    /// query parameters. This is slightly faster than set_query(q.encode())
-    /// because it avoids the validity check on the string.
-    void set_query(const Params&);
-*/
+    /*
+        /// Set the query string to the serialized form of the specified set of
+        /// query parameters. This is slightly faster than set_query(q.encode())
+        /// because it avoids the validity check on the string.
+        void set_query(const Params&);
+    */
 
     /// The specified string must either be empty or have a leading "#".
     ///
@@ -206,9 +187,7 @@ std::string uri_percent_decode(const std::string& escaped);
 
 // Implementation
 
-inline Uri::Uri()
-{
-}
+inline Uri::Uri() {}
 
 inline std::string Uri::recompose() const
 {

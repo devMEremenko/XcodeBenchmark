@@ -35,6 +35,11 @@ open class SectionModel: Section, SectionLocatable
         return items[index]
     }
     
+    /// Returns whether section contains no elements.
+    public var isEmpty: Bool {
+        items.isEmpty
+    }
+    
     /// Items for current section
     open var items = [Any]()
     
@@ -45,13 +50,11 @@ open class SectionModel: Section, SectionLocatable
     open var currentSectionIndex: Int? {
         return sectionLocationDelegate?.sectionIndex(for: self)
     }
-
-    @available(*, unavailable, message: "Please use storage.supplementaryModelProvider as a replacement.")
-    /// Supplementaries dictionary.
-    open var supplementaries = [String: [Int: Any]]()
     
-    /// Creates empty section model.
-    public init() {}
+    /// Creates section model.
+    public init(items: [Any] = []) {
+        self.items = items
+    }
     
     @available(*, deprecated, message: "Please assign items using .items property directly.")
     /// Set items of specific time to items property.

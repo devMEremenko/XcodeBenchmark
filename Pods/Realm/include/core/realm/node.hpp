@@ -24,6 +24,8 @@
 
 namespace realm {
 
+class Mixed;
+
 /// Special index value. It has various meanings depending on
 /// context. It is returned by some search functions to indicate 'not
 /// found'. It is similar in function to std::string::npos.
@@ -45,14 +47,10 @@ const size_t not_found = npos;
 /// modified.
 class ArrayParent {
 public:
-    virtual ~ArrayParent() noexcept
-    {
-    }
+    virtual ~ArrayParent() noexcept {}
 
     virtual ref_type get_child_ref(size_t child_ndx) const noexcept = 0;
     virtual void update_child_ref(size_t child_ndx, ref_type new_ref) = 0;
-    // Used only by Array::to_dot().
-    virtual std::pair<ref_type, size_t> get_to_dot_parent(size_t ndx_in_parent) const = 0;
 };
 
 /// Provides access to individual array nodes of the database.
@@ -116,9 +114,7 @@ public:
     {
     }
 
-    virtual ~Node()
-    {
-    }
+    virtual ~Node() {}
 
     /**************************** Initializers *******************************/
 
@@ -129,7 +125,6 @@ public:
         char* header = mem.get_addr();
         m_ref = mem.get_ref();
         m_data = get_data_from_header(header);
-        m_width = get_width_from_header(header);
         m_size = get_size_from_header(header);
 
         return header;
@@ -189,6 +184,11 @@ public:
     {
         return m_ndx_in_parent;
     }
+    bool has_missing_parent_update() const noexcept
+    {
+        return m_missing_parent_update;
+    }
+
     /// Get the ref of this array as known to the parent. The caller must ensure
     /// that the parent information ('pointer to parent' and 'index in parent')
     /// is correct before calling this function.
@@ -197,13 +197,6 @@ public:
         REALM_ASSERT_DEBUG(m_parent);
         ref_type ref = m_parent->get_child_ref(m_ndx_in_parent);
         return ref;
-    }
-
-    /// The meaning of 'width' depends on the context in which this
-    /// array is used.
-    size_t get_width() const noexcept
-    {
-        return m_width;
     }
 
     /***************************** modifiers *********************************/
@@ -257,13 +250,22 @@ public:
         m_ndx_in_parent = ndx;
     }
 
+    void clear_missing_parent_update()
+    {
+        m_missing_parent_update = false;
+    }
+
     /// Update the parents reference to this child. This requires, of course,
     /// that the parent information stored in this child is up to date. If the
     /// parent pointer is set to null, this function has no effect.
     void update_parent()
     {
-        if (m_parent)
+        if (m_parent) {
             m_parent->update_child_ref(m_ndx_in_parent, m_ref);
+        }
+        else {
+            m_missing_parent_update = true;
+        }
     }
 
 protected:
@@ -273,8 +275,7 @@ protected:
 
     size_t m_ref;
     Allocator& m_alloc;
-    size_t m_size = 0;         // Number of elements currently stored.
-    uint_least8_t m_width = 0; // Size of an element (meaning depend on type of array).
+    size_t m_size = 0; // Number of elements currently stored.
 
 #if REALM_ENABLE_MEMDEBUG
     // If m_no_relocation is false, then copy_on_write() will always relocate this array, regardless if it's
@@ -298,6 +299,28 @@ protected:
             do_copy_on_write();
         }
     }
+    void copy_on_write(size_t min_size)
+    {
+#if REALM_ENABLE_MEMDEBUG
+        // We want to relocate this array regardless if there is a need or not, in order to catch use-after-free bugs.
+        // Only exception is inside GroupWriter::write_group() (see explanation at the definition of the
+        // m_no_relocation
+        // member)
+        if (!m_no_relocation) {
+#else
+        if (is_read_only()) {
+#endif
+            do_copy_on_write(min_size);
+        }
+    }
+    void ensure_size(size_t min_size)
+    {
+        char* header = get_header_from_data(m_data);
+        size_t orig_capacity_bytes = get_capacity_from_header(header);
+        if (orig_capacity_bytes < min_size) {
+            do_copy_on_write(min_size);
+        }
+    }
 
     static MemRef create_node(size_t size, Allocator& alloc, bool context_flag = false, Type type = type_Normal,
                               WidthType width_type = wtype_Ignore, int width = 1);
@@ -314,13 +337,16 @@ protected:
                             WidthType width_type, int width, size_t size, size_t capacity) noexcept;
 
 private:
+    friend class NodeTree;
     ArrayParent* m_parent = nullptr;
     size_t m_ndx_in_parent = 0; // Ignored if m_parent is null.
+    bool m_missing_parent_update = false;
 
     void do_copy_on_write(size_t minimum_size = 0);
 };
 
 class Spec;
+class Mixed;
 
 /// Base class for all nodes holding user data
 class ArrayPayload {
@@ -328,13 +354,12 @@ public:
     virtual ~ArrayPayload();
     virtual void init_from_ref(ref_type) noexcept = 0;
     virtual void set_parent(ArrayParent* parent, size_t ndx_in_parent) noexcept = 0;
+    virtual Mixed get_any(size_t ndx) const = 0;
     virtual bool need_spec() const
     {
         return false;
     }
-    virtual void set_spec(Spec*, size_t) const
-    {
-    }
+    virtual void set_spec(Spec*, size_t) const {}
 };
 
 
@@ -353,6 +378,6 @@ inline void Node::init_header(char* header, bool is_inner_bptree_node, bool has_
     set_size_in_header(size, header);
     set_capacity_in_header(capacity, header);
 }
-}
+} // namespace realm
 
 #endif /* REALM_NODE_HPP */

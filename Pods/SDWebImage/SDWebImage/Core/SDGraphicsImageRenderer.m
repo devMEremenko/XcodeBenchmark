@@ -72,7 +72,9 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 - (SDGraphicsImageRendererFormatRange)preferredRange {
-#if SD_UIKIT
+#if SD_VISION
+  return (SDGraphicsImageRendererFormatRange)self.uiformat.preferredRange;
+#elif SD_UIKIT
     if (@available(iOS 10.0, tvOS 10.10, *)) {
         if (@available(iOS 12.0, tvOS 12.0, *)) {
             return (SDGraphicsImageRendererFormatRange)self.uiformat.preferredRange;
@@ -93,7 +95,9 @@
 }
 
 - (void)setPreferredRange:(SDGraphicsImageRendererFormatRange)preferredRange {
-#if SD_UIKIT
+#if SD_VISION
+  self.uiformat.preferredRange = (UIGraphicsImageRendererFormatRange)preferredRange;
+#elif SD_UIKIT
     if (@available(iOS 10.0, tvOS 10.10, *)) {
         if (@available(iOS 12.0, tvOS 12.0, *)) {
             self.uiformat.preferredRange = (UIGraphicsImageRendererFormatRange)preferredRange;
@@ -127,12 +131,20 @@
             self.uiformat = uiformat;
         } else {
 #endif
-#if SD_WATCH
+#if SD_VISION
+            CGFloat screenScale = UITraitCollection.currentTraitCollection.displayScale;
+#elif SD_WATCH
             CGFloat screenScale = [WKInterfaceDevice currentDevice].screenScale;
 #elif SD_UIKIT
             CGFloat screenScale = [UIScreen mainScreen].scale;
 #elif SD_MAC
-            CGFloat screenScale = [NSScreen mainScreen].backingScaleFactor;
+            NSScreen *mainScreen = nil;
+            if (@available(macOS 10.12, *)) {
+                mainScreen = [NSScreen mainScreen];
+            } else {
+                mainScreen = [NSScreen screens].firstObject;
+            }
+            CGFloat screenScale = mainScreen.backingScaleFactor ?: 1.0f;
 #endif
             self.scale = screenScale;
             self.opaque = NO;
@@ -161,12 +173,20 @@
             self.uiformat = uiformat;
         } else {
 #endif
-#if SD_WATCH
+#if SD_VISION
+            CGFloat screenScale = UITraitCollection.currentTraitCollection.displayScale;
+#elif SD_WATCH
             CGFloat screenScale = [WKInterfaceDevice currentDevice].screenScale;
 #elif SD_UIKIT
             CGFloat screenScale = [UIScreen mainScreen].scale;
 #elif SD_MAC
-            CGFloat screenScale = [NSScreen mainScreen].backingScaleFactor;
+            NSScreen *mainScreen = nil;
+            if (@available(macOS 10.12, *)) {
+                mainScreen = [NSScreen mainScreen];
+            } else {
+                mainScreen = [NSScreen screens].firstObject;
+            }
+            CGFloat screenScale = mainScreen.backingScaleFactor ?: 1.0f;
 #endif
             self.scale = screenScale;
             self.opaque = NO;

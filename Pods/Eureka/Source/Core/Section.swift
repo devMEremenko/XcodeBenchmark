@@ -26,7 +26,7 @@ import Foundation
 import UIKit
 
 /// The delegate of the Eureka sections.
-public protocol SectionDelegate: class {
+public protocol SectionDelegate: AnyObject {
     func rowsHaveBeenAdded(_ rows: [BaseRow], at: IndexSet)
     func rowsHaveBeenRemoved(_ rows: [BaseRow], at: IndexSet)
     func rowsHaveBeenReplaced(oldRows: [BaseRow], newRows: [BaseRow], at: IndexSet)
@@ -322,6 +322,20 @@ extension Section: RangeReplaceableCollection {
         for row in rows {
             row.willBeRemovedFromSection()
         }
+    }
+
+    public func removeAll(where shouldBeRemoved: (BaseRow) throws -> Bool) rethrows {
+        let indices = try kvoWrapper._allRows.enumerated()
+            .filter { try shouldBeRemoved($0.element)}
+            .map { $0.offset }
+        
+        var removedRows = [BaseRow]()
+        for index in indices.reversed() {
+            removedRows.append(kvoWrapper._allRows.remove(at: index))
+        }
+        kvoWrapper.rows.removeObjects(in: removedRows)
+
+        removedRows.forEach { $0.willBeRemovedFromSection() }
     }
 
     @discardableResult

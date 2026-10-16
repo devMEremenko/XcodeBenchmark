@@ -26,11 +26,14 @@
 #include <atomic>
 #include <mutex>
 
+#include <realm/util/checked_mutex.hpp>
 #include <realm/util/features.h>
 #include <realm/util/file.hpp>
+#include <realm/util/functional.hpp>
 #include <realm/util/thread.hpp>
 #include <realm/alloc.hpp>
 #include <realm/disable_sync_to_disk.hpp>
+#include <realm/version_id.hpp>
 
 namespace realm {
 
@@ -40,9 +43,9 @@ class GroupWriter;
 
 namespace util {
 struct SharedFileInfo;
-}
+} // namespace util
 
-/// Thrown by Group and SharedGroup constructors if the specified file
+/// Thrown by Group and DB constructors if the specified file
 /// (or memory buffer) does not appear to contain a valid Realm
 /// database.
 struct InvalidDatabase;
@@ -75,7 +78,7 @@ public:
     /// the SlabAlloc.
     ///
     /// \var Config::is_shared
-    /// Must be true if, and only if we are called on behalf of SharedGroup.
+    /// Must be true if, and only if we are called on behalf of DB.
     ///
     /// \var Config::read_only
     /// Open the file in read-only mode. This implies \a Config::no_create.
@@ -85,7 +88,7 @@ public:
     ///
     /// \var Config::skip_validate
     /// Skip validation of file header. In a
-    /// set of overlapping SharedGroups, only the first one (the one
+    /// set of overlapping DBs, only the first one (the one
     /// that creates/initlializes the coordination file) may validate
     /// the header, otherwise it will result in a race condition.
     ///
@@ -116,8 +119,7 @@ public:
         const char* encryption_key = nullptr;
     };
 
-    struct Retry {
-    };
+    struct Retry {};
 
     /// \brief Attach this allocator to the specified file.
     ///
@@ -129,8 +131,8 @@ public:
     /// application to ensure that the Realm file is not modified concurrently
     /// from any other thread or process.
     ///
-    /// In shared mode (when this function is called on behalf of a SharedGroup
-    /// instance), the caller (SharedGroup::do_open()) must take steps to ensure
+    /// In shared mode (when this function is called on behalf of a DB
+    /// instance), the caller (DB::do_open()) must take steps to ensure
     /// cross-process mutual exclusion.
     ///
     /// Except for \a file_path, the parameters are passed in through a
@@ -146,9 +148,24 @@ public:
     /// This can happen if the conflicting thread (or process) terminates or
     /// crashes before the next retry.
     ///
-    /// \throw util::File::AccessError
+    /// \throw FileAccessError
     /// \throw SlabAlloc::Retry
-    ref_type attach_file(const std::string& file_path, Config& cfg);
+    ref_type attach_file(const std::string& file_path, Config& cfg, util::WriteObserver* write_observer = nullptr);
+
+    /// @brief Expand or contract file
+    /// @param ref_type ref to the top array
+    /// @param cfg configuration, see attach_file
+    /// \return true if the file size was changed
+    bool align_filesize_for_mmap(size_t ref_type, Config& cfg);
+
+    /// If the attached file is in streaming form, convert it to normal form.
+    ///
+    /// This conversion must be done as part of session initialization to avoid
+    /// tricky coordination problems with other sessions at the time the
+    /// conversion is done. However, we want to do it after all validation has
+    /// completed to avoid writing to a file in an unknown format, so this
+    /// cannot be done in `attach_file()`.
+    void convert_from_streaming_form(ref_type top_ref);
 
     /// Get the attached file. Only valid when called on an allocator with
     /// an attached file.
@@ -166,9 +183,17 @@ public:
     /// \throw InvalidDatabase
     ref_type attach_buffer(const char* data, size_t size);
 
+    void init_in_memory_buffer();
+    char* translate_memory_pos(ref_type ref) const noexcept;
+
+    bool is_in_memory() const
+    {
+        return m_attach_mode == attach_Heap;
+    }
+
     /// Reads file format from file header. Must be called from within a write
     /// transaction.
-    int get_committed_file_format_version() const noexcept;
+    int get_committed_file_format_version() noexcept;
 
     bool is_file_on_streaming_form() const
     {
@@ -184,13 +209,18 @@ public:
 
     /// Detach from a previously attached file or buffer.
     ///
+    /// if 'keep_file_attached' is set, only memory mappings will
+    /// be closed, but the file descriptor remains valid for further
+    /// operations on the file. Caller must close the file explicitly
+    /// to bring the allocator to a fully detached state.
+    ///
     /// This function does not reset free space tracking. To
     /// completely reset the allocator, you must also call
     /// reset_free_space_tracking().
     ///
     /// This function has no effect if the allocator is already in the
     /// detached state (idempotency).
-    void detach() noexcept;
+    void detach(bool keep_file_attached = false) noexcept;
 
     class DetachGuard;
 
@@ -285,12 +315,6 @@ public:
     /// or one that was not attached using attach_file(). Doing so
     /// will result in undefined behavior.
     ///
-    /// The file_size argument must be aligned to a *section* boundary:
-    /// The database file is logically split into sections, each section
-    /// guaranteed to be mapped as a contiguous address range. The allocation
-    /// of memory in the file must ensure that no allocation crosses the
-    /// boundary between two sections.
-    ///
     /// Updates the memory mappings to reflect a new size for the file.
     /// Stale mappings are retained so that they remain valid for other threads,
     /// which haven't yet seen the file size change. The stale mappings are
@@ -305,9 +329,8 @@ public:
 
     /// Get an ID for the current mapping version. This ID changes whenever any part
     /// of an existing mapping is changed. Such a change requires all refs to be
-    /// retranslated to new pointers. The allocator tries to avoid this, and we
-    /// believe it will only ever occur on Windows based platforms, and when a
-    /// compatibility mapping is used to read earlier file versions.
+    /// retranslated to new pointers. This will happen whenever the reader view
+    /// is extended unless the old size was aligned to a section boundary.
     uint64_t get_mapping_version()
     {
         return m_mapping_version;
@@ -322,6 +345,11 @@ public:
     size_t get_commit_size() const
     {
         return m_commit_size;
+    }
+
+    size_t get_file_size() const
+    {
+        return (m_attach_mode == attach_SharedFile) ? size_t(m_file.get_size()) : m_virtual_file_size;
     }
 
     /// Returns the total amount of memory currently allocated in slab area
@@ -348,7 +376,6 @@ public:
 protected:
     MemRef do_alloc(const size_t size) override;
     MemRef do_realloc(ref_type, char*, size_t old_size, size_t new_size) override;
-    // FIXME: It would be very nice if we could detect an invalid free operation in debug mode
     void do_free(ref_type, char*) override;
     char* do_translate(ref_type) const noexcept override;
 
@@ -373,13 +400,16 @@ protected:
     /// If found return the position, if not return 0.
     size_t find_section_in_range(size_t start_pos, size_t free_chunk_size, size_t request_size) const noexcept;
 
+    void schedule_refresh_of_outdated_encrypted_pages();
+
 private:
     enum AttachMode {
-        attach_None,        // Nothing is attached
-        attach_OwnedBuffer, // We own the buffer (m_data = nullptr for empty buffer)
-        attach_UsersBuffer, // We do not own the buffer
-        attach_SharedFile,  // On behalf of SharedGroup
-        attach_UnsharedFile // Not on behalf of SharedGroup
+        attach_None,         // Nothing is attached
+        attach_OwnedBuffer,  // We own the buffer (m_data = nullptr for empty buffer)
+        attach_UsersBuffer,  // We do not own the buffer
+        attach_SharedFile,   // On behalf of DB
+        attach_UnsharedFile, // Not on behalf of DB
+        attach_Heap          // Memory only DB
     };
 
     // A slab is a dynamically allocated contiguous chunk of memory used to
@@ -399,9 +429,46 @@ private:
         Slab(const Slab&) = delete;
         Slab(Slab&& other) noexcept
             : ref_end(other.ref_end)
+            , addr(other.addr)
             , size(other.size)
         {
-            addr = other.addr;
+            other.addr = nullptr;
+            other.size = 0;
+            other.ref_end = 0;
+        }
+
+        Slab& operator=(const Slab&) = delete;
+        Slab& operator=(Slab&&) = delete;
+    };
+
+    struct MemBuffer {
+        char* addr;
+        size_t size;
+        ref_type start_ref;
+
+        MemBuffer()
+            : addr(nullptr)
+            , size(0)
+            , start_ref(0)
+        {
+        }
+        MemBuffer(size_t s, ref_type ref)
+            : addr(new char[s])
+            , size(s)
+            , start_ref(ref)
+        {
+        }
+        ~MemBuffer()
+        {
+            if (addr)
+                delete[] addr;
+        }
+
+        MemBuffer(MemBuffer&& other) noexcept
+            : addr(other.addr)
+            , size(other.size)
+            , start_ref(other.start_ref)
+        {
             other.addr = nullptr;
             other.size = 0;
         }
@@ -540,33 +607,19 @@ private:
 
     // Description of to-be-deleted memory mapping
     struct OldMapping {
-        OldMapping(uint64_t version, util::File::Map<char>&& map) noexcept
-            : replaced_at_version(version)
-            , mapping(std::move(map))
-        {
-        }
-        OldMapping(OldMapping&& other) noexcept
-            : replaced_at_version(other.replaced_at_version)
-            , mapping()
-        {
-            mapping = std::move(other.mapping);
-        }
-        void operator=(OldMapping&& other) noexcept
-        {
-            replaced_at_version = other.replaced_at_version;
-            mapping = std::move(other.mapping);
-        }
         uint64_t replaced_at_version;
         util::File::Map<char> mapping;
     };
     struct OldRefTranslation {
-        OldRefTranslation(uint64_t v, RefTranslation* m) noexcept
+        OldRefTranslation(uint64_t v, size_t c, RefTranslation* m) noexcept
+            : replaced_at_version(v)
+            , translation_count(c)
+            , translations(m)
         {
-            replaced_at_version = v;
-            translations = m;
         }
         uint64_t replaced_at_version;
-        RefTranslation* translations;
+        size_t translation_count;
+        std::unique_ptr<RefTranslation[]> translations;
     };
     static_assert(sizeof(Header) == 24, "Bad header size");
     static_assert(sizeof(StreamingFooter) == 16, "Bad footer size");
@@ -578,27 +631,18 @@ private:
 
     util::RaceDetector changes;
 
+    void verify_old_translations(uint64_t verify_old_translations);
+
     // mappings used by newest transactions - additional mappings may be open
     // and in use by older transactions. These translations are in m_old_mappings.
-    std::vector<util::File::Map<char>> m_mappings;
-    // The section nr for the first mapping in m_mappings. Will be 0 for newer file formats,
-    // but will be nonzero if a compatibility mapping is in use. In that case, the ref for
-    // the first mapping is the *last* section boundary in the file. Note: in this
-    // mode, the first mapping in m_mappings may overlap with the last part of the
-    // file, leading to aliasing.
-    int m_sections_in_compatibility_mapping = 0;
-    // if the file has an older format, it needs to be mapped by a single
-    // mapping. This is the compatibility mapping. As such files extend, additional
-    // mappings are added to m_mappings (above) - the compatibility mapping remains
-    // unchanged until the file is closed.
-    // Note: If the initial file is smaller than a single section, the compatibility
-    // mapping is not needed and not used. Hence, it is not possible for the first mapping
-    // in m_mappings to completely overlap the compatibility mapping. Hence, we do not
-    // need special logic to detect if the compatibility mapping can be unmapped.
-    util::File::Map<char> m_compatibility_mapping;
-
+    struct MapEntry {
+        util::File::Map<char> primary_mapping;
+        size_t lowest_possible_xover_offset = 0;
+        util::File::Map<char> xover_mapping;
+    };
+    std::vector<MapEntry> m_mappings;
     size_t m_translation_table_size = 0;
-    uint64_t m_mapping_version = 1;
+    std::atomic<uint64_t> m_mapping_version = 1;
     uint64_t m_youngest_live_version = 1;
     std::mutex m_mapping_mutex;
     util::File m_file;
@@ -615,8 +659,7 @@ private:
     // Add a translation covering a new section in the slab area. The translation is always
     // added at the end.
     void extend_fast_mapping_with_slab(char* address);
-    // Prepare the initial mapping for a file which requires use of the compatibility mapping
-    void setup_compatibility_mapping(size_t file_size);
+    void get_or_add_xover_mapping(RefTranslation& txl, size_t index, size_t offset, size_t size) override;
 
     const char* m_data = nullptr;
     size_t m_initial_section_size = 0;
@@ -643,8 +686,11 @@ private:
     typedef std::vector<Slab> Slabs;
     using Chunks = std::map<ref_type, size_t>;
     Slabs m_slabs;
+    std::vector<MemBuffer> m_virtual_file_buffer;
     Chunks m_free_read_only;
+    util::WriteObserver* m_write_observer = nullptr;
     size_t m_commit_size = 0;
+    size_t m_virtual_file_size = 0;
 
     bool m_debug_out = false;
 
@@ -656,7 +702,10 @@ private:
     /// Throws InvalidDatabase if the file is not a Realm file, if the file is
     /// corrupted, or if the specified encryption key is incorrect. This
     /// function will not detect all forms of corruption, though.
-    void validate_header(const char* data, size_t len, const std::string& path);
+    /// Returns the top_ref for the latest commit.
+    ref_type validate_header(const char* data, size_t len, const std::string& path);
+    ref_type validate_header(const Header* header, const StreamingFooter* footer, size_t size,
+                             const std::string& path, bool is_encrypted = false);
     void throw_header_exception(std::string msg, const Header& header, const std::string& path);
 
     static bool is_file_on_streaming_form(const Header& header);
@@ -669,9 +718,10 @@ private:
 
     static bool ref_less_than_slab_ref_end(ref_type, const Slab&) noexcept;
 
-    friend class Group;
     friend class DB;
+    friend class Group;
     friend class GroupWriter;
+    friend class GroupCommitter;
 };
 
 
@@ -691,9 +741,12 @@ private:
 
 // Implementation:
 
-struct InvalidDatabase : util::File::AccessError {
+struct InvalidDatabase : FileAccessError {
     InvalidDatabase(const std::string& msg, const std::string& path)
-        : util::File::AccessError(msg, path)
+        : FileAccessError(ErrorCodes::InvalidDatabase,
+                          path.empty() ? "Failed to memory buffer:" + msg
+                                       : util::format("Failed to open Realm file at path '%1': %2", path, msg),
+                          path)
     {
     }
 };

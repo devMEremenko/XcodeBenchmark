@@ -7,6 +7,7 @@
 //  License: MIT License
 //
 
+#if !os(watchOS)
 import UIKit
 
 public extension UIStoryboard {
@@ -21,3 +22,4 @@ public extension UIStoryboard {
     self.init(name: resource.name, bundle: resource.bundle)
   }
 }
+#endif

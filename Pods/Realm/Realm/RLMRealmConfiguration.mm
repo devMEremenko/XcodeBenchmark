@@ -18,16 +18,22 @@
 
 #import "RLMRealmConfiguration_Private.h"
 
+#import "RLMEvent.h"
 #import "RLMObjectSchema_Private.hpp"
 #import "RLMRealm_Private.h"
 #import "RLMSchema_Private.hpp"
 #import "RLMUtil.hpp"
 
-#import "schema.hpp"
-#import "shared_realm.hpp"
+#import <realm/object-store/schema.hpp>
+#import <realm/object-store/shared_realm.hpp>
 
 #if REALM_ENABLE_SYNC
-#import "sync/sync_config.hpp"
+#import "RLMSyncConfiguration_Private.hpp"
+#import "RLMUser_Private.hpp"
+
+#import <realm/object-store/sync/sync_manager.hpp>
+#import <realm/object-store/util/bson/bson.hpp>
+#import <realm/sync/config.hpp>
 #else
 @class RLMSyncConfiguration;
 #endif
@@ -60,10 +66,15 @@ NSString *RLMRealmPathForFile(NSString *fileName) {
 
 @implementation RLMRealmConfiguration {
     realm::Realm::Config _config;
+    RLMSyncErrorReportingBlock _manualClientResetHandler;
 }
 
-- (realm::Realm::Config&)config {
+- (realm::Realm::Config&)configRef {
     return _config;
+}
+
+- (std::string const&)path {
+    return _config.path;
 }
 
 + (instancetype)defaultConfiguration {
@@ -103,6 +114,7 @@ NSString *RLMRealmPathForFile(NSString *fileName) {
         self.fileURL = defaultRealmURL;
         self.schemaVersion = 0;
         self.cache = YES;
+        _config.automatically_handle_backlinks_in_migrations = true;
     }
 
     return self;
@@ -116,6 +128,10 @@ NSString *RLMRealmPathForFile(NSString *fileName) {
     configuration->_migrationBlock = _migrationBlock;
     configuration->_shouldCompactOnLaunch = _shouldCompactOnLaunch;
     configuration->_customSchema = _customSchema;
+    configuration->_eventConfiguration = _eventConfiguration;
+    configuration->_migrationObjectClass = _migrationObjectClass;
+    configuration->_initialSubscriptions = _initialSubscriptions;
+    configuration->_rerunOnOpen = _rerunOnOpen;
     return configuration;
 }
 
@@ -128,21 +144,6 @@ NSString *RLMRealmPathForFile(NSString *fileName) {
         [string appendFormat:@"\t%@ = %@;\n", key, description];
     }
     return [string stringByAppendingString:@"}"];
-}
-
-static void RLMNSStringToStdString(std::string &out, NSString *in) {
-    out.resize([in maximumLengthOfBytesUsingEncoding:NSUTF8StringEncoding]);
-    if (out.empty()) {
-        return;
-    }
-
-    NSUInteger size = out.size();
-    [in getBytes:&out[0]
-       maxLength:size
-      usedLength:&size
-        encoding:NSUTF8StringEncoding
-         options:0 range:{0, in.length} remainingRange:nullptr];
-    out.resize(size);
 }
 
 - (NSURL *)fileURL {
@@ -174,9 +175,17 @@ static void RLMNSStringToStdString(std::string &out, NSString *in) {
         @throw RLMException(@"In-memory identifier must not be empty");
     }
     _config.sync_config = nullptr;
+    _seedFilePath = nil;
 
     RLMNSStringToStdString(_config.path, [NSTemporaryDirectory() stringByAppendingPathComponent:inMemoryIdentifier]);
     _config.in_memory = true;
+}
+
+- (void)setSeedFilePath:(NSURL *)seedFilePath {
+    _seedFilePath = seedFilePath;
+    if (_seedFilePath) {
+        _config.in_memory = false;
+    }
 }
 
 - (NSData *)encryptionKey {
@@ -187,25 +196,14 @@ static void RLMNSStringToStdString(std::string &out, NSString *in) {
     if (NSData *key = RLMRealmValidatedEncryptionKey(encryptionKey)) {
         auto bytes = static_cast<const char *>(key.bytes);
         _config.encryption_key.assign(bytes, bytes + key.length);
-#if REALM_ENABLE_SYNC
-        if (_config.sync_config) {
-            auto& sync_encryption_key = self.config.sync_config->realm_encryption_key;
-            sync_encryption_key = std::array<char, 64>();
-            std::copy_n(_config.encryption_key.begin(), 64, sync_encryption_key->begin());
-        }
-#endif
     }
     else {
         _config.encryption_key.clear();
-#if REALM_ENABLE_SYNC
-        if (_config.sync_config)
-            _config.sync_config->realm_encryption_key = realm::util::none;
-#endif
     }
 }
 
 - (BOOL)readOnly {
-    return _config.immutable() || _config.read_only_alternative();
+    return _config.immutable() || _config.read_only();
 }
 
 static bool isSync(realm::Realm::Config const& config) {
@@ -215,6 +213,28 @@ static bool isSync(realm::Realm::Config const& config) {
     return false;
 }
 
+- (void)updateSchemaMode {
+    if (self.deleteRealmIfMigrationNeeded) {
+        if (isSync(_config)) {
+            @throw RLMException(@"Cannot set 'deleteRealmIfMigrationNeeded' when sync is enabled ('syncConfig' is set).");
+        }
+    }
+    else if (self.readOnly) {
+        _config.schema_mode = isSync(_config) ? realm::SchemaMode::ReadOnly : realm::SchemaMode::Immutable;
+    }
+    else if (isSync(_config)) {
+        if (_customSchema) {
+            _config.schema_mode = realm::SchemaMode::AdditiveExplicit;
+        }
+        else {
+            _config.schema_mode = realm::SchemaMode::AdditiveDiscovered;
+        }
+    }
+    else {
+        _config.schema_mode = realm::SchemaMode::Automatic;
+    }
+}
+
 - (void)setReadOnly:(BOOL)readOnly {
     if (readOnly) {
         if (self.deleteRealmIfMigrationNeeded) {
@@ -222,15 +242,11 @@ static bool isSync(realm::Realm::Config const& config) {
         } else if (self.shouldCompactOnLaunch) {
             @throw RLMException(@"Cannot set `readOnly` when `shouldCompactOnLaunch` is set.");
         }
-#if REALM_ENABLE_SYNC
-        if (_config.sync_config && _config.sync_config->is_partial) {
-            @throw RLMException(@"Read-only mode is not supported for query-based sync.");
-        }
-#endif
-        _config.schema_mode = isSync(_config) ? realm::SchemaMode::ReadOnlyAlternative : realm::SchemaMode::Immutable;
+        _config.schema_mode = isSync(_config) ? realm::SchemaMode::ReadOnly : realm::SchemaMode::Immutable;
     }
     else if (self.readOnly) {
-        _config.schema_mode = isSync(_config) ? realm::SchemaMode::Additive : realm::SchemaMode::Automatic;
+        _config.schema_mode = realm::SchemaMode::Automatic;
+        [self updateSchemaMode];
     }
 }
 
@@ -246,7 +262,7 @@ static bool isSync(realm::Realm::Config const& config) {
 }
 
 - (BOOL)deleteRealmIfMigrationNeeded {
-    return _config.schema_mode == realm::SchemaMode::ResetFile;
+    return _config.schema_mode == realm::SchemaMode::SoftResetFile;
 }
 
 - (void)setDeleteRealmIfMigrationNeeded:(BOOL)deleteRealmIfMigrationNeeded {
@@ -254,7 +270,10 @@ static bool isSync(realm::Realm::Config const& config) {
         if (self.readOnly) {
             @throw RLMException(@"Cannot set `deleteRealmIfMigrationNeeded` when `readOnly` is set.");
         }
-        _config.schema_mode = realm::SchemaMode::ResetFile;
+        if (isSync(_config)) {
+            @throw RLMException(@"Cannot set 'deleteRealmIfMigrationNeeded' when sync is enabled ('syncConfig' is set).");
+        }
+        _config.schema_mode = realm::SchemaMode::SoftResetFile;
     }
     else if (self.deleteRealmIfMigrationNeeded) {
         _config.schema_mode = realm::SchemaMode::Automatic;
@@ -266,7 +285,8 @@ static bool isSync(realm::Realm::Config const& config) {
 }
 
 - (void)setObjectClasses:(NSArray *)objectClasses {
-    self.customSchema = [RLMSchema schemaWithObjectClasses:objectClasses];
+    _customSchema = objectClasses ? [RLMSchema schemaWithObjectClasses:objectClasses] : nil;
+    [self updateSchemaMode];
 }
 
 - (NSUInteger)maximumNumberOfActiveVersions {
@@ -315,9 +335,7 @@ static bool isSync(realm::Realm::Config const& config) {
         if (_config.immutable()) {
             @throw RLMException(@"Cannot set `shouldCompactOnLaunch` when `readOnly` is set.");
         }
-        _config.should_compact_on_launch_function = [=](size_t totalBytes, size_t usedBytes) {
-            return shouldCompactOnLaunch(totalBytes, usedBytes);
-        };
+        _config.should_compact_on_launch_function = shouldCompactOnLaunch;
     }
     else {
         _config.should_compact_on_launch_function = nullptr;
@@ -329,10 +347,66 @@ static bool isSync(realm::Realm::Config const& config) {
     _customSchema = schema;
 }
 
-#if !REALM_ENABLE_SYNC
+- (bool)disableAutomaticChangeNotifications {
+    return !_config.automatic_change_notifications;
+}
+
+- (void)setDisableAutomaticChangeNotifications:(bool)disableAutomaticChangeNotifications {
+    _config.automatic_change_notifications = !disableAutomaticChangeNotifications;
+}
+
+#if REALM_ENABLE_SYNC
+- (void)setSyncConfiguration:(RLMSyncConfiguration *)syncConfiguration {
+    if (syncConfiguration == nil) {
+        _config.sync_config = nullptr;
+        return;
+    }
+    RLMUser *user = syncConfiguration.user;
+    if (user.state == RLMUserStateRemoved) {
+        @throw RLMException(@"Cannot set a sync configuration which has an errored-out user.");
+    }
+
+    NSAssert(user.identifier, @"Cannot call this method on a user that doesn't have an identifier.");
+    _config.in_memory = false;
+    _config.sync_config = std::make_shared<realm::SyncConfig>(syncConfiguration.rawConfiguration);
+    _config.path = syncConfiguration.path;
+
+    // The manual client reset handler doesn't exist on the raw config,
+    // so assign it here.
+    _manualClientResetHandler = syncConfiguration.manualClientResetHandler;
+
+    [self updateSchemaMode];
+}
+
+- (RLMSyncConfiguration *)syncConfiguration {
+    if (!_config.sync_config) {
+        return nil;
+    }
+    RLMSyncConfiguration* syncConfig = [[RLMSyncConfiguration alloc] initWithRawConfig:*_config.sync_config path:_config.path];
+    syncConfig.manualClientResetHandler = _manualClientResetHandler;
+    return syncConfig;
+}
+
+#else // REALM_ENABLE_SYNC
 - (RLMSyncConfiguration *)syncConfiguration {
     return nil;
 }
+#endif // REALM_ENABLE_SYNC
+
+- (realm::Realm::Config)config {
+    auto config = _config;
+    if (config.sync_config) {
+        config.sync_config = std::make_shared<realm::SyncConfig>(*config.sync_config);
+    }
+#if REALM_ENABLE_SYNC
+    if (config.sync_config) {
+        RLMSetConfigInfoForClientResetCallbacks(*config.sync_config, self);
+    }
+    if (_eventConfiguration) {
+        config.audit_config = [_eventConfiguration auditConfigWithRealmConfiguration:self];
+    }
 #endif
+    return config;
+}
 
 @end

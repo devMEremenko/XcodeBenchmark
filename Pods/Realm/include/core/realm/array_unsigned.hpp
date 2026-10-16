@@ -43,13 +43,7 @@ public:
         init_from_mem(MemRef(header, ref, m_alloc));
     }
 
-    bool update_from_parent(size_t old_baseline) noexcept;
-
-    void init_from_mem(MemRef mem) noexcept
-    {
-        Node::init_from_mem(mem);
-        set_width(m_width);
-    }
+    void update_from_parent() noexcept;
 
     size_t lower_bound(uint64_t value) const noexcept;
     size_t upper_bound(uint64_t value) const noexcept;
@@ -68,13 +62,6 @@ public:
     // override value at index
     void set(size_t ndx, uint64_t value);
 
-    void adjust(size_t ndx, int64_t diff)
-    {
-        if (diff != 0) {
-            set(ndx, get(ndx) + diff); // Throws
-        }
-    }
-
     void adjust(size_t begin, size_t end, int64_t diff)
     {
         if (diff != 0) {
@@ -86,8 +73,35 @@ public:
 
     void truncate(size_t ndx);
 
+    /// The meaning of 'width' depends on the context in which this
+    /// array is used.
+    size_t get_width() const noexcept
+    {
+        return m_width;
+    }
+
 private:
-    uint64_t m_ubound; // max number that can be stored with current m_width
+    uint_least8_t m_width = 0; // Size of an element (meaning depend on type of array).
+    uint64_t m_ubound;         // max number that can be stored with current m_width
+
+    void init_from_mem(MemRef mem) noexcept
+    {
+        Node::init_from_mem(mem);
+        set_width(get_width_from_header(get_header()));
+    }
+
+    void adjust(size_t ndx, int64_t diff)
+    {
+        if (diff != 0) {
+            set(ndx, get(ndx) + diff); // Throws
+        }
+    }
+
+    void alloc(size_t init_size, size_t new_width)
+    {
+        Node::alloc(init_size, new_width);
+        set_width(uint8_t(new_width));
+    }
 
     void set_width(uint8_t width);
     uint8_t bit_width(uint64_t value);
@@ -96,6 +110,6 @@ private:
     uint64_t _get(size_t ndx, uint8_t width) const;
 };
 
-} // namespace
+} // namespace realm
 
 #endif /* REALM_ARRAY_UNSIGNED_HPP */

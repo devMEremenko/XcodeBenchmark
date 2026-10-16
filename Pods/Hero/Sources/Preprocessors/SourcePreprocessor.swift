@@ -20,6 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#if canImport(UIKit)
+
 import UIKit
 
 class SourcePreprocessor: BasePreprocessor {
@@ -78,7 +80,12 @@ class SourcePreprocessor: BasePreprocessor {
     if view.layer.contentsScale != targetView.layer.contentsScale {
       state.contentsScale = targetView.layer.contentsScale
     }
+    if view.layer.anchorPoint != targetView.layer.anchorPoint {
+      state.anchorPoint = targetView.layer.anchorPoint
+    }
 
     context[view] = state
   }
 }
+
+#endif

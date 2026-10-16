@@ -54,7 +54,7 @@
  * copied and put under another distribution licence
  * [including the GNU Public Licence.] */
 
-#include <openssl/obj.h>
+#include <openssl_grpc/obj.h>
 
 #include "../internal.h"
 

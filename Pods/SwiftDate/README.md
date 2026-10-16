@@ -1,22 +1,14 @@
 <p align="center" >
-<img src="Documentation/SwiftDateArt.png" width=476px alt="SwiftDate" title="SwiftDate">
+  <img src="banner.png" width=300px alt="SwiftDate" title="SwiftDate">
 </p>
 
-![](https://img.shields.io/cocoapods/v/SwiftDate.svg)
-![](https://img.shields.io/cocoapods/p/SwiftDate.svg)
-![](https://img.shields.io/badge/coverage-90%25-green.svg)
-![](https://img.shields.io/badge/carthage-compatible-brightgreen.svg)
-[](https://img.shields.io/travis/malcommac/SwiftDate.svg)
+<p align="center"><strong>Toolkit to parse, validate, manipulate, compare and display dates, time & timezones in Swift.</strong></p>
 
-<p align="center" >★★ <b>Star me to follow the project! </b> ★★<br>
-Created and maintaned by <b>Daniele Margutti</b> - <a href="http://www.danielemargutti.com">www.danielemargutti.com</a>
-</p>
+## What's This?
 
-SwiftDate is the **definitive toolchain to manipulate and display dates and time zones** on all Apple platform and even on Linux and Swift Server Side frameworks like Vapor or Kitura.
+SwiftDate is the **definitive toolchain to manipulate and display dates and time zones** on all Apple platform and even on Linux and Swift Server Side frameworks like Vapor or Kitura.  
+**Over 3 million of downloads on [CocoaPods](https://cocoapods.org/pods/SwiftDate).**
 
-Over [3M of downloads](https://cocoapods.org/pods/SwiftDate) on CocoaPods
-
-### Features Highlights
 From simple date manipulation to complex business logic SwiftDate maybe the right choice for your next project.
 
 - [x] **Easy Date Parsing** (custom formats, iso8601, rss & many more)
@@ -35,7 +27,7 @@ and of course...
 
 - **IT'S TESTED!**. As 5.x the project has 90% of code coverage (want help us? write some unit tests and make a PR)
 - **IT'S FULLY DOCUMENTED!**, [both with a complete guide](/Documentation/Index.md) and with Jazzy!
-- **WE LOVE PLAYGROUND!** [Check out](/Playgrounds/SwiftDate.playground) our interative playground!
+- **WE LOVE PLAYGROUND!** [Check out](/Playgrounds/SwiftDate.playground) our interactive playground!
 
 
 ## Start with SwiftDate
@@ -101,7 +93,7 @@ let over1Year = (date3 - date2).year > 1
 <a name="3"/>
 
 ### 3. Date Comparison
-SwiftDate include an extensive set of comparison functions; you can compare two dates by granularity, check if a date is an particular day, range and pratically any other comparison you ever need.
+SwiftDate include an extensive set of comparison functions; you can compare two dates by granularity, check if a date is an particular day, range and practically any other comparison you ever need.
 
 Comparison is also available via standard math operators like (`>, >=, <, <=`).
 

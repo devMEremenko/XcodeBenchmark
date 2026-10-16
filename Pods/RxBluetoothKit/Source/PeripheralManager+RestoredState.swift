@@ -16,11 +16,14 @@ extension PeripheralManager {
     /// and all operations and events are executed and received on main thread.
     /// - parameter options: An optional dictionary containing initialization options for a peripheral manager.
     /// For more info about it please refer to [Peripheral Manager initialization options](https://developer.apple.com/documentation/corebluetooth/cbperipheralmanager/peripheral_manager_initialization_options)
+    /// - parameter cbPeripheralManager: Optional instance of `CBPeripheralManager` to be used as a `manager`. If you
+    /// skip this parameter, there will be created an instance of `CBPeripheralManager` using given queue and options. 
     /// - parameter onWillRestorePeripheralManagerState: Closure called when state has been restored.
     ///
     /// - seealso: `RestoredState`
     public convenience init(queue: DispatchQueue = .main,
                             options: [String: AnyObject]? = nil,
+                            cbPeripheralManager: CBPeripheralManager? = nil,
                             onWillRestorePeripheralManagerState: OnWillRestorePeripheralManagerState? = nil) {
         self.init(queue: queue, options: options)
         if let onWillRestorePeripheralManagerState = onWillRestorePeripheralManagerState {

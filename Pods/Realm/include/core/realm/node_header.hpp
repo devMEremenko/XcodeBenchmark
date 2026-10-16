@@ -25,6 +25,9 @@ namespace realm {
 
 const size_t max_array_size = 0x00ffffffL;            // Maximum number of elements in an array
 const size_t max_array_payload_aligned = 0x07ffffc0L; // Maximum number of bytes that the payload of an array can be
+// Even though the encoding supports arrays with size up to max_array_payload_aligned,
+// the maximum allocation size is smaller as it must fit within a memory section
+// (a contiguous virtual address range). This limitation is enforced in SlabAlloc::do_alloc().
 
 class NodeHeader {
 public:

@@ -1,9 +1,13 @@
 //
-//  DateInRegion.swift
 //  SwiftDate
+//  Parse, validate, manipulate, and display dates, time and timezones in Swift
 //
-//  Created by Daniele Margutti on 06/06/2018.
-//  Copyright © 2018 SwiftDate. All rights reserved.
+//  Created by Daniele Margutti
+//   - Web: https://www.danielemargutti.com
+//   - Twitter: https://twitter.com/danielemargutti
+//   - Mail: hello@danielemargutti.com
+//
+//  Copyright © 2019 Daniele Margutti. Licensed under MIT License.
 //
 
 import Foundation
@@ -161,14 +165,14 @@ public struct DateInRegion: DateRepresentable, Decodable, Encodable, CustomStrin
 	///
 	/// - Returns: Date instance.
 	public static func past() -> DateInRegion {
-		return DateInRegion(Date.distantPast, region: SwiftDate.defaultRegion)
+        DateInRegion(Date.distantPast, region: SwiftDate.defaultRegion)
 	}
 
 	/// Return a date in the distant future.
 	///
 	/// - Returns: Date instance.
 	public static func future() -> DateInRegion {
-		return DateInRegion(Date.distantFuture, region: SwiftDate.defaultRegion)
+        DateInRegion(Date.distantFuture, region: SwiftDate.defaultRegion)
 	}
 
 	// MARK: - Codable Support

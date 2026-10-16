@@ -7,6 +7,7 @@
 //  License: MIT License
 //
 
+#if !os(watchOS)
 import Foundation
 import UIKit
 
@@ -22,3 +23,4 @@ public extension UIStoryboard {
     return self.instantiateViewController(withIdentifier: resource.identifier) as? ViewControllerResource.ViewControllerType
   }
 }
+#endif

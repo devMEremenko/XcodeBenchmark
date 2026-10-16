@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#import <Foundation/Foundation.h>
+
 /**
  * To use GoogleMapsDemos, please register an API Key for your application and set it here. Your
  * API Key should be kept private.

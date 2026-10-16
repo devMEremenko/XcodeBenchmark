@@ -156,8 +156,10 @@ static NSString *VK_ACCESS_TOKEN_DEFAULTS_KEY = @"VK_ACCESS_TOKEN_DEFAULTS_KEY_D
     instance.permissions = [permissionsSet copy];
     permissions = [permissionsSet allObjects];
 
+    BOOL providersEnabled = !(options & VKAuthorizationOptionsDisableProviders);
+
     BOOL vkApp = [self vkAppMayExists]
-            && instance.authState == VKAuthorizationInitialized;
+            && instance.authState == VKAuthorizationInitialized && providersEnabled;
 
     BOOL safariEnabled = !(options & VKAuthorizationOptionsDisableSafariController);
 
@@ -251,11 +253,11 @@ static NSString *VK_ACCESS_TOKEN_DEFAULTS_KEY = @"VK_ACCESS_TOKEN_DEFAULTS_KEY_D
 
     VKSdk *instance = [self instance];
 
-    void (^hideViews)() = ^{
+    void (^hideViews)(void) = ^{
         if (instance.presentedSafariViewController) {
             UIViewController *safariVC = instance.presentedSafariViewController;
             [safariVC vks_viewControllerWillDismiss];
-            void (^dismissBlock)() = ^{
+            void (^dismissBlock)(void) = ^{
                 [safariVC vks_viewControllerDidDismiss];
             };
             if (safariVC.isBeingDismissed) {
@@ -316,7 +318,7 @@ static NSString *VK_ACCESS_TOKEN_DEFAULTS_KEY = @"VK_ACCESS_TOKEN_DEFAULTS_KEY_D
     NSDictionary *parametersDict = [VKUtil explodeQueryString:parametersString];
     BOOL inAppCheck = [[passedUrl host] isEqual:@"oauth.vk.com"];
 
-    void (^throwError)() = ^{
+    void (^throwError)(void) = ^{
         VKError *error = [VKError errorWithQuery:parametersDict];
         if (!validation) {
             notifyAuthorization(nil, error);
@@ -446,7 +448,7 @@ static NSString *VK_ACCESS_TOKEN_DEFAULTS_KEY = @"VK_ACCESS_TOKEN_DEFAULTS_KEY_D
             }
             wakeUpBlock(instance.authState, error);
 
-        }                    trackVisitor:firstCall token:token];
+        } trackVisitor:firstCall token:token];
 
     }
 
@@ -519,7 +521,7 @@ static NSString *VK_ACCESS_TOKEN_DEFAULTS_KEY = @"VK_ACCESS_TOKEN_DEFAULTS_KEY_D
         if (infoCallback) {
             infoCallback(user, [VK_ENSURE_NUM(response.json[@"permissions"]) integerValue], nil);
         }
-    }                errorBlock:^(NSError *error) {
+    } errorBlock:^(NSError *error) {
         if (infoCallback) {
             infoCallback(nil, 0, error);
         }

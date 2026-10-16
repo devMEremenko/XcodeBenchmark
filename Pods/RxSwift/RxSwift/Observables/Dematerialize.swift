@@ -13,7 +13,7 @@ extension ObservableType where Element: EventConvertible {
      - returns: The dematerialized observable sequence.
      */
     public func dematerialize() -> Observable<Element.Element> {
-        return Dematerialize(source: self.asObservable())
+        Dematerialize(source: self.asObservable())
     }
 
 }
@@ -37,15 +37,15 @@ private final class DematerializeSink<T: EventConvertible, Observer: ObserverTyp
 }
 
 final private class Dematerialize<T: EventConvertible>: Producer<T.Element> {
-    private let _source: Observable<T>
+    private let source: Observable<T>
 
     init(source: Observable<T>) {
-        self._source = source
+        self.source = source
     }
 
     override func run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == T.Element {
         let sink = DematerializeSink<T, Observer>(observer: observer, cancel: cancel)
-        let subscription = self._source.subscribe(sink)
+        let subscription = self.source.subscribe(sink)
         return (sink: sink, subscription: subscription)
     }
 }

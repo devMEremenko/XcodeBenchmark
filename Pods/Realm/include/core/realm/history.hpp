@@ -20,16 +20,12 @@
 #define REALM_HISTORY_HPP
 
 #include <memory>
-#include <string>
-
-#include <realm/replication.hpp>
-
 
 namespace realm {
 
-std::unique_ptr<Replication> make_in_realm_history(const std::string& realm_path);
+class Replication;
+std::unique_ptr<Replication> make_in_realm_history();
 
 } // namespace realm
-
 
 #endif // REALM_HISTORY_HPP

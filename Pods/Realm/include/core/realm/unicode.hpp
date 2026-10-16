@@ -148,11 +148,12 @@ bool equal_case_fold(StringData haystack, const char* needle_upper, const char* 
 /// both equal to \a needle_size. Returns haystack.size() if the
 /// needle was not found.
 size_t search_case_fold(StringData haystack, const char* needle_upper, const char* needle_lower, size_t needle_size);
-    
+
 /// Assumes that the sizes of \a needle_upper and \a needle_lower are
 /// both equal to \a needle_size. Returns false if the
 /// needle was not found.
-bool contains_ins(StringData haystack, const char* needle_upper, const char* needle_lower, size_t needle_size, const std::array<uint8_t, 256> &charmap);
+bool contains_ins(StringData haystack, const char* needle_upper, const char* needle_lower, size_t needle_size,
+                  const std::array<uint8_t, 256>& charmap);
 
 /// Case insensitive wildcard matching ('?' for single char, '*' for zero or more chars)
 bool string_like_ins(StringData text, StringData pattern) noexcept;

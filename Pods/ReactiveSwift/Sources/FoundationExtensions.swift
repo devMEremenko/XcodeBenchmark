@@ -141,3 +141,10 @@ extension DispatchTimeInterval {
 		return result
 	}
 }
+
+extension TimeInterval {
+
+	internal var dispatchTimeInterval: DispatchTimeInterval {
+		.nanoseconds(Int(self * TimeInterval(NSEC_PER_SEC)))
+	}
+}

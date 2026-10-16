@@ -68,17 +68,17 @@
     return captchaFrame;
 }
 
-- (void)willAnimateRotationToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation duration:(NSTimeInterval)duration {
-    [super willAnimateRotationToInterfaceOrientation:toInterfaceOrientation duration:duration];
-    CGSize screenSize = [UIScreen mainScreen].bounds.size;
-    if (UIInterfaceOrientationIsLandscape(toInterfaceOrientation)) {
-        screenSize = CGSizeMake(MAX(screenSize.width, screenSize.height), MIN(screenSize.width, screenSize.height));
-    } else {
-        screenSize = CGSizeMake(MIN(screenSize.width, screenSize.height), MAX(screenSize.width, screenSize.height));
-    }
-
-
-    self.captchaView.frame = [self captchaFrameForScreenSize:screenSize];
+- (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
+    [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
+    [coordinator animateAlongsideTransition:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
+        CGSize screenSize = [UIScreen mainScreen].bounds.size;
+        if (UIInterfaceOrientationIsLandscape(UIApplication.sharedApplication.statusBarOrientation)) {
+            screenSize = CGSizeMake(MAX(screenSize.width, screenSize.height), MIN(screenSize.width, screenSize.height));
+        } else {
+            screenSize = CGSizeMake(MIN(screenSize.width, screenSize.height), MAX(screenSize.width, screenSize.height));
+        }
+        self.captchaView.frame = [self captchaFrameForScreenSize:screenSize];
+    } completion:nil];
 }
 
 - (void)presentIn:(UIViewController *)controller {

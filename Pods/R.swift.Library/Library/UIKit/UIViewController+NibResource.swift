@@ -7,6 +7,7 @@
 //  License: MIT License
 //
 
+#if !os(watchOS)
 import Foundation
 import UIKit
 
@@ -22,3 +23,4 @@ public extension UIViewController {
     self.init(nibName: nib.name, bundle: nib.bundle)
   }
 }
+#endif

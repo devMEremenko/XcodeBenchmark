@@ -135,21 +135,28 @@ public extension CGAffineTransform {
 
 public extension Node {
 
-    func toNativeImage(size: Size, layout: ContentLayout = .of()) -> MImage {
+    func toNativeImage(size: Size, layout: ContentLayout = .of(), scale: CGFloat = 0.0) throws -> MImage {
         let renderer = RenderUtils.createNodeRenderer(self, view: nil)
         let rect = size.rect()
 
-        MGraphicsBeginImageContextWithOptions(size.toCG(), false, 1)
+        MGraphicsBeginImageContextWithOptions(size.toCG(), false, scale)
         let ctx = MGraphicsGetCurrentContext()!
         ctx.clear(rect.toCG())
 
         let transform = LayoutHelper.calcTransform(self, layout, size)
         ctx.concatenate(transform.toCG())
         renderer.render(in: ctx, force: false, opacity: self.opacity)
+        
+        defer {
+            MGraphicsEndImageContext()
+            renderer.dispose()
+        }
 
-        let img = MGraphicsGetImageFromCurrentImageContext()
-        MGraphicsEndImageContext()
-        return img!
+        guard let img = MGraphicsGetImageFromCurrentImageContext() else {
+            throw CommonError.invalidImageContext
+        }
+
+        return img
     }
 
 }

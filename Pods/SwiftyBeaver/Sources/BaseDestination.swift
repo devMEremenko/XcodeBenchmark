@@ -49,6 +49,9 @@ open class BaseDestination: Hashable, Equatable {
     /// set custom log level colors for each level
     open var levelColor = LevelColor()
 
+    /// set custom calendar for dateFormatter
+    open var calendar = Calendar.current
+
     public struct LevelString {
         public var verbose = "VERBOSE"
         public var debug = "DEBUG"
@@ -145,8 +148,8 @@ open class BaseDestination: Hashable, Equatable {
         } else {
             s = text
         }
-        let numStr = s.prefix { $0 >= "0" && $0 <= "9" }
-        if let num = Int(String(numStr)) {
+        let numStr = String(s.prefix { $0 >= "0" && $0 <= "9" })
+        if let num = Int(numStr) {
             return (sign * num, (sign == -1 ? 1 : 0) + numStr.count)
         } else {
             return (0, 0)
@@ -340,6 +343,7 @@ open class BaseDestination: Hashable, Equatable {
         if !timeZone.isEmpty {
             formatter.timeZone = TimeZone(abbreviation: timeZone)
         }
+        formatter.calendar = calendar
         formatter.dateFormat = dateFormat
         //let dateStr = formatter.string(from: NSDate() as Date)
         let dateStr = formatter.string(from: Date())

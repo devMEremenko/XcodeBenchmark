@@ -76,7 +76,7 @@ open class BaseSupplementaryStorage: NSObject, SupplementaryStorage {
 }
 
 /// `StorageUpdating` protocol is used to transfer data storage updates.
-public protocol StorageUpdating : class
+public protocol StorageUpdating : AnyObject
 {
     /// Transfers data storage updates.
     ///

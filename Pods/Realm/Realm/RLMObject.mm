@@ -29,7 +29,7 @@
 #import "RLMRealm_Private.hpp"
 #import "RLMSchema_Private.h"
 
-#import "object.hpp"
+#import <realm/object-store/object.hpp>
 
 // We declare things in RLMObject which are actually implemented in RLMObjectBase
 // for documentation's sake, which leads to -Wunimplemented-method warnings.
@@ -156,17 +156,33 @@
     return RLMObjectFreeze(self);
 }
 
+- (instancetype)thaw {
+    return RLMObjectThaw(self);
+}
+
 - (BOOL)isFrozen {
     return _realm.isFrozen;
 }
 
 - (RLMNotificationToken *)addNotificationBlock:(RLMObjectChangeBlock)block {
-    return RLMObjectAddNotificationBlock(self, block, nil);
+    return RLMObjectAddNotificationBlock(self, block, nil, nil);
 }
 
 - (RLMNotificationToken *)addNotificationBlock:(RLMObjectChangeBlock)block
                                          queue:(nonnull dispatch_queue_t)queue {
-    return RLMObjectAddNotificationBlock(self, block, queue);
+    return RLMObjectAddNotificationBlock(self, block, nil, queue);
+}
+
+- (RLMNotificationToken *)addNotificationBlock:(RLMObjectChangeBlock)block
+                                      keyPaths:(NSArray<NSString *> *)keyPaths {
+    return RLMObjectAddNotificationBlock(self, block, keyPaths, nil);
+}
+
+- (RLMNotificationToken *)addNotificationBlock:(RLMObjectChangeBlock)block
+                                      keyPaths:(NSArray<NSString *> *)keyPaths
+                                         queue:(dispatch_queue_t)queue {
+    return RLMObjectAddNotificationBlock(self, block, keyPaths, queue);
+
 }
 
 + (NSString *)className {

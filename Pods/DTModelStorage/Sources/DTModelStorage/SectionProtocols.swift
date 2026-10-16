@@ -26,13 +26,13 @@
 import Foundation
 
 /// Identifies index of section in storage
-public protocol SectionLocationIdentifyable : class {
+public protocol SectionLocationIdentifyable : AnyObject {
     /// Returns section index for section, or nil if section was not found.
     func sectionIndex(for: Section) -> Int?
 }
 
 /// Allows access to supplementaries for specific section
-public protocol SectionLocatable : class {
+public protocol SectionLocatable : AnyObject {
     
     /// Section index for current section
     var currentSectionIndex: Int? { get }

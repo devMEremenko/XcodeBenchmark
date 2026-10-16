@@ -19,14 +19,16 @@
 #ifndef REALM_ARRAY_BASIC_HPP
 #define REALM_ARRAY_BASIC_HPP
 
-#include <realm/array.hpp>
+#include <realm/node.hpp>
+#include <realm/null.hpp>
+#include <realm/query_conditions.hpp>
 
 namespace realm {
 
 /// A BasicArray can currently only be used for simple unstructured
 /// types like float, double.
 template <class T>
-class BasicArray : public Array, public ArrayPayload {
+class BasicArray : public Node, public ArrayPayload {
 public:
     using value_type = T;
 
@@ -37,17 +39,23 @@ public:
 
     static T default_value(bool)
     {
-        return T(0.0);
+        return T{};
     }
 
     void init_from_ref(ref_type ref) noexcept override
     {
-        Array::init_from_ref(ref);
+        Node::init_from_mem(MemRef(ref, m_alloc));
     }
 
     void set_parent(ArrayParent* parent, size_t ndx_in_parent) noexcept override
     {
-        Array::set_parent(parent, ndx_in_parent);
+        Node::set_parent(parent, ndx_in_parent);
+    }
+
+    void init_from_parent() noexcept
+    {
+        ref_type ref = get_ref_from_parent();
+        init_from_ref(ref);
     }
 
     // Disable copying, this is not allowed.
@@ -77,30 +85,21 @@ public:
     void clear();
 
     size_t find_first(T value, size_t begin = 0, size_t end = npos) const;
-    void find_all(IntegerColumn* result, T value, size_t add_offset = 0, size_t begin = 0, size_t end = npos) const;
-
-    size_t count(T value, size_t begin = 0, size_t end = npos) const;
-    bool maximum(T& result, size_t begin = 0, size_t end = npos) const;
-    bool minimum(T& result, size_t begin = 0, size_t end = npos) const;
-
-    /// Compare two arrays for equality.
-    bool compare(const BasicArray<T>&) const;
 
     /// Get the specified element without the cost of constructing an
     /// array instance. If an array instance is already available, or
     /// you need to get multiple values, then this method will be
     /// slower.
     static T get(const char* header, size_t ndx) noexcept;
-
-    size_t lower_bound(T value) const noexcept;
-    size_t upper_bound(T value) const noexcept;
+    Mixed get_any(size_t ndx) const override
+    {
+        return Mixed(get(ndx));
+    }
 
     /// Construct a basic array of the specified size and return just
     /// the reference to the underlying memory. All elements will be
     /// initialized to `T()`.
     static MemRef create_array(size_t size, Allocator&);
-
-    static MemRef create_array(Array::Type leaf_type, bool context_flag, size_t size, T value, Allocator&);
 
     /// Create a new empty array and attach this accessor to it. This
     /// does not modify the parent reference information of this
@@ -108,20 +107,13 @@ public:
     ///
     /// Note that the caller assumes ownership of the allocated
     /// underlying node. It is not owned by the accessor.
-    void create(Array::Type = type_Normal, bool context_flag = false);
+    void create(Node::Type = type_Normal, bool context_flag = false);
 
-#ifdef REALM_DEBUG
-    void to_dot(std::ostream&, StringData title = StringData()) const;
-#endif
+    void verify() const {}
 
 private:
-    size_t find(T target, size_t begin, size_t end) const;
-
     size_t calc_byte_len(size_t count, size_t width) const override;
     virtual size_t calc_item_count(size_t bytes, size_t width) const noexcept override;
-
-    template <bool find_max>
-    bool minmax(T& result, size_t begin, size_t end) const;
 
     /// Calculate the total number of bytes needed for a basic array
     /// with the specified number of elements. This includes the size
@@ -135,9 +127,9 @@ class BasicArrayNull : public BasicArray<T> {
 public:
     using BasicArray<T>::BasicArray;
 
-    static T default_value(bool nullable)
+    static util::Optional<T> default_value(bool nullable)
     {
-        return nullable ? null::get_null_float<T>() : T(0.0);
+        return nullable ? util::Optional<T>() : util::Optional<T>(T{});
     }
     void set(size_t ndx, util::Optional<T> value)
     {
@@ -178,6 +170,10 @@ public:
         T val = BasicArray<T>::get(ndx);
         return null::is_null_float(val) ? util::none : util::make_optional(val);
     }
+    Mixed get_any(size_t ndx) const override
+    {
+        return Mixed(get(ndx));
+    }
     size_t find_first(util::Optional<T> value, size_t begin = 0, size_t end = npos) const
     {
         if (value) {
@@ -187,20 +183,8 @@ public:
             return find_first_null(begin, end);
         }
     }
-    void find_all(IntegerColumn* result, util::Optional<T> value, size_t add_offset = 0, size_t begin = 0,
-                  size_t end = npos) const
-    {
-        if (value) {
-            return BasicArray<T>::find_all(result, *value, add_offset, begin, end);
-        }
-        else {
-            return find_all_null(result, add_offset, begin, end);
-        }
-    }
     size_t find_first_null(size_t begin = 0, size_t end = npos) const;
-    void find_all_null(IntegerColumn* result, size_t add_offset = 0, size_t begin = 0, size_t end = npos) const;
 };
-
 
 // Class typedefs for BasicArray's: ArrayFloat and ArrayDouble
 typedef BasicArray<float> ArrayFloat;

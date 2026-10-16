@@ -70,6 +70,7 @@ public:
     void insert(size_t ndx, BinaryData value);
     BinaryData get(size_t ndx) const;
     BinaryData get_at(size_t ndx, size_t& pos) const;
+    Mixed get_any(size_t ndx) const override;
     bool is_null(size_t ndx) const;
     void erase(size_t ndx);
     void move(ArrayBinary& dst, size_t ndx);

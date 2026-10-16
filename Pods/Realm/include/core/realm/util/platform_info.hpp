@@ -1,22 +1,3 @@
-/*************************************************************************
- *
- * REALM CONFIDENTIAL
- * __________________
- *
- *  [2011] - [2015] Realm Inc
- *  All Rights Reserved.
- *
- * NOTICE:  All information contained herein is, and remains
- * the property of Realm Incorporated and its suppliers,
- * if any.  The intellectual and technical concepts contained
- * herein are proprietary to Realm Incorporated
- * and its suppliers and may be covered by U.S. and Foreign Patents,
- * patents in process, and are protected by trade secret or copyright law.
- * Dissemination of this information or reproduction of this material
- * is strictly forbidden unless prior written permission is obtained
- * from Realm Incorporated.
- *
- **************************************************************************/
 #ifndef REALM_UTIL_PLATFORM_INFO_HPP
 #define REALM_UTIL_PLATFORM_INFO_HPP
 
@@ -45,8 +26,6 @@ struct PlatformInfo {
 void get_platform_info(PlatformInfo&);
 
 
-
-
 // Implementation
 
 inline std::string get_platform_info()
@@ -57,6 +36,45 @@ inline std::string get_platform_info()
             info.machine); // Throws
 }
 
+inline std::string get_library_platform()
+{
+#if REALM_ANDROID
+    return "Android";
+#elif REALM_WINDOWS
+    return "Windows";
+#elif REALM_UWP
+    return "UWP";
+#elif REALM_MACCATALYST // test Catalyst first because it's a subset of iOS
+    return "Mac Catalyst";
+#elif REALM_IOS
+    return "iOS";
+#elif REALM_TVOS
+    return "tvOS";
+#elif REALM_WATCHOS
+    return "watchOS";
+#elif REALM_PLATFORM_APPLE
+    return "macOS";
+#elif REALM_LINUX
+    return "Linux";
+#endif
+
+    return "unknown";
+}
+
+inline std::string get_library_cpu_arch()
+{
+#if REALM_ARCHITECTURE_ARM32
+    return "arm";
+#elif REALM_ARCHITECTURE_ARM64
+    return "arm64";
+#elif REALM_ARCHITECTURE_X86_32
+    return "x86";
+#elif REALM_ARCHITECTURE_X86_64
+    return "x86_64";
+#endif
+
+    return "unknown";
+}
 
 } // namespace util
 } // namespace realm

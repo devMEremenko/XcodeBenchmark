@@ -22,10 +22,7 @@
 #include <cerrno>
 #include <system_error>
 
-
-namespace realm {
-namespace util {
-namespace error {
+namespace realm::util::error {
 
 enum basic_system_errors {
     /// Address family not supported by protocol.
@@ -54,10 +51,9 @@ enum basic_system_errors {
 };
 
 std::error_code make_error_code(basic_system_errors) noexcept;
+const std::error_category& basic_system_error_category();
 
-} // namespace error
-} // namespace util
-} // namespace realm
+} // namespace realm::util::error
 
 namespace std {
 
@@ -69,21 +65,14 @@ public:
 
 } // namespace std
 
-namespace realm {
-namespace util {
-
-std::error_code make_basic_system_error_code(int) noexcept;
-
-
-// implementation
-
+namespace realm::util {
 inline std::error_code make_basic_system_error_code(int err) noexcept
 {
     using namespace error;
     return make_error_code(basic_system_errors(err));
 }
 
-} // namespace util
-} // namespace realm
+const std::error_category& basic_system_error_category() noexcept;
+} // namespace realm::util
 
 #endif // REALM_UTIL_BASIC_SYSTEM_ERRORS_HPP

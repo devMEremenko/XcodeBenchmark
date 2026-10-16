@@ -128,7 +128,7 @@ public extension NetworkLoggerPlugin {
         public var output: OutputType
         public var logOptions: LogOptions
 
-        /// The designated way to instanciate a Configuration.
+        /// The designated way to instantiate a Configuration.
         ///
         /// - Parameters:
         ///   - formatter: An object holding all formatter closures available for customization.
@@ -200,7 +200,7 @@ public extension NetworkLoggerPlugin.Configuration {
         public var requestData: DataFormatterType
         public var responseData: DataFormatterType
 
-        /// The designated way to instanciate a Formatter.
+        /// The designated way to instantiate a Formatter.
         ///
         /// - Parameters:
         ///   - entry: The closure formatting a message into a new log entry.
@@ -233,5 +233,17 @@ public extension NetworkLoggerPlugin.Configuration {
             formatter.dateStyle = .short
             return formatter
         }()
+    }
+}
+
+public extension NetworkLoggerPlugin {
+    /// Returns the default logger plugin
+    class var `default`: NetworkLoggerPlugin {
+        return NetworkLoggerPlugin(configuration: Configuration(logOptions: .default))
+    }
+
+    /// Returns the default verbose logger plugin
+    class var verbose: NetworkLoggerPlugin {
+        return NetworkLoggerPlugin(configuration: Configuration(logOptions: .verbose))
     }
 }

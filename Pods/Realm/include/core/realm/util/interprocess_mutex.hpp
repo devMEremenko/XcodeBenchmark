@@ -25,18 +25,44 @@
 #include <realm/utilities.hpp>
 #include <mutex>
 #include <map>
-#include <iostream>
+#include <thread>
+
+#if REALM_PLATFORM_APPLE
+#include <dispatch/dispatch.h>
+#endif
 
 // Enable this only on platforms where it might be needed
 #if REALM_PLATFORM_APPLE || REALM_ANDROID
-#define REALM_ROBUST_MUTEX_EMULATION
+#define REALM_ROBUST_MUTEX_EMULATION 1
+#else
+#define REALM_ROBUST_MUTEX_EMULATION 0
 #endif
 
-namespace realm {
-namespace util {
+namespace realm::util {
 
 // fwd decl to support friend decl below
 class InterprocessCondVar;
+
+// A wrapper for a semaphore to expose a mutex interface. Unlike a real mutex,
+// this can be locked and unlocked from different threads. Currently only
+// implemented on Apple platforms
+class SemaphoreMutex {
+public:
+    SemaphoreMutex() noexcept;
+    ~SemaphoreMutex() noexcept;
+
+    SemaphoreMutex(const SemaphoreMutex&) = delete;
+    SemaphoreMutex& operator=(const SemaphoreMutex&) = delete;
+
+    void lock() noexcept;
+    void unlock() noexcept;
+    bool try_lock() noexcept;
+
+private:
+#if REALM_PLATFORM_APPLE
+    dispatch_semaphore_t m_semaphore;
+#endif
+};
 
 
 /// Emulation of a Robust Mutex.
@@ -56,7 +82,7 @@ public:
     InterprocessMutex(const InterprocessMutex&) = delete;
     InterprocessMutex& operator=(const InterprocessMutex&) = delete;
 
-#if defined(REALM_ROBUST_MUTEX_EMULATION) || defined(_WIN32)
+#if REALM_ROBUST_MUTEX_EMULATION || defined(_WIN32)
     struct SharedPart {
     };
 #else
@@ -86,20 +112,31 @@ public:
     /// Attempt to check if the mutex is valid (only relevant if not emulating)
     bool is_valid() noexcept;
 
-    static bool is_robust_on_this_platform()
-    {
-#ifdef REALM_ROBUST_MUTEX_EMULATION
-        return true; // we're faking it!
+#if REALM_ROBUST_MUTEX_EMULATION
+    constexpr static bool is_robust_on_this_platform = true; // we're faking it!
 #else
-        return RobustMutex::is_robust_on_this_platform();
+    constexpr static bool is_robust_on_this_platform = RobustMutex::is_robust_on_this_platform;
 #endif
-    }
+
+#if REALM_PLATFORM_APPLE
+    // On Apple platforms we support locking and unlocking InterprocessMutex on
+    // different threads, while on other platforms the locking thread owns the
+    // mutex. The non-thread-confined version should be implementable on more
+    // platforms if desired.
+    constexpr static bool is_thread_confined = false;
+#else
+    constexpr static bool is_thread_confined = true;
+#endif
 
 private:
-#ifdef REALM_ROBUST_MUTEX_EMULATION
+#if REALM_ROBUST_MUTEX_EMULATION
     struct LockInfo {
         File m_file;
+#if REALM_PLATFORM_APPLE
+        SemaphoreMutex m_local_mutex;
+#else
         Mutex m_local_mutex;
+#endif
         LockInfo() {}
         ~LockInfo() noexcept;
         // Disable copying.
@@ -143,7 +180,7 @@ private:
 
 inline InterprocessMutex::InterprocessMutex()
 {
-#ifdef REALM_ROBUST_MUTEX_EMULATION
+#if REALM_ROBUST_MUTEX_EMULATION
     std::call_once(s_init_flag, initialize_statics);
 #endif
 }
@@ -157,12 +194,12 @@ inline InterprocessMutex::~InterprocessMutex() noexcept
     }
 #endif
 
-#ifdef REALM_ROBUST_MUTEX_EMULATION
+#if REALM_ROBUST_MUTEX_EMULATION
     free_lock_info();
 #endif
 }
 
-#ifdef REALM_ROBUST_MUTEX_EMULATION
+#if REALM_ROBUST_MUTEX_EMULATION
 inline InterprocessMutex::LockInfo::~LockInfo() noexcept
 {
     if (m_file.is_attached()) {
@@ -195,17 +232,22 @@ inline void InterprocessMutex::initialize_statics()
 inline void InterprocessMutex::set_shared_part(SharedPart& shared_part, const std::string& path,
                                                const std::string& mutex_name)
 {
-#ifdef REALM_ROBUST_MUTEX_EMULATION
+#if REALM_ROBUST_MUTEX_EMULATION
     static_cast<void>(shared_part);
 
     free_lock_info();
-
-    m_filename = path + "." + mutex_name + ".mx";
+    if (path.size() == 0) {
+        m_filename = make_temp_file(mutex_name.c_str());
+    }
+    else {
+        m_filename = path + "." + mutex_name + ".mx";
+    }
 
     std::lock_guard<Mutex> guard(*s_mutex);
 
     // Try to get the file uid if the file exists
-    if (File::get_unique_id(m_filename, m_fileuid)) {
+    if (auto uid = File::get_unique_id(m_filename)) {
+        m_fileuid = std::move(*uid);
         auto result = s_info_map->find(m_fileuid);
         if (result != s_info_map->end()) {
             // File exists and the lock info has been created in the map.
@@ -219,6 +261,8 @@ inline void InterprocessMutex::set_shared_part(SharedPart& shared_part, const st
     // Always use mod_Write to open file and retreive the uid in case other process
     // deletes the file.
     m_lock_info->m_file.open(m_filename, File::mode_Write);
+    // exFAT does not allocate a unique id for the file until it's non-empty
+    m_lock_info->m_file.resize(1);
     m_fileuid = m_lock_info->m_file.get_unique_id();
 
     (*s_info_map)[m_fileuid] = m_lock_info;
@@ -246,7 +290,7 @@ inline void InterprocessMutex::set_shared_part(SharedPart& shared_part, const st
 
 inline void InterprocessMutex::set_shared_part(SharedPart& shared_part, File&& lock_file)
 {
-#ifdef REALM_ROBUST_MUTEX_EMULATION
+#if REALM_ROBUST_MUTEX_EMULATION
     static_cast<void>(shared_part);
 
     free_lock_info();
@@ -273,7 +317,7 @@ inline void InterprocessMutex::set_shared_part(SharedPart& shared_part, File&& l
 
 inline void InterprocessMutex::release_shared_part()
 {
-#ifdef REALM_ROBUST_MUTEX_EMULATION
+#if REALM_ROBUST_MUTEX_EMULATION
     if (!m_filename.empty())
         File::try_remove(m_filename);
 
@@ -285,9 +329,9 @@ inline void InterprocessMutex::release_shared_part()
 
 inline void InterprocessMutex::lock()
 {
-#ifdef REALM_ROBUST_MUTEX_EMULATION
-    std::unique_lock<Mutex> mutex_lock(m_lock_info->m_local_mutex);
-    m_lock_info->m_file.lock_exclusive();
+#if REALM_ROBUST_MUTEX_EMULATION
+    std::unique_lock mutex_lock(m_lock_info->m_local_mutex);
+    m_lock_info->m_file.lock();
     mutex_lock.release();
 #else
 
@@ -303,12 +347,12 @@ inline void InterprocessMutex::lock()
 
 inline bool InterprocessMutex::try_lock()
 {
-#ifdef REALM_ROBUST_MUTEX_EMULATION
-    std::unique_lock<Mutex> mutex_lock(m_lock_info->m_local_mutex, std::try_to_lock_t());
+#if REALM_ROBUST_MUTEX_EMULATION
+    std::unique_lock mutex_lock(m_lock_info->m_local_mutex, std::try_to_lock_t());
     if (!mutex_lock.owns_lock()) {
         return false;
     }
-    bool success = m_lock_info->m_file.try_lock_exclusive();
+    bool success = m_lock_info->m_file.try_lock();
     if (success) {
         mutex_lock.release();
         return true;
@@ -338,7 +382,7 @@ inline bool InterprocessMutex::try_lock()
 
 inline void InterprocessMutex::unlock()
 {
-#ifdef REALM_ROBUST_MUTEX_EMULATION
+#if REALM_ROBUST_MUTEX_EMULATION
     m_lock_info->m_file.unlock();
     m_lock_info->m_local_mutex.unlock();
 #else
@@ -355,12 +399,13 @@ inline void InterprocessMutex::unlock()
 
 inline bool InterprocessMutex::is_valid() noexcept
 {
-#ifdef REALM_ROBUST_MUTEX_EMULATION
+#if REALM_ROBUST_MUTEX_EMULATION
     return true;
 #elif defined(_WIN32)
-    // There is no safe way of testing if the m_handle mutex handle is valid on Windows, without having bad side effects
-    // for the cases where it is indeed invalid. If m_handle contains an arbitrary value, it might by coincidence be equal
-    // to a real live handle of another kind. This excludes a try_lock implementation and many other ideas.
+    // There is no safe way of testing if the m_handle mutex handle is valid on Windows, without having bad side
+    // effects for the cases where it is indeed invalid. If m_handle contains an arbitrary value, it might by
+    // coincidence be equal to a real live handle of another kind. This excludes a try_lock implementation and many
+    // other ideas.
     return true;
 #else
     REALM_ASSERT(m_shared_part);
@@ -369,7 +414,6 @@ inline bool InterprocessMutex::is_valid() noexcept
 }
 
 
-} // namespace util
-} // namespace realm
+} // namespace realm::util
 
 #endif // #ifndef REALM_UTIL_INTERPROCESS_MUTEX

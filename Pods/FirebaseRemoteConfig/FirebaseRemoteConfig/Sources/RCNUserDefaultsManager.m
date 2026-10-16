@@ -15,8 +15,9 @@
  */
 
 #import "FirebaseRemoteConfig/Sources/RCNUserDefaultsManager.h"
-#import "FirebaseCore/Sources/Private/FirebaseCoreInternal.h"
+#import "FirebaseCore/Extension/FirebaseCoreInternal.h"
 #import "FirebaseRemoteConfig/Sources/Public/FirebaseRemoteConfig/FIRRemoteConfig.h"
+#import "FirebaseRemoteConfig/Sources/RCNConfigConstants.h"
 
 static NSString *const kRCNGroupPrefix = @"group";
 static NSString *const kRCNGroupSuffix = @"firebase";
@@ -29,6 +30,11 @@ static NSString *const kRCNUserDefaultsKeyNameIsClientThrottled =
 static NSString *const kRCNUserDefaultsKeyNameThrottleEndTime = @"throttleEndTime";
 static NSString *const kRCNUserDefaultsKeyNamecurrentThrottlingRetryInterval =
     @"currentThrottlingRetryInterval";
+static NSString *const kRCNUserDefaultsKeyNameRealtimeThrottleEndTime = @"throttleRealtimeEndTime";
+static NSString *const kRCNUserDefaultsKeyNameCurrentRealtimeThrottlingRetryInterval =
+    @"currentRealtimeThrottlingRetryInterval";
+static NSString *const kRCNUserDefaultsKeyNameRealtimeRetryCount = @"realtimeRetryCount";
+static NSString *const kRCNUserDefaultsKeyCustomSignals = @"customSignals";
 
 @interface RCNUserDefaultsManager () {
   /// User Defaults instance for this bundleID. NSUserDefaults is guaranteed to be thread-safe.
@@ -106,6 +112,51 @@ static NSString *const kRCNUserDefaultsKeyNamecurrentThrottlingRetryInterval =
   }
 }
 
+- (NSString *)lastFetchedTemplateVersion {
+  NSDictionary *userDefaults = [self instanceUserDefaults];
+  if ([userDefaults objectForKey:RCNFetchResponseKeyTemplateVersion]) {
+    return [userDefaults objectForKey:RCNFetchResponseKeyTemplateVersion];
+  }
+
+  return @"0";
+}
+
+- (void)setLastFetchedTemplateVersion:(NSString *)templateVersion {
+  if (templateVersion) {
+    [self setInstanceUserDefaultsValue:templateVersion forKey:RCNFetchResponseKeyTemplateVersion];
+  }
+}
+
+- (NSString *)lastActiveTemplateVersion {
+  NSDictionary *userDefaults = [self instanceUserDefaults];
+  if ([userDefaults objectForKey:RCNActiveKeyTemplateVersion]) {
+    return [userDefaults objectForKey:RCNActiveKeyTemplateVersion];
+  }
+
+  return @"0";
+}
+
+- (void)setLastActiveTemplateVersion:(NSString *)templateVersion {
+  if (templateVersion) {
+    [self setInstanceUserDefaultsValue:templateVersion forKey:RCNActiveKeyTemplateVersion];
+  }
+}
+
+- (NSDictionary<NSString *, NSString *> *)customSignals {
+  NSDictionary *userDefaults = [self instanceUserDefaults];
+  if ([userDefaults objectForKey:kRCNUserDefaultsKeyCustomSignals]) {
+    return [userDefaults objectForKey:kRCNUserDefaultsKeyCustomSignals];
+  }
+
+  return [[NSDictionary<NSString *, NSString *> alloc] init];
+}
+
+- (void)setCustomSignals:(NSDictionary<NSString *, NSString *> *)customSignals {
+  if (customSignals) {
+    [self setInstanceUserDefaultsValue:customSignals forKey:kRCNUserDefaultsKeyCustomSignals];
+  }
+}
+
 - (NSTimeInterval)lastETagUpdateTime {
   NSNumber *lastETagUpdateTime =
       [[self instanceUserDefaults] objectForKey:kRCNUserDefaultsKeyNamelastETagUpdateTime];
@@ -172,6 +223,51 @@ static NSString *const kRCNUserDefaultsKeyNamecurrentThrottlingRetryInterval =
 - (void)setCurrentThrottlingRetryIntervalSeconds:(NSTimeInterval)throttlingRetryIntervalSeconds {
   [self setInstanceUserDefaultsValue:@(throttlingRetryIntervalSeconds)
                               forKey:kRCNUserDefaultsKeyNamecurrentThrottlingRetryInterval];
+}
+
+- (int)realtimeRetryCount {
+  int realtimeRetryCount = 0;
+  if ([[self instanceUserDefaults] objectForKey:kRCNUserDefaultsKeyNameRealtimeRetryCount]) {
+    realtimeRetryCount = [[[self instanceUserDefaults]
+        objectForKey:kRCNUserDefaultsKeyNameRealtimeRetryCount] intValue];
+  }
+
+  return realtimeRetryCount;
+}
+
+- (void)setRealtimeRetryCount:(int)realtimeRetryCount {
+  [self setInstanceUserDefaultsValue:[NSNumber numberWithInt:realtimeRetryCount]
+                              forKey:kRCNUserDefaultsKeyNameRealtimeRetryCount];
+}
+
+- (NSTimeInterval)realtimeThrottleEndTime {
+  NSNumber *realtimeThrottleEndTime = 0;
+  if ([[self instanceUserDefaults] objectForKey:kRCNUserDefaultsKeyNameRealtimeThrottleEndTime]) {
+    realtimeThrottleEndTime =
+        [[self instanceUserDefaults] objectForKey:kRCNUserDefaultsKeyNameRealtimeThrottleEndTime];
+  }
+  return realtimeThrottleEndTime.doubleValue;
+}
+
+- (void)setRealtimeThrottleEndTime:(NSTimeInterval)throttleEndTime {
+  [self setInstanceUserDefaultsValue:@(throttleEndTime)
+                              forKey:kRCNUserDefaultsKeyNameRealtimeThrottleEndTime];
+}
+
+- (NSTimeInterval)currentRealtimeThrottlingRetryIntervalSeconds {
+  NSNumber *realtimeThrottleEndTime = 0;
+  if ([[self instanceUserDefaults]
+          objectForKey:kRCNUserDefaultsKeyNameCurrentRealtimeThrottlingRetryInterval]) {
+    realtimeThrottleEndTime = [[self instanceUserDefaults]
+        objectForKey:kRCNUserDefaultsKeyNameCurrentRealtimeThrottlingRetryInterval];
+  }
+  return realtimeThrottleEndTime.doubleValue;
+}
+
+- (void)setCurrentRealtimeThrottlingRetryIntervalSeconds:
+    (NSTimeInterval)throttlingRetryIntervalSeconds {
+  [self setInstanceUserDefaultsValue:@(throttlingRetryIntervalSeconds)
+                              forKey:kRCNUserDefaultsKeyNameCurrentRealtimeThrottlingRetryInterval];
 }
 
 #pragma mark Public methods.

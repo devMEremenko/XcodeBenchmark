@@ -21,48 +21,32 @@
 
 #include <functional>
 #include <string>
+#include <realm/backup_restore.hpp>
 
 namespace realm {
 
 struct DBOptions {
-
-    /// The persistence level of the SharedGroup.
-    /// uint16_t is the type of SharedGroup::SharedInfo::durability
+    /// The persistence level of the DB.
+    /// uint16_t is the type of DB::SharedInfo::durability
     enum class Durability : uint16_t {
         Full,
         MemOnly,
-        Async, ///< Not yet supported on windows.
         Unsafe // If you use this, you loose ACID property
     };
 
-    explicit DBOptions(Durability level = Durability::Full, const char* key = nullptr, bool allow_upgrade = true,
-                       std::function<void(int, int)> file_upgrade_callback = std::function<void(int, int)>(),
-                       std::string temp_directory = sys_tmp_dir, bool track_metrics = false,
-                       size_t metrics_history_size = 10000)
+    explicit DBOptions(Durability level = Durability::Full, const char* key = nullptr)
         : durability(level)
         , encryption_key(key)
-        , allow_file_format_upgrade(allow_upgrade)
-        , upgrade_callback(file_upgrade_callback)
-        , temp_dir(temp_directory)
-        , enable_metrics(track_metrics)
-        , metrics_buffer_size(metrics_history_size)
-
     {
     }
 
     explicit DBOptions(const char* key)
-        : durability(Durability::Full)
-        , encryption_key(key)
-        , allow_file_format_upgrade(true)
-        , upgrade_callback(std::function<void(int, int)>())
-        , temp_dir(sys_tmp_dir)
-        , enable_metrics(false)
-        , metrics_buffer_size(10000)
+        : encryption_key(key)
     {
     }
 
     /// The persistence level of the Realm file. See Durability.
-    Durability durability;
+    Durability durability = Durability::Full;
 
     /// The key to encrypt and decrypt the Realm file with, or nullptr to
     /// indicate that encryption should not be used.
@@ -80,28 +64,42 @@ struct DBOptions {
     ///
     /// - the specified Realm file uses a deprecated file format, resulting a
     ///   the throwing of FileFormatUpgradeRequired.
-    bool allow_file_format_upgrade;
+    bool allow_file_format_upgrade = true;
 
     /// Optionally allows a custom function to be called immediately after the
     /// Realm file is upgraded. The two parameters in the function are the
     /// previous version and the version just upgraded to, respectively.
     /// If the callback function throws, the Realm file will safely abort the
-    /// upgrade (rollback the transaction) but the SharedGroup will not be opened.
+    /// upgrade (rollback the transaction) but the DB will not be opened.
     std::function<void(int, int)> upgrade_callback;
+
+    /// Optionally supply a logger
+    std::shared_ptr<util::Logger> logger;
 
     /// A path to a directory where Realm can write temporary files or pipes to.
     /// This string should include a trailing slash '/'.
-    std::string temp_dir;
+    std::string temp_dir = sys_tmp_dir;
 
-    /// Controls the feature of collecting various metrics to the SharedGroup.
-    /// A prerequisite is compiling with REALM_METRICS=ON.
-    bool enable_metrics;
+    /// is_immutable should be set to true if run from a read-only file system.
+    /// this will prevent the DB from making any writes, also disabling the creation
+    /// of write transactions.
+    bool is_immutable = false;
 
-    /// The maximum number of entries stored by the metrics (if enabled). If this number
-    /// is exceeded without being consumed, only the most recent entries will be stored.
-    size_t metrics_buffer_size;
+    /// Disable automatic backup at file format upgrade by setting to false
+    bool backup_at_file_format_change = true;
 
-    /// sys_tmp_dir will be used if the temp_dir is empty when creating SharedGroupOptions.
+    /// List of versions we can upgrade from
+    BackupHandler::VersionList accepted_versions = BackupHandler::accepted_versions_;
+
+    /// List of versions for which backup files are automatically removed at specified age.
+    BackupHandler::VersionTimeList to_be_deleted = BackupHandler::delete_versions_;
+
+    /// Must be set for the async writes feature to be used. On some platforms
+    /// this will make *all* writes async and then wait on the result, which has
+    /// a performance impact.
+    bool enable_async_writes = false;
+
+    /// sys_tmp_dir will be used if the temp_dir is empty when creating DBOptions.
     /// It must be writable and allowed to create pipe/fifo file on it.
     /// set_sys_tmp_dir is not a thread-safe call and it is only supposed to be called once
     //  when process starts.

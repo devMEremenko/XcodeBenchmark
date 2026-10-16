@@ -145,7 +145,7 @@ class Repairer {
       Env* env;
       Logger* info_log;
       uint64_t lognum;
-      virtual void Corruption(size_t bytes, const Status& s) {
+      void Corruption(size_t bytes, const Status& s) override {
         // We print error messages for corruption, but continue repairing.
         Log(info_log, "Log #%llu: dropping %d bytes; %s",
             (unsigned long long)lognum, static_cast<int>(bytes),
@@ -341,7 +341,7 @@ class Repairer {
       }
     }
     if (!s.ok()) {
-      env_->DeleteFile(copy);
+      env_->RemoveFile(copy);
     }
   }
 
@@ -372,7 +372,8 @@ class Repairer {
                     t.meta.largest);
     }
 
-    // fprintf(stderr, "NewDescriptor:\n%s\n", edit_.DebugString().c_str());
+    // std::fprintf(stderr,
+    //              "NewDescriptor:\n%s\n", edit_.DebugString().c_str());
     {
       log::Writer log(file);
       std::string record;
@@ -386,7 +387,7 @@ class Repairer {
     file = nullptr;
 
     if (!status.ok()) {
-      env_->DeleteFile(tmp);
+      env_->RemoveFile(tmp);
     } else {
       // Discard older manifests
       for (size_t i = 0; i < manifests_.size(); i++) {
@@ -398,7 +399,7 @@ class Repairer {
       if (status.ok()) {
         status = SetCurrentFile(env_, dbname_, 1);
       } else {
-        env_->DeleteFile(tmp);
+        env_->RemoveFile(tmp);
       }
     }
     return status;

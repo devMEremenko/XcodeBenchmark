@@ -43,6 +43,7 @@ typedef SSIZE_T ssize_t;
 
 #include <realm/util/features.h>
 #include <realm/util/assert.hpp>
+#include <realm/util/functional.hpp>
 #include <realm/util/safe_int_ops.hpp>
 
 // GCC defines __i386__ and __x86_64__
@@ -74,7 +75,7 @@ typedef SSIZE_T ssize_t;
 
 namespace realm {
 
-using StringCompareCallback = std::function<bool(const char* string1, const char* string2)>;
+using StringCompareCallback = util::UniqueFunction<bool(const char* string1, const char* string2)>;
 
 extern signed char sse_support;
 extern signed char avx_support;
@@ -122,12 +123,12 @@ REALM_FORCEINLINE bool sseavx()
 void cpuid_init();
 void* round_up(void* p, size_t align);
 void* round_down(void* p, size_t align);
-size_t round_up(size_t p, size_t align);
-size_t round_down(size_t p, size_t align);
+constexpr size_t round_up(size_t p, size_t align);
+constexpr size_t round_down(size_t p, size_t align);
 void millisleep(unsigned long milliseconds);
 
 #ifdef _WIN32
-int gettimeofday(struct timeval * tp, struct timezone * tzp);
+int gettimeofday(struct timeval* tp, struct timezone* tzp);
 #endif
 
 int64_t platform_timegm(tm time);
@@ -182,6 +183,36 @@ inline int log2(size_t x)
 #endif
 }
 
+// count trailing zeros (from least-significant bit)
+inline int ctz(size_t x)
+{
+    if (x == 0)
+        return sizeof(x) * 8;
+
+#if defined(__GNUC__)
+#ifdef REALM_PTR_64
+    return __builtin_ctzll(x); // returns int
+#else
+    return __builtin_ctz(x); // returns int
+#endif
+#elif defined(_WIN32)
+    unsigned long index = 0;
+#ifdef REALM_PTR_64
+    unsigned char c = _BitScanForward64(&index, x); // outputs unsigned long
+#else
+    unsigned char c = _BitScanForward(&index, x); // outputs unsigned long
+#endif
+    return static_cast<int>(index);
+#else // not __GNUC__ and not _WIN32
+    int r = 0;
+    while (r < sizeof(size_t) * 8 && (x & 1) == 0) {
+        x >>= 1;
+        r++;
+    }
+    return r;
+#endif
+}
+
 // Implementation:
 
 // Safe cast from 64 to 32 bits on 32 bit architecture. Differs from to_ref() by not testing alignment and
@@ -219,6 +250,7 @@ enum FindRes {
 enum IndexMethod {
     index_FindFirst,
     index_FindAll_nocopy,
+    index_FindAll_prefix,
     index_Count,
 };
 
@@ -250,6 +282,9 @@ template <typename T, typename U, typename... Ts>
 struct is_any<T, U, Ts...> : is_any<T, Ts...> {
 };
 
+template <typename... Ts>
+inline constexpr bool is_any_v = is_any<Ts...>::value;
+
 
 // Use realm::safe_equal() instead of std::equal() if one of the parameters can be a null pointer.
 template <class InputIterator1, class InputIterator2>
@@ -270,7 +305,7 @@ bool safe_equal(InputIterator1 first1, InputIterator1 last1, InputIterator2 firs
 
 // Use realm::safe_copy_n() instead of std::copy_n() if one of the parameters can be a null pointer. See the
 // explanation of safe_equal() above; same things apply.
-template< class InputIt, class Size, class OutputIt>
+template <class InputIt, class Size, class OutputIt>
 OutputIt safe_copy_n(InputIt first, Size count, OutputIt result)
 {
 #if defined(_MSC_VER)
@@ -288,38 +323,53 @@ OutputIt safe_copy_n(InputIt first, Size count, OutputIt result)
 #endif
 }
 
-
-template <class T>
-struct Wrap {
-    Wrap(const T& v)
-        : m_value(v)
-    {
+// Converts ascii c-locale uppercase characters to lower case,
+// leaves other char values unchanged.
+inline char toLowerAscii(char c)
+{
+    if (isascii(c) && isupper(c)) {
+#if REALM_ANDROID
+        return tolower(c); // _tolower is not supported on all ABI levels
+#else
+        return _tolower(c);
+#endif
     }
-    operator T() const
-    {
-        return m_value;
-    }
+    return c;
+}
 
-private:
-    T m_value;
-};
+inline void* round_up(void* p, size_t align)
+{
+    size_t r = size_t(p) % align == 0 ? 0 : align - size_t(p) % align;
+    return static_cast<char*>(p) + r;
+}
 
-// PlacementDelete is intended for use with std::unique_ptr when it holds an object allocated with
-// placement new. It simply calls the object's destructor without freeing the memory.
-struct PlacementDelete {
-    template <class T>
-    void operator()(T* v) const
-    {
-        v->~T();
-    }
-};
+inline void* round_down(void* p, size_t align)
+{
+    size_t r = size_t(p);
+    return reinterpret_cast<void*>(r & ~(align - 1));
+}
+
+constexpr inline size_t round_up(size_t p, size_t align)
+{
+    size_t r = p % align == 0 ? 0 : align - p % align;
+    return p + r;
+}
+
+constexpr inline size_t round_down(size_t p, size_t align)
+{
+    size_t r = p;
+    return r & (~(align - 1));
+}
+
 
 #ifdef _WIN32
-typedef void* FileDesc;
+typedef HANDLE FileDesc;
 #else
 typedef int FileDesc;
 #endif
 
+
+enum class IteratorControl { AdvanceToNext, Stop };
 
 } // namespace realm
 

@@ -33,20 +33,21 @@ class DBImpl : public DB {
   DBImpl(const DBImpl&) = delete;
   DBImpl& operator=(const DBImpl&) = delete;
 
-  virtual ~DBImpl();
+  ~DBImpl() override;
 
   // Implementations of the DB interface
-  virtual Status Put(const WriteOptions&, const Slice& key, const Slice& value);
-  virtual Status Delete(const WriteOptions&, const Slice& key);
-  virtual Status Write(const WriteOptions& options, WriteBatch* updates);
-  virtual Status Get(const ReadOptions& options, const Slice& key,
-                     std::string* value);
-  virtual Iterator* NewIterator(const ReadOptions&);
-  virtual const Snapshot* GetSnapshot();
-  virtual void ReleaseSnapshot(const Snapshot* snapshot);
-  virtual bool GetProperty(const Slice& property, std::string* value);
-  virtual void GetApproximateSizes(const Range* range, int n, uint64_t* sizes);
-  virtual void CompactRange(const Slice* begin, const Slice* end);
+  Status Put(const WriteOptions&, const Slice& key,
+             const Slice& value) override;
+  Status Delete(const WriteOptions&, const Slice& key) override;
+  Status Write(const WriteOptions& options, WriteBatch* updates) override;
+  Status Get(const ReadOptions& options, const Slice& key,
+             std::string* value) override;
+  Iterator* NewIterator(const ReadOptions&) override;
+  const Snapshot* GetSnapshot() override;
+  void ReleaseSnapshot(const Snapshot* snapshot) override;
+  bool GetProperty(const Slice& property, std::string* value) override;
+  void GetApproximateSizes(const Range* range, int n, uint64_t* sizes) override;
+  void CompactRange(const Slice* begin, const Slice* end) override;
 
   // Extra methods (for testing) that are not in the public DB interface
 
@@ -115,7 +116,7 @@ class DBImpl : public DB {
   void MaybeIgnoreError(Status* s) const;
 
   // Delete any unneeded files and stale in-memory entries.
-  void DeleteObsoleteFiles() EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void RemoveObsoleteFiles() EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Compact the in-memory write buffer to disk.  Switches to a new
   // log-file/memtable and writes a new descriptor iff successful.
@@ -196,7 +197,7 @@ class DBImpl : public DB {
 
   ManualCompaction* manual_compaction_ GUARDED_BY(mutex_);
 
-  VersionSet* const versions_;
+  VersionSet* const versions_ GUARDED_BY(mutex_);
 
   // Have we encountered a background error in paranoid mode?
   Status bg_error_ GUARDED_BY(mutex_);

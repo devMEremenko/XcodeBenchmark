@@ -113,6 +113,13 @@ public:
 
     virtual void verify() const = 0;
 
+    /// Returns true if all local changes has been integrated on the server.
+    /// The history is effectively clean
+    virtual bool no_pending_local_changes(version_type) const
+    {
+        return true;
+    }
+
     virtual void set_group(Group* group, bool updated = false)
     {
         m_group = group;

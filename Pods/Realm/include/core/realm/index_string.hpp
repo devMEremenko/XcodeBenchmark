@@ -22,6 +22,7 @@
 #include <cstring>
 #include <memory>
 #include <array>
+#include <set>
 
 #include <realm/array.hpp>
 #include <realm/cluster_tree.hpp>
@@ -79,60 +80,66 @@ public:
     {
     }
 
-    ObjKey index_string_find_first(StringData value, const ClusterColumn& column) const;
-    void index_string_find_all(IntegerColumn& result, StringData value, const ClusterColumn& column,
+    ObjKey index_string_find_first(Mixed value, const ClusterColumn& column) const;
+    void index_string_find_all(std::vector<ObjKey>& result, Mixed value, const ClusterColumn& column,
                                bool case_insensitive = false) const;
-    void index_string_find_all(std::vector<ObjKey>& result, StringData value, const ClusterColumn& column,
-                               bool case_insensitive = false) const;
-    FindRes index_string_find_all_no_copy(StringData value, const ClusterColumn& column,
-                                          InternalFindResult& result) const;
-    size_t index_string_count(StringData value, const ClusterColumn& column) const;
+    void index_string_find_all_prefix(std::set<int64_t>& result, StringData str) const
+    {
+        _index_string_find_all_prefix(result, str, NodeHeader::get_header_from_data(m_data));
+    }
+
+    FindRes index_string_find_all_no_copy(Mixed value, const ClusterColumn& column, InternalFindResult& result) const;
+    size_t index_string_count(Mixed value, const ClusterColumn& column) const;
 
 private:
     template <IndexMethod>
-    int64_t from_list(StringData value, InternalFindResult& result_ref, const IntegerColumn& key_values,
+    int64_t from_list(Mixed value, InternalFindResult& result_ref, const IntegerColumn& key_values,
                       const ClusterColumn& column) const;
 
-    void from_list_all(StringData value, std::vector<ObjKey>& result, const IntegerColumn& rows,
+    void from_list_all(Mixed value, std::vector<ObjKey>& result, const IntegerColumn& rows,
                        const ClusterColumn& column) const;
 
     void from_list_all_ins(StringData value, std::vector<ObjKey>& result, const IntegerColumn& rows,
                            const ClusterColumn& column) const;
 
     template <IndexMethod method>
-    int64_t index_string(StringData value, InternalFindResult& result_ref, const ClusterColumn& column) const;
+    int64_t index_string(Mixed value, InternalFindResult& result_ref, const ClusterColumn& column) const;
 
-    void index_string_all(StringData value, std::vector<ObjKey>& result, const ClusterColumn& column) const;
+    void index_string_all(Mixed value, std::vector<ObjKey>& result, const ClusterColumn& column) const;
 
     void index_string_all_ins(StringData value, std::vector<ObjKey>& result, const ClusterColumn& column) const;
+    void _index_string_find_all_prefix(std::set<int64_t>& result, StringData str, const char* header) const;
 };
 
-// 12 is the biggest element size of any non-string/binary Realm type
-constexpr size_t string_conversion_buffer_size = 12;
+// 16 is the biggest element size of any non-string/binary Realm type
+constexpr size_t string_conversion_buffer_size = 16;
 using StringConversionBuffer = std::array<char, string_conversion_buffer_size>;
+static_assert(sizeof(UUID::UUIDBytes) <= string_conversion_buffer_size,
+              "if you change the size of a UUID then also change the string index buffer space");
 
 // The purpose of this class is to get easy access to fields in a specific column in the
 // cluster. When you have an object like this, you can get a string version of the relevant
 // field based on the key for the object.
 class ClusterColumn {
 public:
-    ClusterColumn(const ClusterTree* cluster_tree, ColKey column_key)
+    ClusterColumn(const ClusterTree* cluster_tree, ColKey column_key, IndexType type)
         : m_cluster_tree(cluster_tree)
         , m_column_key(column_key)
+        , m_type(type)
     {
     }
     size_t size() const
     {
         return m_cluster_tree->size();
     }
-    ClusterTree::ConstIterator begin() const
+    ClusterTree::Iterator begin() const
     {
-        return ClusterTree::ConstIterator(*m_cluster_tree, 0);
+        return ClusterTree::Iterator(*m_cluster_tree, 0);
     }
 
-    ClusterTree::ConstIterator end() const
+    ClusterTree::Iterator end() const
     {
-        return ClusterTree::ConstIterator(*m_cluster_tree, size());
+        return ClusterTree::Iterator(*m_cluster_tree, size());
     }
 
 
@@ -141,12 +148,21 @@ public:
     {
         return m_column_key;
     }
-    bool is_nullable() const;
-    StringData get_index_data(ObjKey key, StringConversionBuffer& buffer) const;
+    bool is_nullable() const
+    {
+        return m_column_key.is_nullable();
+    }
+    bool is_fulltext() const
+    {
+        return m_type == IndexType::Fulltext;
+    }
+    Mixed get_value(ObjKey key) const;
+    std::vector<ObjKey> get_all_keys() const;
 
 private:
     const ClusterTree* m_cluster_tree;
     ColKey m_column_key;
+    IndexType m_type;
 };
 
 class StringIndex {
@@ -162,17 +178,11 @@ public:
         return m_target_column.get_column_key();
     }
 
-    template <class T>
-    static bool type_supported()
-    {
-        return realm::is_any<T, int64_t, int, StringData, bool, Timestamp>::value;
-    }
     static bool type_supported(realm::DataType type)
     {
-        return (type == type_Int || type == type_String || type == type_Bool || type == type_Timestamp);
+        return (type == type_Int || type == type_String || type == type_Bool || type == type_Timestamp ||
+                type == type_ObjectId || type == type_Mixed || type == type_UUID);
     }
-
-    static ref_type create_empty(Allocator& alloc);
 
     void set_target(const ClusterColumn& target_column) noexcept;
 
@@ -184,13 +194,17 @@ public:
     void set_parent(ArrayParent* parent, size_t ndx_in_parent) noexcept;
     size_t get_ndx_in_parent() const noexcept;
     void set_ndx_in_parent(size_t ndx_in_parent) noexcept;
-    void update_from_parent(size_t old_baseline) noexcept;
+    void update_from_parent() noexcept;
     void refresh_accessor_tree(const ClusterColumn& target_column);
     ref_type get_ref() const noexcept;
 
     // StringIndex interface:
 
     bool is_empty() const;
+    bool is_fulltext_index() const
+    {
+        return this->m_target_column.is_fulltext();
+    }
 
     template <class T>
     void insert(ObjKey key, T value);
@@ -212,12 +226,11 @@ public:
     FindRes find_all_no_copy(T value, InternalFindResult& result) const;
     template <class T>
     size_t count(T value) const;
-    template <class T>
-    void update_ref(T value, size_t old_row_ndx, size_t new_row_ndx);
+
+    void find_all_fulltext(std::vector<ObjKey>& result, StringData value) const;
 
     void clear();
 
-    void distinct(BPlusTree<ObjKey>& result) const;
     bool has_duplicate_values() const noexcept;
 
     void verify() const;
@@ -225,9 +238,6 @@ public:
     template <class T>
     void verify_entries(const ClusterColumn& column) const;
     void do_dump_node_structure(std::ostream&, int) const;
-    void to_dot() const;
-    void to_dot(std::ostream&, StringData title = StringData()) const;
-    void to_dot_2(std::ostream&, StringData title = StringData()) const;
 #endif
 
     typedef int32_t key_type;
@@ -271,12 +281,12 @@ private:
     };
     StringIndex(inner_node_tag, Allocator&);
 
-    static IndexArray* create_node(Allocator&, bool is_leaf);
+    static std::unique_ptr<IndexArray> create_node(Allocator&, bool is_leaf);
 
-    void insert_with_offset(ObjKey key, StringData value, size_t offset);
+    void insert_with_offset(ObjKey key, StringData index_data, const Mixed& value, size_t offset);
     void insert_row_list(size_t ref, size_t offset, StringData value);
-    void insert_to_existing_list(ObjKey key, StringData value, IntegerColumn& list);
-    void insert_to_existing_list_at_lower(ObjKey key, StringData value, IntegerColumn& list,
+    void insert_to_existing_list(ObjKey key, Mixed value, IntegerColumn& list);
+    void insert_to_existing_list_at_lower(ObjKey key, Mixed value, IntegerColumn& list,
                                           const IntegerColumnIterator& lower);
     key_type get_last_key() const;
 
@@ -299,29 +309,31 @@ private:
     };
 
     // B-Tree functions
-    void TreeInsert(ObjKey obj_key, key_type, size_t offset, StringData value);
-    NodeChange do_insert(ObjKey, key_type, size_t offset, StringData value);
+    void TreeInsert(ObjKey obj_key, key_type, size_t offset, StringData index_data, const Mixed& value);
+    NodeChange do_insert(ObjKey, key_type, size_t offset, StringData index_data, const Mixed& value);
     /// Returns true if there is room or it can join existing entries
-    bool leaf_insert(ObjKey obj_key, key_type, size_t offset, StringData value, bool noextend = false);
+    bool leaf_insert(ObjKey obj_key, key_type, size_t offset, StringData index_data, const Mixed& value,
+                     bool noextend = false);
     void node_insert_split(size_t ndx, size_t new_ref);
     void node_insert(size_t ndx, size_t ref);
+    // Erase without getting value from parent column (useful when string stored
+    // does not directly match string in parent, like with full-text indexing)
+    void erase_string(ObjKey key, StringData value);
     void do_delete(ObjKey key, StringData, size_t offset);
 
-    StringData get(ObjKey key, StringConversionBuffer& buffer) const;
+    Mixed get(ObjKey key) const;
 
     void node_add_key(ref_type ref);
 
 #ifdef REALM_DEBUG
     static void dump_node_structure(const Array& node, std::ostream&, int level);
-    static void array_to_dot(std::ostream&, const Array&);
-    static void keys_to_dot(std::ostream&, const Array&, StringData title = StringData());
 #endif
 };
 
 class SortedListComparator {
 public:
-    SortedListComparator(const ClusterTree* cluster_tree, ColKey column_key)
-        : m_column(cluster_tree, column_key)
+    SortedListComparator(const ClusterTree* cluster_tree, ColKey column_key, IndexType type)
+        : m_column(cluster_tree, column_key, type)
     {
     }
     SortedListComparator(const ClusterColumn& column)
@@ -329,8 +341,8 @@ public:
     {
     }
 
-    bool operator()(int64_t key_value, StringData needle);
-    bool operator()(StringData needle, int64_t key_value);
+    bool operator()(int64_t key_value, Mixed needle);
+    bool operator()(Mixed needle, int64_t key_value);
 
 private:
     const ClusterColumn m_column;
@@ -338,103 +350,6 @@ private:
 
 
 // Implementation:
-
-template <class T>
-struct GetIndexData;
-
-template <>
-struct GetIndexData<Timestamp> {
-    static StringData get_index_data(const Timestamp& dt, StringConversionBuffer& buffer);
-};
-
-template <>
-struct GetIndexData<int64_t> {
-    static StringData get_index_data(const int64_t& value, StringConversionBuffer& buffer)
-    {
-        const char* c = reinterpret_cast<const char*>(&value);
-        realm::safe_copy_n(c, sizeof(int64_t), buffer.data());
-        return StringData{buffer.data(), sizeof(int64_t)};
-    }
-};
-
-template <>
-struct GetIndexData<bool> {
-    static StringData get_index_data(const bool& value, StringConversionBuffer& buffer)
-    {
-        int64_t value2 = value ? 1 : 0;
-        const char* c = reinterpret_cast<const char*>(&value2);
-        realm::safe_copy_n(c, sizeof(int64_t), buffer.data());
-        return StringData{buffer.data(), sizeof(int64_t)};
-    }
-};
-
-template <>
-struct GetIndexData<StringData> {
-    static StringData get_index_data(StringData data, StringConversionBuffer&)
-    {
-        return data;
-    }
-};
-
-template <>
-struct GetIndexData<null> {
-    static StringData get_index_data(null, StringConversionBuffer&)
-    {
-        return null{};
-    }
-};
-
-template <class T>
-struct GetIndexData<util::Optional<T>> {
-    static StringData get_index_data(const util::Optional<T>& value, StringConversionBuffer& buffer)
-    {
-        if (value)
-            return GetIndexData<T>::get_index_data(*value, buffer);
-        return null{};
-    }
-};
-
-template <>
-struct GetIndexData<float> {
-    static StringData get_index_data(float, StringConversionBuffer&)
-    {
-        REALM_ASSERT_RELEASE(false); // LCOV_EXCL_LINE; Index on float not supported
-        return {};
-    }
-};
-
-template <>
-struct GetIndexData<double> {
-    static StringData get_index_data(double, StringConversionBuffer&)
-    {
-        REALM_ASSERT_RELEASE(false); // LCOV_EXCL_LINE; Index on float not supported
-        return {};
-    }
-};
-
-template <>
-struct GetIndexData<BinaryData> {
-    static StringData get_index_data(BinaryData, StringConversionBuffer&)
-    {
-        REALM_ASSERT_RELEASE(false); // LCOV_EXCL_LINE; Index on float not supported
-        return {};
-    }
-};
-
-template <>
-struct GetIndexData<const char*> : GetIndexData<StringData> {
-};
-
-// to_str() is used by the integer index. The existing StringIndex is re-used for this
-// by making IntegerColumn convert its integers to strings by calling to_str().
-
-template <class T>
-inline StringData to_str(T&& value, StringConversionBuffer& buffer)
-{
-    return GetIndexData<typename std::remove_reference<T>::type>::get_index_data(value, buffer);
-}
-
-
 inline StringIndex::StringIndex(const ClusterColumn& target_column, Allocator& alloc)
     : m_array(create_node(alloc, true)) // Throws
     , m_target_column(target_column)
@@ -453,7 +368,7 @@ inline StringIndex::StringIndex(ref_type ref, ArrayParent* parent, size_t ndx_in
 
 inline StringIndex::StringIndex(inner_node_tag, Allocator& alloc)
     : m_array(create_node(alloc, false)) // Throws
-    , m_target_column(ClusterColumn(nullptr, {}))
+    , m_target_column(ClusterColumn(nullptr, {}, IndexType::General))
 {
 }
 
@@ -519,9 +434,13 @@ template <class T>
 void StringIndex::insert(ObjKey key, T value)
 {
     StringConversionBuffer buffer;
+    Mixed m(value);
     size_t offset = 0;                                      // First key from beginning of string
-    insert_with_offset(key, to_str(value, buffer), offset); // Throws
+    insert_with_offset(key, m.get_index_data(buffer), m, offset); // Throws
 }
+
+template <>
+void StringIndex::insert<StringData>(ObjKey key, StringData value);
 
 template <class T>
 void StringIndex::insert(ObjKey key, util::Optional<T> value)
@@ -537,10 +456,8 @@ void StringIndex::insert(ObjKey key, util::Optional<T> value)
 template <class T>
 void StringIndex::set(ObjKey key, T new_value)
 {
-    StringConversionBuffer buffer;
-    StringConversionBuffer buffer2;
-    StringData old_value = get(key, buffer);
-    StringData new_value2 = to_str(new_value, buffer2);
+    Mixed old_value = get(key);
+    Mixed new_value2 = Mixed(new_value);
 
     // Note that insert_with_offset() throws UniqueConstraintViolation.
 
@@ -549,10 +466,15 @@ void StringIndex::set(ObjKey key, T new_value)
         // might find the duplicate if we insert before erasing.
         erase(key); // Throws
 
+        StringConversionBuffer buffer;
         size_t offset = 0;                               // First key from beginning of string
-        insert_with_offset(key, new_value2, offset);     // Throws
+        auto index_data = new_value2.get_index_data(buffer);
+        insert_with_offset(key, index_data, new_value2, offset); // Throws
     }
 }
+
+template <>
+void StringIndex::set<StringData>(ObjKey key, StringData new_value);
 
 template <class T>
 void StringIndex::set(ObjKey key, util::Optional<T> new_value)
@@ -569,39 +491,32 @@ template <class T>
 ObjKey StringIndex::find_first(T value) const
 {
     // Use direct access method
-    StringConversionBuffer buffer;
-    return m_array->index_string_find_first(to_str(value, buffer), m_target_column);
+    return m_array->index_string_find_first(Mixed(value), m_target_column);
 }
 
 template <class T>
 void StringIndex::find_all(std::vector<ObjKey>& result, T value, bool case_insensitive) const
 {
     // Use direct access method
-    StringConversionBuffer buffer;
-    return m_array->index_string_find_all(result, to_str(value, buffer), m_target_column, case_insensitive);
+    return m_array->index_string_find_all(result, Mixed(value), m_target_column, case_insensitive);
 }
 
 template <class T>
 FindRes StringIndex::find_all_no_copy(T value, InternalFindResult& result) const
 {
-    // Use direct access method
-    StringConversionBuffer buffer;
-    return m_array->index_string_find_all_no_copy(to_str(value, buffer), m_target_column, result);
+    return m_array->index_string_find_all_no_copy(Mixed(value), m_target_column, result);
 }
 
 template <class T>
 size_t StringIndex::count(T value) const
 {
     // Use direct access method
-    StringConversionBuffer buffer;
-    return m_array->index_string_count(to_str(value, buffer), m_target_column);
+    return m_array->index_string_count(Mixed(value), m_target_column);
 }
 
-template <class T>
-void StringIndex::update_ref(T value, size_t old_row_ndx, size_t new_row_ndx)
+inline Allocator& StringIndex::get_alloc() const noexcept
 {
-    StringConversionBuffer buffer;
-    do_update_ref(to_str(value, buffer), old_row_ndx, new_row_ndx, 0);
+    return m_array->get_alloc();
 }
 
 inline void StringIndex::destroy() noexcept
@@ -640,9 +555,9 @@ inline void StringIndex::set_ndx_in_parent(size_t ndx_in_parent) noexcept
     m_array->set_ndx_in_parent(ndx_in_parent);
 }
 
-inline void StringIndex::update_from_parent(size_t old_baseline) noexcept
+inline void StringIndex::update_from_parent() noexcept
 {
-    m_array->update_from_parent(old_baseline);
+    m_array->update_from_parent();
 }
 
 } // namespace realm

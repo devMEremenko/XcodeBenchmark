@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#import "GoogleDataTransport/GDTCORLibrary/Public/GoogleDataTransport/GDTCORRegistrar.h"
+#import "GoogleDataTransport/GDTCORLibrary/Internal/GDTCORRegistrar.h"
 
 @interface GDTCORRegistrar ()
 
@@ -29,6 +29,10 @@ NS_ASSUME_NONNULL_BEGIN
 /** A map of targets to storage instances. */
 @property(atomic, readonly)
     NSMutableDictionary<NSNumber *, id<GDTCORStorageProtocol>> *targetToStorage;
+
+/** A map of targets to metrics controller instances. */
+@property(atomic, readonly)
+    NSMutableDictionary<NSNumber *, id<GDTCORMetricsControllerProtocol>> *targetToMetricsController;
 
 @end
 

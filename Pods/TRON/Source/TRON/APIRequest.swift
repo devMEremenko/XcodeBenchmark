@@ -66,7 +66,8 @@ open class APIRequest<Model, ErrorModel: ErrorSerializable>: BaseRequest<Model, 
                                parameters: parameters,
                                encoding: parameterEncoding,
                                headers: headers,
-                               interceptor: interceptor)
+                               interceptor: interceptor,
+                               requestModifier: requestModifier)
     }
 
     @discardableResult

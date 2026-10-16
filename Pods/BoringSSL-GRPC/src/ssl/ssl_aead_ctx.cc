@@ -18,6 +18,7 @@
 #include <string.h>
 
 #include <openssl_grpc/aead.h>
+#include <openssl_grpc/chacha.h>
 #include <openssl_grpc/err.h>
 #include <openssl_grpc/rand.h>
 
@@ -44,6 +45,7 @@ SSLAEADContext::SSLAEADContext(uint16_t version_arg, bool is_dtls_arg,
       omit_length_in_ad_(false),
       ad_is_header_(false) {
   OPENSSL_memset(fixed_nonce_, 0, sizeof(fixed_nonce_));
+  CreateRecordNumberEncrypter();
 }
 
 SSLAEADContext::~SSLAEADContext() {}
@@ -91,7 +93,6 @@ UniquePtr<SSLAEADContext> SSLAEADContext::Create(
   UniquePtr<SSLAEADContext> aead_ctx =
       MakeUnique<SSLAEADContext>(version, is_dtls, cipher);
   if (!aead_ctx) {
-    OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
     return nullptr;
   }
 
@@ -146,6 +147,23 @@ UniquePtr<SSLAEADContext> SSLAEADContext::Create(
   return aead_ctx;
 }
 
+void SSLAEADContext::CreateRecordNumberEncrypter() {
+  if (!cipher_) {
+    return;
+  }
+#if defined(BORINGSSL_UNSAFE_FUZZER_MODE)
+  rn_encrypter_ = MakeUnique<NullRecordNumberEncrypter>();
+#else
+  if (cipher_->algorithm_enc == SSL_AES128GCM) {
+    rn_encrypter_ = MakeUnique<AES128RecordNumberEncrypter>();
+  } else if (cipher_->algorithm_enc == SSL_AES256GCM) {
+    rn_encrypter_ = MakeUnique<AES256RecordNumberEncrypter>();
+  } else if (cipher_->algorithm_enc == SSL_CHACHA20POLY1305) {
+    rn_encrypter_ = MakeUnique<ChaChaRecordNumberEncrypter>();
+  }
+#endif  // BORINGSSL_UNSAFE_FUZZER_MODE
+}
+
 UniquePtr<SSLAEADContext> SSLAEADContext::CreatePlaceholderForQUIC(
     uint16_t version, const SSL_CIPHER *cipher) {
   return MakeUnique<SSLAEADContext>(version, false, cipher);
@@ -176,7 +194,7 @@ uint16_t SSLAEADContext::RecordVersion() const {
     return version_;
   }
 
-  return TLS1_2_VERSION;
+  return is_dtls_ ? DTLS1_2_VERSION : TLS1_2_VERSION;
 }
 
 size_t SSLAEADContext::ExplicitNonceLen() const {
@@ -220,13 +238,13 @@ size_t SSLAEADContext::MaxOverhead() const {
 }
 
 Span<const uint8_t> SSLAEADContext::GetAdditionalData(
-    uint8_t storage[13], uint8_t type, uint16_t record_version,
-    const uint8_t seqnum[8], size_t plaintext_len, Span<const uint8_t> header) {
+    uint8_t storage[13], uint8_t type, uint16_t record_version, uint64_t seqnum,
+    size_t plaintext_len, Span<const uint8_t> header) {
   if (ad_is_header_) {
     return header;
   }
 
-  OPENSSL_memcpy(storage, seqnum, 8);
+  CRYPTO_store_u64_be(storage, seqnum);
   size_t len = 8;
   storage[len++] = type;
   storage[len++] = static_cast<uint8_t>((record_version >> 8));
@@ -239,7 +257,7 @@ Span<const uint8_t> SSLAEADContext::GetAdditionalData(
 }
 
 bool SSLAEADContext::Open(Span<uint8_t> *out, uint8_t type,
-                          uint16_t record_version, const uint8_t seqnum[8],
+                          uint16_t record_version, uint64_t seqnum,
                           Span<const uint8_t> header, Span<uint8_t> in) {
   if (is_null_cipher() || FUZZER_MODE) {
     // Handle the initial NULL cipher.
@@ -288,7 +306,7 @@ bool SSLAEADContext::Open(Span<uint8_t> *out, uint8_t type,
     in = in.subspan(variable_nonce_len_);
   } else {
     assert(variable_nonce_len_ == 8);
-    OPENSSL_memcpy(nonce + nonce_len, seqnum, variable_nonce_len_);
+    CRYPTO_store_u64_be(nonce + nonce_len, seqnum);
   }
   nonce_len += variable_nonce_len_;
 
@@ -313,8 +331,7 @@ bool SSLAEADContext::Open(Span<uint8_t> *out, uint8_t type,
 
 bool SSLAEADContext::SealScatter(uint8_t *out_prefix, uint8_t *out,
                                  uint8_t *out_suffix, uint8_t type,
-                                 uint16_t record_version,
-                                 const uint8_t seqnum[8],
+                                 uint16_t record_version, uint64_t seqnum,
                                  Span<const uint8_t> header, const uint8_t *in,
                                  size_t in_len, const uint8_t *extra_in,
                                  size_t extra_in_len) {
@@ -365,7 +382,7 @@ bool SSLAEADContext::SealScatter(uint8_t *out_prefix, uint8_t *out,
     // When sending we use the sequence number as the variable part of the
     // nonce.
     assert(variable_nonce_len_ == 8);
-    OPENSSL_memcpy(nonce + nonce_len, seqnum, variable_nonce_len_);
+    CRYPTO_store_u64_be(nonce + nonce_len, seqnum);
   }
   nonce_len += variable_nonce_len_;
 
@@ -398,7 +415,7 @@ bool SSLAEADContext::SealScatter(uint8_t *out_prefix, uint8_t *out,
 
 bool SSLAEADContext::Seal(uint8_t *out, size_t *out_len, size_t max_out_len,
                           uint8_t type, uint16_t record_version,
-                          const uint8_t seqnum[8], Span<const uint8_t> header,
+                          uint64_t seqnum, Span<const uint8_t> header,
                           const uint8_t *in, size_t in_len) {
   const size_t prefix_len = ExplicitNonceLen();
   size_t suffix_len;
@@ -428,5 +445,71 @@ bool SSLAEADContext::GetIV(const uint8_t **out_iv, size_t *out_iv_len) const {
   return !is_null_cipher() &&
          EVP_AEAD_CTX_get_iv(ctx_.get(), out_iv, out_iv_len);
 }
+
+bool SSLAEADContext::GenerateRecordNumberMask(Span<uint8_t> out,
+                                              Span<const uint8_t> sample) {
+  if (!rn_encrypter_) {
+    return false;
+  }
+  return rn_encrypter_->GenerateMask(out, sample);
+}
+
+size_t AES128RecordNumberEncrypter::KeySize() { return 16; }
+
+size_t AES256RecordNumberEncrypter::KeySize() { return 32; }
+
+bool AESRecordNumberEncrypter::SetKey(Span<const uint8_t> key) {
+  return AES_set_encrypt_key(key.data(), key.size() * 8, &key_) == 0;
+}
+
+bool AESRecordNumberEncrypter::GenerateMask(Span<uint8_t> out,
+                                            Span<const uint8_t> sample) {
+  if (sample.size() < AES_BLOCK_SIZE || out.size() != AES_BLOCK_SIZE) {
+    return false;
+  }
+  AES_encrypt(sample.data(), out.data(), &key_);
+  return true;
+}
+
+size_t ChaChaRecordNumberEncrypter::KeySize() { return kKeySize; }
+
+bool ChaChaRecordNumberEncrypter::SetKey(Span<const uint8_t> key) {
+  if (key.size() != kKeySize) {
+    return false;
+  }
+  OPENSSL_memcpy(key_, key.data(), key.size());
+  return true;
+}
+
+bool ChaChaRecordNumberEncrypter::GenerateMask(Span<uint8_t> out,
+                                               Span<const uint8_t> sample) {
+  Array<uint8_t> zeroes;
+  if (!zeroes.Init(out.size())) {
+    return false;
+  }
+  OPENSSL_memset(zeroes.data(), 0, zeroes.size());
+  // RFC 9147 section 4.2.3 uses the first 4 bytes of the sample as the counter
+  // and the next 12 bytes as the nonce. If we have less than 4+12=16 bytes in
+  // the sample, then we'll read past the end of the |sample| buffer.
+  if (sample.size() < 16) {
+    return false;
+  }
+  uint32_t counter = CRYPTO_load_u32_be(sample.data());
+  Span<const uint8_t> nonce = sample.subspan(4);
+  CRYPTO_chacha_20(out.data(), zeroes.data(), zeroes.size(), key_, nonce.data(),
+                   counter);
+  return true;
+}
+
+#if defined(BORINGSSL_UNSAFE_FUZZER_MODE)
+size_t NullRecordNumberEncrypter::KeySize() { return 0; }
+bool NullRecordNumberEncrypter::SetKey(Span<const uint8_t> key) { return true; }
+
+bool NullRecordNumberEncrypter::GenerateMask(Span<uint8_t> out,
+                                             Span<const uint8_t> sample) {
+  OPENSSL_memset(out.data(), 0, out.size());
+  return true;
+}
+#endif  // BORINGSSL_UNSAFE_FUZZER_MODE
 
 BSSL_NAMESPACE_END

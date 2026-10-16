@@ -20,7 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-import UIKit
+#if canImport(UIKit)
+import CoreGraphics
+import QuartzCore
 
 public enum HeroSnapshotType {
   /// Will optimize for different type of views
@@ -57,6 +59,7 @@ public struct HeroTargetState {
   public var cornerRadius: CGFloat?
   public var backgroundColor: CGColor?
   public var zPosition: CGFloat?
+  public var anchorPoint: CGPoint?
 
   public var contentsRect: CGRect?
   public var contentsScale: CGFloat?
@@ -127,3 +130,4 @@ extension HeroTargetState: ExpressibleByArrayLiteral {
     append(contentsOf: elements)
   }
 }
+#endif

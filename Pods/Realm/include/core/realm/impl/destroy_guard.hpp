@@ -23,6 +23,7 @@
 #include <realm/array.hpp>
 
 namespace realm {
+class Array;
 namespace _impl {
 
 

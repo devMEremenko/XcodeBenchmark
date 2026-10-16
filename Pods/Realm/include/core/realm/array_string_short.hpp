@@ -20,6 +20,7 @@
 #define REALM_ARRAY_STRING_SHORT_HPP
 
 #include <realm/array.hpp>
+#include <realm/string_data.hpp>
 
 namespace realm {
 
@@ -89,7 +90,6 @@ public:
 
 #ifdef REALM_DEBUG
     void string_stats() const;
-    void to_dot(std::ostream&, StringData title = StringData()) const;
 #endif
 
 private:

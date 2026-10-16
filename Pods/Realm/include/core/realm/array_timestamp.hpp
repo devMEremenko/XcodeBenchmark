@@ -21,6 +21,7 @@
 
 #include <realm/array_integer.hpp>
 #include <realm/timestamp.hpp>
+#include <realm/query_conditions.hpp>
 
 namespace realm {
 
@@ -77,6 +78,10 @@ public:
         util::Optional<int64_t> seconds = m_seconds.get(ndx);
         return seconds ? Timestamp(*seconds, int32_t(m_nanoseconds.get(ndx))) : Timestamp{};
     }
+    Mixed get_any(size_t ndx) const final
+    {
+        return Mixed(get(ndx));
+    }
     bool is_null(size_t ndx) const
     {
         return m_seconds.is_null(ndx);
@@ -127,63 +132,6 @@ inline size_t ArrayTimestamp::find_first(Timestamp value, size_t begin, size_t e
     return find_first<Equal>(value, begin, end);
 }
 
-
-template <>
-class QueryState<Timestamp> : public QueryStateBase {
-public:
-    Timestamp m_state;
-
-    template <Action action>
-    bool uses_val()
-    {
-        return (action == act_Max || action == act_Min || action == act_Sum || action == act_Count);
-    }
-
-    QueryState(Action action, Array* = nullptr, size_t limit = -1)
-        : QueryStateBase(limit)
-    {
-        if (action == act_Max)
-            m_state = Timestamp{std::numeric_limits<int64_t>::min(), 0};
-        else if (action == act_Min)
-            m_state = Timestamp{std::numeric_limits<int64_t>::max(), 0};
-        else {
-            REALM_ASSERT_DEBUG(false);
-        }
-    }
-
-    template <Action action, bool pattern>
-    inline bool match(size_t index, uint64_t /*indexpattern*/, Timestamp value)
-    {
-        if (pattern)
-            return false;
-
-        if (action == act_Count) {
-            ++m_match_count;
-        }
-        else {
-            ++m_match_count;
-            if (action == act_Max) {
-                if (value > m_state) {
-                    m_state = value;
-                    REALM_ASSERT(m_key_values);
-                    m_minmax_index = m_key_values->get(index) + m_key_offset;
-                }
-            }
-            else if (action == act_Min) {
-                if (value < m_state) {
-                    m_state = value;
-                    REALM_ASSERT(m_key_values);
-                    m_minmax_index = m_key_values->get(index) + m_key_offset;
-                }
-            }
-            else {
-                REALM_ASSERT_DEBUG(false);
-            }
-        }
-
-        return (m_limit > m_match_count);
-    }
-};
 }
 
 #endif /* SRC_REALM_ARRAY_BINARY_HPP_ */

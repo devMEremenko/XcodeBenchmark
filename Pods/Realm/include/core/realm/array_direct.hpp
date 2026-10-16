@@ -22,8 +22,6 @@
 #include <realm/utilities.hpp>
 #include <realm/alloc.hpp>
 
-using namespace realm::util;
-
 // clang-format off
 /* wid == 16/32 likely when accessing offsets in B tree */
 #define REALM_TEMPEX(fun, wid, arg) \
@@ -48,38 +46,27 @@ using namespace realm::util;
     else if (wid == 64) {fun<targ, 64> arg;} \
     else {REALM_ASSERT_DEBUG(false); fun<targ, 0> arg;}
 
-#define REALM_TEMPEX3(fun, targ1, targ2, wid, arg) \
-    if (wid == 16) {fun<targ1, targ2, 16> arg;} \
-    else if (wid == 32) {fun<targ1, targ2, 32> arg;} \
-    else if (wid == 0) {fun<targ1, targ2, 0> arg;} \
-    else if (wid == 1) {fun<targ1, targ2, 1> arg;} \
-    else if (wid == 2) {fun<targ1, targ2, 2> arg;} \
-    else if (wid == 4) {fun<targ1, targ2, 4> arg;} \
-    else if (wid == 8) {fun<targ1, targ2, 8> arg;} \
-    else if (wid == 64) {fun<targ1, targ2, 64> arg;} \
-    else {REALM_ASSERT_DEBUG(false); fun<targ1, targ2, 0> arg;}
+#define REALM_TEMPEX3(fun, targ1, wid, targ3, arg) \
+    if (wid == 16) {fun<targ1, 16, targ3> arg;} \
+    else if (wid == 32) {fun<targ1, 32, targ3> arg;} \
+    else if (wid == 0) {fun<targ1, 0, targ3> arg;} \
+    else if (wid == 1) {fun<targ1, 1, targ3> arg;} \
+    else if (wid == 2) {fun<targ1, 2, targ3> arg;} \
+    else if (wid == 4) {fun<targ1, 4, targ3> arg;} \
+    else if (wid == 8) {fun<targ1, 8, targ3> arg;} \
+    else if (wid == 64) {fun<targ1, 64, targ3> arg;} \
+    else {REALM_ASSERT_DEBUG(false); fun<targ1, 0, targ3> arg;}
 
-#define REALM_TEMPEX4(fun, targ1, targ2, wid, targ3, arg) \
-    if (wid == 16) {fun<targ1, targ2, 16, targ3> arg;} \
-    else if (wid == 32) {fun<targ1, targ2, 32, targ3> arg;} \
-    else if (wid == 0) {fun<targ1, targ2, 0, targ3> arg;} \
-    else if (wid == 1) {fun<targ1, targ2, 1, targ3> arg;} \
-    else if (wid == 2) {fun<targ1, targ2, 2, targ3> arg;} \
-    else if (wid == 4) {fun<targ1, targ2, 4, targ3> arg;} \
-    else if (wid == 8) {fun<targ1, targ2, 8, targ3> arg;} \
-    else if (wid == 64) {fun<targ1, targ2, 64, targ3> arg;} \
-    else {REALM_ASSERT_DEBUG(false); fun<targ1, targ2, 0, targ3> arg;}
-
-#define REALM_TEMPEX5(fun, targ1, targ2, targ3, targ4, wid, arg) \
-    if (wid == 16) {fun<targ1, targ2, targ3, targ4, 16> arg;} \
-    else if (wid == 32) {fun<targ1, targ2, targ3, targ4, 32> arg;} \
-    else if (wid == 0) {fun<targ1, targ2, targ3, targ4, 0> arg;} \
-    else if (wid == 1) {fun<targ1, targ2, targ3, targ4, 1> arg;} \
-    else if (wid == 2) {fun<targ1, targ2, targ3, targ4, 2> arg;} \
-    else if (wid == 4) {fun<targ1, targ2, targ3, targ4, 4> arg;} \
-    else if (wid == 8) {fun<targ1, targ2, targ3, targ4, 8> arg;} \
-    else if (wid == 64) {fun<targ1, targ2, targ3, targ4, 64> arg;} \
-    else {REALM_ASSERT_DEBUG(false); fun<targ1, targ2, targ3, targ4, 0> arg;}
+#define REALM_TEMPEX4(fun, targ1, targ3, targ4, wid, arg) \
+    if (wid == 16) {fun<targ1, targ3, targ4, 16> arg;} \
+    else if (wid == 32) {fun<targ1, targ3, targ4, 32> arg;} \
+    else if (wid == 0) {fun<targ1, targ3, targ4, 0> arg;} \
+    else if (wid == 1) {fun<targ1, targ3, targ4, 1> arg;} \
+    else if (wid == 2) {fun<targ1, targ3, targ4, 2> arg;} \
+    else if (wid == 4) {fun<targ1, targ3, targ4, 4> arg;} \
+    else if (wid == 8) {fun<targ1, targ3, targ4, 8> arg;} \
+    else if (wid == 64) {fun<targ1, targ3, targ4, 64> arg;} \
+    else {REALM_ASSERT_DEBUG(false); fun<targ1, targ3, targ4, 0> arg;}
 // clang-format on
 
 namespace realm {
@@ -211,20 +198,6 @@ inline std::pair<int64_t, int64_t> get_two(const char* data, size_t ndx) noexcep
 inline std::pair<int64_t, int64_t> get_two(const char* data, size_t width, size_t ndx) noexcept
 {
     REALM_TEMPEX(return get_two, width, (data, ndx));
-}
-
-
-template <int width>
-inline void get_three(const char* data, size_t ndx, ref_type& v0, ref_type& v1, ref_type& v2) noexcept
-{
-    v0 = to_ref(get_direct<width>(data, ndx + 0));
-    v1 = to_ref(get_direct<width>(data, ndx + 1));
-    v2 = to_ref(get_direct<width>(data, ndx + 2));
-}
-
-inline void get_three(const char* data, size_t width, size_t ndx, ref_type& v0, ref_type& v1, ref_type& v2) noexcept
-{
-    REALM_TEMPEX(get_three, width, (data, ndx, v0, v1, v2));
 }
 
 

@@ -69,6 +69,12 @@ Returns object for preparing requests to groups part of API
 + (VKApiGroups *)groups;
 
 /**
+https://vk.com/dev/docs
+ Returns object for preparing requests to docs part of API
+*/
++ (VKApiDocs *)docs;
+
+/**
  Create new request with parameters. See documentation for methods here https://vk.com/dev/methods
 
  @param method API-method name, e.g. audio.get

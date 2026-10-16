@@ -24,18 +24,25 @@
 // THE SOFTWARE.
 
 import Foundation
+
+#if !targetEnvironment(macCatalyst) && canImport(AppKit)
+import AppKit
+public typealias PlatformView = NSView
+#elseif canImport(UIKit)
 import UIKit
+public typealias PlatformView = UIView
+#endif
 
 /// Protocol to define family of loadable views
 public protocol NibLoadableProtocol : NSObjectProtocol {
     
     /// View that serves as a container for loadable view. Loadable views are added to container view in `setupNib(_:)` method.
-    var nibContainerView: UIView { get }
+    var nibContainerView: PlatformView { get }
     
     /// Method that loads view from single view xib with `nibName`.
     ///
     /// - returns: loaded from xib view
-    func loadNib() -> UIView
+    func loadNib() -> PlatformView
     
     /// Method that is used to load and configure loadableView. It is then added to `nibContainerView` as a subview. This view receives constraints of same width and height as container view.
     func setupNib()
@@ -47,9 +54,9 @@ public protocol NibLoadableProtocol : NSObjectProtocol {
     var bundle: Bundle { get }
 }
 
-extension UIView {
+extension PlatformView {
     /// View usually serves itself as a default container for loadable views
-    @objc dynamic open var nibContainerView : UIView { return self }
+    @objc dynamic open var nibContainerView : PlatformView { return self }
     
     /// Default nibName for all UIViews, equal to name of the class.
     @objc dynamic open var nibName : String { return String(describing: type(of: self)) }
@@ -60,64 +67,8 @@ extension UIView {
     }
 }
 
-extension NibLoadableProtocol {
-    
-    /// Method that loads view from single view xib with `nibName`.
-    ///
-    /// - returns: loaded from xib view
-    public func loadNib() -> UIView {
-        let nib = UINib(nibName: nibName, bundle: bundle)
-        let view = nib.instantiate(withOwner: self, options: nil).first as! UIView
-        return view
-    }
-    
-    public func setupView(_ view: UIView, inContainer container: UIView) {
-        container.backgroundColor = .clear
-        container.addSubview(view)
-        view.translatesAutoresizingMaskIntoConstraints = false
-        let bindings = ["view": view]
-        container.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "H:|[view]|", options:[], metrics:nil, views: bindings))
-        container.addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "V:|[view]|", options:[], metrics:nil, views: bindings))
-    }
-}
-
-extension NibLoadableProtocol where Self: UIView {
-    
-    /// Sets the frame of the view to result of `systemLayoutSizeFitting` method call with `UIView.layoutFittingCompressedSize` parameter.
-    ///
-    /// - Returns: loadable view
-    public func compressedLayout() -> Self {
-        frame.size = systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
-        return self
-    }
-    
-    /// Sets the frame of the view to result of `systemLayoutSizeFitting` method call with `UIView.layoutFittingExpandedSize` parameter.
-    ///
-    /// - Returns: loadable view
-    public func expandedLayout() -> Self {
-        frame.size = systemLayoutSizeFitting(UIView.layoutFittingExpandedSize)
-        return self
-    }
-    
-    /// Sets the frame of the view to result of `systemLayoutSizeFitting` method call with provided parameters.
-    ///
-    /// - Parameters:
-    ///   - fittingSize: fittingSize to be passed to `systemLayoutSizeFitting` method.
-    ///   - horizontalPriority: horizontal priority to be passed to `systemLayoutSizeFitting` method.
-    ///   - verticalPriority: vertical priority to be passed to `systemLayoutSizeFitting` method.
-    /// - Returns: loadable view
-    public func systemLayout(fittingSize: CGSize,
-                             horizontalPriority: UILayoutPriority,
-                             verticalPriority: UILayoutPriority) -> Self {
-        frame.size = systemLayoutSizeFitting(fittingSize,
-                                             withHorizontalFittingPriority: horizontalPriority,
-                                             verticalFittingPriority: verticalPriority)
-        return self
-    }
-}
-
 /// UIView subclass, that can be loaded into different xib or storyboard by simply referencing it's class.
-open class LoadableView: UIView, NibLoadableProtocol {
+open class LoadableView: PlatformView, NibLoadableProtocol {
 
     public override init(frame: CGRect) {
         super.init(frame: frame)
@@ -125,106 +76,6 @@ open class LoadableView: UIView, NibLoadableProtocol {
     }
 
     public required init?(coder aDecoder: NSCoder) {
-        super.init(coder: aDecoder)
-        setupNib()
-    }
-    
-    open func setupNib() {
-        setupView(loadNib(), inContainer: nibContainerView)
-    }
-}
-
-/// UITableViewCell subclass, which subview can be used as a container to loadable view. By default, xib with the same name is loaded and added as a subview to cell's contentView.
-open class LoadableTableViewCell: UITableViewCell, NibLoadableProtocol {
-    open override var nibContainerView: UIView {
-        return contentView
-    }
-    
-    #if swift(>=4.2)
-    override public init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
-        super.init(style: style, reuseIdentifier: reuseIdentifier)
-        setupNib()
-    }
-    #else
-    override public init(style: UITableViewCellStyle, reuseIdentifier: String?) {
-        super.init(style: style, reuseIdentifier: reuseIdentifier)
-        setupNib()
-    }
-    #endif
-    
-    required public init?(coder aDecoder: NSCoder) {
-        super.init(coder: aDecoder)
-        setupNib()
-    }
-    
-    open func setupNib() {
-        setupView(loadNib(), inContainer: nibContainerView)
-    }
-}
-
-/// UICollectionReusableView subclass, which subview can be used as a container to loadable view. By default, xib with the same name is loaded and added as a subview.
-open class LoadableCollectionReusableView: UICollectionReusableView, NibLoadableProtocol {
-    override public init(frame: CGRect) {
-        super.init(frame: frame)
-        setupNib()
-    }
-    
-    required public init?(coder aDecoder: NSCoder) {
-        super.init(coder: aDecoder)
-        setupNib()
-    }
-    
-    open func setupNib() {
-        setupView(loadNib(), inContainer: nibContainerView)
-    }
-}
-
-/// UICollectionViewCell subclass, which subview can be used as a container to loadable view. By default, xib with the same name is loaded and added as a subview to cell's contentView.
-open class LoadableCollectionViewCell: UICollectionViewCell, NibLoadableProtocol {
-    open override var nibContainerView: UIView {
-        return contentView
-    }
-    
-    override public init(frame: CGRect) {
-        super.init(frame: frame)
-        setupNib()
-    }
-    
-    required public init?(coder aDecoder: NSCoder) {
-        super.init(coder: aDecoder)
-        setupNib()
-    }
-    
-    open func setupNib() {
-        setupView(loadNib(), inContainer: nibContainerView)
-    }
-}
-
-/// UITextField subclass, which subview can be used as a container to loadable view. By default, xib with the same name is loaded and added as a subview.
-open class LoadableTextField: UITextField, NibLoadableProtocol {
-    
-    override public init(frame: CGRect) {
-        super.init(frame: frame)
-        setupNib()
-    }
-    
-    required public init?(coder aDecoder: NSCoder) {
-        super.init(coder: aDecoder)
-        setupNib()
-    }
-    
-    open func setupNib() {
-        setupView(loadNib(), inContainer: nibContainerView)
-    }
-}
-
-open class LoadableControl: UIControl, NibLoadableProtocol {
-    override public init(frame: CGRect) {
-        super.init(frame: frame)
-        setupNib()
-    }
-    
-    required public init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
         setupNib()
     }

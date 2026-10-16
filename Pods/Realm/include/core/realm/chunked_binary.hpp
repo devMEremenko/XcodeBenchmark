@@ -1,20 +1,18 @@
 /*************************************************************************
  *
- * REALM CONFIDENTIAL
- * __________________
+ * Copyright 2019 Realm Inc.
  *
- *  [2011] - [2015] Realm Inc
- *  All Rights Reserved.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * NOTICE:  All information contained herein is, and remains
- * the property of Realm Incorporated and its suppliers,
- * if any.  The intellectual and technical concepts contained
- * herein are proprietary to Realm Incorporated
- * and its suppliers and may be covered by U.S. and Foreign Patents,
- * patents in process, and are protected by trade secret or copyright law.
- * Dissemination of this information or reproduction of this material
- * is strictly forbidden unless prior written permission is obtained
- * from Realm Incorporated.
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  **************************************************************************/
 
@@ -25,8 +23,9 @@
 #include <realm/column_binary.hpp>
 #include <realm/table.hpp>
 
+#include <realm/util/buffer.hpp>
 #include <realm/util/buffer_stream.hpp>
-#include <realm/impl/input_stream.hpp>
+#include <realm/util/input_stream.hpp>
 
 
 namespace realm {
@@ -35,11 +34,17 @@ namespace realm {
 /// extracting large binaries from binary columns and tables.
 class ChunkedBinaryData {
 public:
+    ChunkedBinaryData() {}
 
-    ChunkedBinaryData();
-    ChunkedBinaryData(const BinaryData& bd);
-    ChunkedBinaryData(const BinaryIterator& bd);
-    ChunkedBinaryData(const BinaryColumn& col, size_t index);
+    ChunkedBinaryData(const BinaryData& bd)
+        : m_begin{bd}
+    {
+    }
+
+    ChunkedBinaryData(const BinaryColumn& col, size_t index)
+        : m_begin{&col, index}
+    {
+    }
 
     /// size() returns the number of bytes in the chunked binary.
     /// FIXME: This operation is O(n).
@@ -56,16 +61,9 @@ public:
 
     void write_to(util::ResettableExpandableBufferOutputStream& out) const;
 
-    /// copy_to() copies the chunked binary data to \a buffer of size
-    /// \a buffer_size starting at \a offset in the ChunkedBinary.
-    /// copy_to() copies until the end of \a buffer or the end of
-    /// the ChunkedBinary whichever comes first.
-    /// copy_to() returns the number of copied bytes.
-    size_t copy_to(char* buffer, size_t buffer_size, size_t offset) const;
-
-    /// copy_to() allocates a buffer of size() in \a dest and
-    /// copies the chunked binary data to \a dest.
-    size_t copy_to(std::unique_ptr<char[]>& dest) const;
+    /// copy_to() clears the target buffer and then copies the chunked binary
+    /// data to it.
+    void copy_to(util::AppendBuffer<char>& dest) const;
 
     /// get_first_chunk() is used in situations
     /// where it is known that there is exactly one
@@ -73,52 +71,27 @@ public:
     /// has been constructed from BinaryData.
     BinaryData get_first_chunk() const;
 
+    BinaryIterator iterator() const noexcept;
+
 private:
     BinaryIterator m_begin;
-    friend class ChunkedBinaryInputStream;
 };
 
-// FIXME: When ChunkedBinaryData is moved into Core, this should be moved as well.
-class ChunkedBinaryInputStream : public _impl::NoCopyInputStream {
+class ChunkedBinaryInputStream : public util::InputStream {
 public:
     explicit ChunkedBinaryInputStream(const ChunkedBinaryData& chunks)
-        : m_it(chunks.m_begin)
+        : m_it(chunks.iterator())
     {
     }
 
-    bool next_block(const char*& begin, const char*& end) override
+    util::Span<const char> next_block() override
     {
-        BinaryData block = m_it.get_next();
-        begin = block.data();
-        end = begin + block.size();
-        return begin != end;
+        return m_it.get_next();
     }
 
 private:
     BinaryIterator m_it;
 };
-
-
-/// Implementation:
-
-
-inline ChunkedBinaryData::ChunkedBinaryData()
-{
-}
-
-inline ChunkedBinaryData::ChunkedBinaryData(const BinaryData& bd) : m_begin{bd}
-{
-}
-
-inline ChunkedBinaryData::ChunkedBinaryData(const BinaryIterator& bd) : m_begin{bd}
-{
-}
-
-inline ChunkedBinaryData::ChunkedBinaryData(const BinaryColumn& col, size_t index)
-    : m_begin{&col, index}
-{
-}
-
 
 } // namespace realm
 

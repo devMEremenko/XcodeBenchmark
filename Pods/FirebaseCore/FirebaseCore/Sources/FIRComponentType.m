@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-#import "FirebaseCore/Sources/Private/FIRComponentType.h"
+#import "FirebaseCore/Extension/FIRComponentType.h"
 
 #import "FirebaseCore/Sources/FIRComponentContainerInternal.h"
 
 @implementation FIRComponentType
 
-+ (id)instanceForProtocol:(Protocol *)protocol inContainer:(FIRComponentContainer *)container {
++ (nullable id)instanceForProtocol:(Protocol *)protocol
+                       inContainer:(FIRComponentContainer *)container {
   // Forward the call to the container.
   return [container instanceForProtocol:protocol];
 }

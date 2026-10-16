@@ -1,33 +1,39 @@
-/*
- *
- * Copyright 2015 gRPC authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
-
-#include <grpc/support/port_platform.h>
+//
+//
+// Copyright 2015 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+//
 
 #include "src/core/ext/transport/chttp2/transport/frame_ping.h"
-#include "src/core/ext/transport/chttp2/transport/internal.h"
-
-#include <string.h>
 
 #include <grpc/support/alloc.h>
-#include <grpc/support/log.h>
-#include <grpc/support/string_util.h>
+#include <grpc/support/port_platform.h>
+#include <inttypes.h>
+#include <string.h>
 
-static bool g_disable_ping_ack = false;
+#include <algorithm>
+
+#include "absl/container/flat_hash_map.h"
+#include "absl/log/check.h"
+#include "absl/log/log.h"
+#include "absl/status/status.h"
+#include "absl/strings/str_format.h"
+#include "src/core/ext/transport/chttp2/transport/internal.h"
+#include "src/core/ext/transport/chttp2/transport/ping_abuse_policy.h"
+#include "src/core/ext/transport/chttp2/transport/ping_callbacks.h"
+#include "src/core/lib/debug/trace.h"
 
 grpc_slice grpc_chttp2_ping_create(uint8_t ack, uint64_t opaque_8bytes) {
   grpc_slice slice = GRPC_SLICE_MALLOC(9 + 8);
@@ -54,27 +60,23 @@ grpc_slice grpc_chttp2_ping_create(uint8_t ack, uint64_t opaque_8bytes) {
   return slice;
 }
 
-grpc_error* grpc_chttp2_ping_parser_begin_frame(grpc_chttp2_ping_parser* parser,
-                                                uint32_t length,
-                                                uint8_t flags) {
+grpc_error_handle grpc_chttp2_ping_parser_begin_frame(
+    grpc_chttp2_ping_parser* parser, uint32_t length, uint8_t flags) {
   if (flags & 0xfe || length != 8) {
-    char* msg;
-    gpr_asprintf(&msg, "invalid ping: length=%d, flags=%02x", length, flags);
-    grpc_error* error = GRPC_ERROR_CREATE_FROM_COPIED_STRING(msg);
-    gpr_free(msg);
-    return error;
+    return GRPC_ERROR_CREATE(
+        absl::StrFormat("invalid ping: length=%d, flags=%02x", length, flags));
   }
   parser->byte = 0;
   parser->is_ack = flags;
   parser->opaque_8bytes = 0;
-  return GRPC_ERROR_NONE;
+  return absl::OkStatus();
 }
 
-grpc_error* grpc_chttp2_ping_parser_parse(void* parser,
-                                          grpc_chttp2_transport* t,
-                                          grpc_chttp2_stream* /*s*/,
-                                          const grpc_slice& slice,
-                                          int is_last) {
+grpc_error_handle grpc_chttp2_ping_parser_parse(void* parser,
+                                                grpc_chttp2_transport* t,
+                                                grpc_chttp2_stream* /*s*/,
+                                                const grpc_slice& slice,
+                                                int is_last) {
   const uint8_t* const beg = GRPC_SLICE_START_PTR(slice);
   const uint8_t* const end = GRPC_SLICE_END_PTR(slice);
   const uint8_t* cur = beg;
@@ -87,34 +89,33 @@ grpc_error* grpc_chttp2_ping_parser_parse(void* parser,
   }
 
   if (p->byte == 8) {
-    GPR_ASSERT(is_last);
+    CHECK(is_last);
     if (p->is_ack) {
+      GRPC_TRACE_LOG(http2_ping, INFO)
+          << (t->is_client ? "CLIENT" : "SERVER") << "[" << t
+          << "]: received ping ack " << p->opaque_8bytes;
       grpc_chttp2_ack_ping(t, p->opaque_8bytes);
     } else {
       if (!t->is_client) {
-        grpc_millis now = grpc_core::ExecCtx::Get()->Now();
-        grpc_millis next_allowed_ping =
-            t->ping_recv_state.last_ping_recv_time +
-            t->ping_policy.min_recv_ping_interval_without_data;
-
-        if (t->keepalive_permit_without_calls == 0 &&
-            grpc_chttp2_stream_map_size(&t->stream_map) == 0) {
-          /* According to RFC1122, the interval of TCP Keep-Alive is default to
-             no less than two hours. When there is no outstanding streams, we
-             restrict the number of PINGS equivalent to TCP Keep-Alive. */
-          next_allowed_ping =
-              t->ping_recv_state.last_ping_recv_time + 7200 * GPR_MS_PER_SEC;
+        const bool transport_idle =
+            t->keepalive_permit_without_calls == 0 && t->stream_map.empty();
+        if (GRPC_TRACE_FLAG_ENABLED(http_keepalive) ||
+            GRPC_TRACE_FLAG_ENABLED(http)) {
+          LOG(INFO) << "SERVER[" << t << "]: received ping " << p->opaque_8bytes
+                    << ": "
+                    << t->ping_abuse_policy.GetDebugString(transport_idle);
         }
-
-        if (next_allowed_ping > now) {
-          grpc_chttp2_add_ping_strike(t);
+        if (t->ping_abuse_policy.ReceivedOnePing(transport_idle)) {
+          grpc_chttp2_exceeded_ping_strikes(t);
         }
-
-        t->ping_recv_state.last_ping_recv_time = now;
+      } else {
+        GRPC_TRACE_LOG(http2_ping, INFO)
+            << "CLIENT[" << t << "]: received ping " << p->opaque_8bytes;
       }
-      if (!g_disable_ping_ack) {
+      if (t->ack_pings) {
         if (t->ping_ack_count == t->ping_ack_capacity) {
-          t->ping_ack_capacity = GPR_MAX(t->ping_ack_capacity * 3 / 2, 3);
+          t->ping_ack_capacity =
+              std::max(t->ping_ack_capacity * 3 / 2, size_t{3});
           t->ping_acks = static_cast<uint64_t*>(gpr_realloc(
               t->ping_acks, t->ping_ack_capacity * sizeof(*t->ping_acks)));
         }
@@ -125,9 +126,5 @@ grpc_error* grpc_chttp2_ping_parser_parse(void* parser,
     }
   }
 
-  return GRPC_ERROR_NONE;
-}
-
-void grpc_set_disable_ping_ack(bool disable_ping_ack) {
-  g_disable_ping_ack = disable_ping_ack;
+  return absl::OkStatus();
 }

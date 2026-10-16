@@ -20,12 +20,10 @@
 #define REALM_UTIL_ERRNO_HPP
 
 #include <string>
-
 #include <realm/util/basic_system_errors.hpp>
+#include <realm/util/to_string.hpp>
 
-
-namespace realm {
-namespace util {
+namespace realm::util {
 
 // Get the error message for a given error code, and append it to `prefix`
 inline std::string get_errno_msg(const char* prefix, int err)
@@ -33,7 +31,12 @@ inline std::string get_errno_msg(const char* prefix, int err)
     return prefix + make_basic_system_error_code(err).message();
 }
 
-} // namespace util
-} // namespace realm
+template <typename... Args>
+std::string format_errno(const char* fmt, int err, Args&&... args)
+{
+    return format(fmt, {Printable(make_basic_system_error_code(err).message()), Printable(args)...});
+}
+
+} // namespace realm::util
 
 #endif

@@ -37,7 +37,7 @@ public:
     BinaryIterator()
     {
     }
-    // TODO: When WriteLogCollector is removed, there is no need for this
+
     BinaryIterator(BinaryData binary)
         : m_binary(binary)
     {
@@ -47,26 +47,33 @@ public:
         : m_binary_col(col)
         , m_ndx(ndx)
     {
+        REALM_ASSERT(col);
     }
 
     BinaryData get_next() noexcept
     {
-        if (!end_of_data) {
+        if (!m_end_of_data) {
             if (m_binary_col) {
                 BinaryData ret = m_binary_col->get_at(m_ndx, m_pos);
-                end_of_data = (m_pos == 0);
+                m_end_of_data = (m_pos == 0);
                 return ret;
             }
             else if (!m_binary.is_null()) {
-                end_of_data = true;
+                m_end_of_data = true;
                 return m_binary;
             }
         }
         return {};
     }
 
+    BinaryData get_only() const noexcept
+    {
+        REALM_ASSERT(m_binary);
+        return m_binary;
+    }
+
 private:
-    bool end_of_data = false;
+    bool m_end_of_data = false;
     const BinaryColumn* m_binary_col = nullptr;
     size_t m_ndx = 0;
     size_t m_pos = 0;

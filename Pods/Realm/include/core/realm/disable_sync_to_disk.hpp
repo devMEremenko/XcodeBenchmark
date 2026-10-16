@@ -26,7 +26,7 @@ namespace realm {
 /// Completely disable synchronization with storage device to speed up unit
 /// testing. This is an unsafe mode of operation, and should never be used in
 /// production. This function is thread safe.
-void disable_sync_to_disk();
+void disable_sync_to_disk(bool disable = true);
 
 /// Returns true after disable_sync_to_disk() has been called. This function is
 /// thread safe.

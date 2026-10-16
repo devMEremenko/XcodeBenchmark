@@ -16,30 +16,9 @@
 
 #import <Foundation/Foundation.h>
 
-typedef NS_ENUM(int8_t, FIRMessagingProtoTag) {
-  kFIRMessagingProtoTagInvalid = -1,
-  kFIRMessagingProtoTagHeartbeatPing = 0,
-  kFIRMessagingProtoTagHeartbeatAck = 1,
-  kFIRMessagingProtoTagLoginRequest = 2,
-  kFIRMessagingProtoTagLoginResponse = 3,
-  kFIRMessagingProtoTagClose = 4,
-  kFIRMessagingProtoTagIqStanza = 7,
-  kFIRMessagingProtoTagDataMessageStanza = 8,
-};
+#pragma mark - URL Helpers
 
-@class GPBMessage;
-
-#pragma mark - Protocol Buffers
-
-FOUNDATION_EXPORT FIRMessagingProtoTag FIRMessagingGetTagForProto(GPBMessage *protoClass);
-FOUNDATION_EXPORT Class FIRMessagingGetClassForTag(FIRMessagingProtoTag tag);
-
-#pragma mark - MCS
-
-FOUNDATION_EXPORT NSString *FIRMessagingGetRmq2Id(GPBMessage *proto);
-FOUNDATION_EXPORT void FIRMessagingSetRmq2Id(GPBMessage *proto, NSString *pID);
-FOUNDATION_EXPORT int FIRMessagingGetLastStreamId(GPBMessage *proto);
-FOUNDATION_EXPORT void FIRMessagingSetLastStreamId(GPBMessage *proto, int sid);
+FOUNDATION_EXPORT NSString *FIRMessagingTokenRegisterServer(void);
 
 #pragma mark - Time
 
@@ -50,8 +29,21 @@ FOUNDATION_EXPORT int64_t FIRMessagingCurrentTimestampInMilliseconds(void);
 
 FOUNDATION_EXPORT NSString *FIRMessagingCurrentAppVersion(void);
 FOUNDATION_EXPORT NSString *FIRMessagingAppIdentifier(void);
+FOUNDATION_EXPORT NSString *FIRMessagingFirebaseAppID(void);
+FOUNDATION_EXPORT BOOL FIRMessagingIsWatchKitExtension(void);
 
 #pragma mark - Others
 
-FOUNDATION_EXPORT uint64_t FIRMessagingGetFreeDiskSpaceInMB(void);
 FOUNDATION_EXPORT NSSearchPathDirectory FIRMessagingSupportedDirectory(void);
+
+#pragma mark - Device Info
+FOUNDATION_EXPORT NSString *FIRMessagingCurrentLocale(void);
+FOUNDATION_EXPORT BOOL FIRMessagingHasLocaleChanged(void);
+/// locale key stored in GULUserDefaults
+FOUNDATION_EXPORT NSString *const kFIRMessagingInstanceIDUserDefaultsKeyLocale;
+
+FOUNDATION_EXPORT NSString *FIRMessagingStringForAPNSDeviceToken(NSData *deviceToken);
+FOUNDATION_EXPORT NSString *FIRMessagingAPNSTupleStringForTokenAndServerType(NSData *deviceToken,
+                                                                             BOOL isSandbox);
+
+FOUNDATION_EXPORT BOOL FIRMessagingIsSandboxApp(void);

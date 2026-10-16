@@ -16,13 +16,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-#import <Foundation/Foundation.h>
+#import <Realm/RLMConstants.h>
 
-NS_ASSUME_NONNULL_BEGIN
-
-@class RLMRealm;
-@class RLMSchema;
-@class RLMObjectSchema;
+RLM_HEADER_AUDIT_BEGIN(nullability, sendability)
 
 /// :nodoc:
 @interface RLMObjectBase : NSObject
@@ -41,4 +37,4 @@ NS_ASSUME_NONNULL_BEGIN
 
 @end
 
-NS_ASSUME_NONNULL_END
+RLM_HEADER_AUDIT_END(nullability, sendability)

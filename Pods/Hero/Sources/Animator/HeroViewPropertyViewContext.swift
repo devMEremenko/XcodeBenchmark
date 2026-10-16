@@ -20,6 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#if canImport(UIKit)
+
 import UIKit
 
 @available(iOS 10, tvOS 10, *)
@@ -34,15 +36,27 @@ internal class HeroViewPropertyViewContext: HeroAnimatorViewContext {
   }
 
   override func resume(timePassed: TimeInterval, reverse: Bool) -> TimeInterval {
-    guard let visualEffectView = snapshot as? UIVisualEffectView else { return 0 }
+    guard let visualEffectView = snapshot as? UIVisualEffectView else { return .zero }
+    guard duration > 0 else { return .zero }
     if reverse {
       viewPropertyAnimator?.stopAnimation(false)
       viewPropertyAnimator?.finishAnimation(at: .current)
+
       viewPropertyAnimator = UIViewPropertyAnimator(duration: duration, curve: .linear) {
         visualEffectView.effect = reverse ? self.startEffect : self.endEffect
       }
+
+      // workaround for a bug https://openradar.appspot.com/30856746
+      viewPropertyAnimator.startAnimation()
+      viewPropertyAnimator.pauseAnimation()
+
+      viewPropertyAnimator.fractionComplete = CGFloat(1.0 - timePassed / duration)
     }
-    viewPropertyAnimator.startAnimation()
+
+    DispatchQueue.main.async {
+      self.viewPropertyAnimator.startAnimation()
+    }
+
     return duration
   }
 
@@ -72,3 +86,5 @@ internal class HeroViewPropertyViewContext: HeroAnimatorViewContext {
     return duration
   }
 }
+
+#endif

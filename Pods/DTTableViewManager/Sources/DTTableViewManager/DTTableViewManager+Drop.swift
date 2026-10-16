@@ -27,48 +27,49 @@ import Foundation
 import UIKit
 import DTModelStorage
 
-extension DTTableViewManager
+/// Extension for drop events (UITableViewDropDelegate)
+public extension DTTableViewManager
 {
     #if os(iOS)
     
     /// Registers `closure` to be executed when `UITableViewDropDelegate.tableView(_:performDropWith:)` method is called.
-    open func performDropWithCoordinator(_ closure: @escaping (UITableViewDropCoordinator) -> Void) {
+    func performDropWithCoordinator(_ closure: @escaping (UITableViewDropCoordinator) -> Void) {
         tableDropDelegate?.appendNonCellReaction(.performDropWithCoordinator, closure: closure)
     }
     
     /// Registers `closure` to be executed when `UITableViewDropDelegate.tableView(_:canHandle:)` method is called.
-    open func canHandleDropSession(_ closure: @escaping (UIDropSession) -> Bool) {
+    func canHandleDropSession(_ closure: @escaping (UIDropSession) -> Bool) {
         tableDropDelegate?.appendNonCellReaction(.canHandleDropSession, closure: closure)
     }
     
     /// Registers `closure` to be executed when `UITableViewDropDelegate.tableView(_:dropSessionDidEnter:)` method is called.
-    open func dropSessionDidEnter(_ closure: @escaping (UIDropSession) -> Void) {
+    func dropSessionDidEnter(_ closure: @escaping (UIDropSession) -> Void) {
         tableDropDelegate?.appendNonCellReaction(.dropSessionDidEnter, closure: closure)
     }
     
     /// Registers `closure` to be executed when `UITableViewDropDelegate.tableView(_:dropSessionDidUpdate:withDestination:)` method is called.
-    open func dropSessionDidUpdate(_ closure: @escaping (UIDropSession, IndexPath?) -> UITableViewDropProposal) {
+    func dropSessionDidUpdate(_ closure: @escaping (UIDropSession, IndexPath?) -> UITableViewDropProposal) {
         tableDropDelegate?.appendNonCellReaction(.dropSessionDidUpdateWithDestinationIndexPath, closure: closure)
     }
     
     /// Registers `closure` to be executed when `UITableViewDropDelegate.tableView(_:dropSessionDidExit:)` method is called.
-    open func dropSessionDidExit(_ closure: @escaping (UIDropSession) -> Void) {
+    func dropSessionDidExit(_ closure: @escaping (UIDropSession) -> Void) {
         tableDropDelegate?.appendNonCellReaction(.dropSessionDidExit, closure: closure)
     }
     
     /// Registers `closure` to be executed when `UITableViewDropDelegate.tableView(_:dropSessionDidEnd:)` method is called.
-    open func dropSessionDidEnd(_ closure: @escaping (UIDropSession) -> Void) {
+    func dropSessionDidEnd(_ closure: @escaping (UIDropSession) -> Void) {
         tableDropDelegate?.appendNonCellReaction(.dropSessionDidEnd, closure: closure)
     }
     
     /// Registers `closure` to be executed when `UITableViewDropDelegate.tableView(_:dropPreviewParametersForRowAt:)` method is called.
-    open func dropPreviewParameters(_ closure: @escaping (IndexPath) -> UIDragPreviewParameters?) {
+    func dropPreviewParameters(_ closure: @escaping (IndexPath) -> UIDragPreviewParameters?) {
         tableDropDelegate?.appendNonCellReaction(.dropPreviewParametersForRowAtIndexPath, closure: closure)
     }
     
     /// Convenience method for dropping `item` into `placeholder`.
     /// Returns `DTTableViewDropPlaceholderContext`, which is a replacement for `UITableViewDropPlaceholderContext`, that automatically handles drop if you are using `MemoryStorage`. It also automatically dispatches insertion to `DispatchQueue.main`.
-    open func drop(_ item: UIDragItem, to placeholder: UITableViewDropPlaceholder,
+    func drop(_ item: UIDragItem, to placeholder: UITableViewDropPlaceholder,
                    with coordinator: UITableViewDropCoordinator) -> DTTableViewDropPlaceholderContext {
         let context = coordinator.drop(item, to: placeholder)
         return DTTableViewDropPlaceholderContext(context: context, storage: storage)

@@ -68,7 +68,8 @@ typedef NS_ENUM(NSInteger, GDTCORMessageCode) {
   /** For warning messages concerning the reading of a event file. */
   GDTCORMCWFileReadError = 6,
 
-  /** For error messages concerning transform: not being implemented by an event transformer. */
+  /** For error messages concerning transformGDTEvent: not being implemented by an event
+     transformer. */
   GDTCORMCETransformerDoesntImplementTransform = 1000,
 
   /** For error messages concerning the creation of a directory failing. */

@@ -19,67 +19,103 @@
 #ifndef REALM_UTIL_TO_STRING_HPP
 #define REALM_UTIL_TO_STRING_HPP
 
+#include <cstdint>
 #include <iosfwd>
+#include <ostream>
 #include <string>
+#include <string_view>
+
+#include <realm/util/optional.hpp>
 
 namespace realm {
+class StringData;
 namespace util {
 
 class Printable {
 public:
-    Printable(bool value)
+    constexpr Printable(bool value)
         : m_type(Type::Bool)
         , m_uint(value)
     {
     }
-    Printable(unsigned char value)
+    constexpr Printable(unsigned char value)
         : m_type(Type::Uint)
         , m_uint(value)
     {
     }
-    Printable(unsigned int value)
+    constexpr Printable(unsigned short value)
         : m_type(Type::Uint)
         , m_uint(value)
     {
     }
-    Printable(unsigned long value)
+    constexpr Printable(unsigned int value)
         : m_type(Type::Uint)
         , m_uint(value)
     {
     }
-    Printable(unsigned long long value)
+    constexpr Printable(unsigned long value)
         : m_type(Type::Uint)
         , m_uint(value)
     {
     }
-    Printable(char value)
+    constexpr Printable(unsigned long long value)
+        : m_type(Type::Uint)
+        , m_uint(value)
+    {
+    }
+    constexpr Printable(char value)
         : m_type(Type::Int)
         , m_int(value)
     {
     }
-    Printable(int value)
+    constexpr Printable(signed char value)
         : m_type(Type::Int)
         , m_int(value)
     {
     }
-    Printable(long value)
+    constexpr Printable(short value)
         : m_type(Type::Int)
         , m_int(value)
     {
     }
-    Printable(long long value)
+    constexpr Printable(int value)
         : m_type(Type::Int)
         , m_int(value)
     {
     }
-    Printable(const char* value)
+    constexpr Printable(long value)
+        : m_type(Type::Int)
+        , m_int(value)
+    {
+    }
+    constexpr Printable(long long value)
+        : m_type(Type::Int)
+        , m_int(value)
+    {
+    }
+    constexpr Printable(double value)
+        : m_type(Type::Double)
+        , m_double(value)
+    {
+    }
+    constexpr Printable(const char* value)
         : m_type(Type::String)
         , m_string(value)
     {
     }
     Printable(std::string const& value)
         : m_type(Type::String)
-        , m_string(value.c_str())
+        , m_string(value)
+    {
+    }
+    Printable(StringData value);
+
+    template <typename T, typename = std::enable_if_t<!std::is_constructible_v<Printable, T>>>
+    Printable(T const& value)
+        : m_type(Type::Callback)
+        , m_callback({static_cast<const void*>(&value), [](std::ostream& os, const void* ptr) {
+                          stream_possible_optional(os, *static_cast<const T*>(ptr));
+                      }})
     {
     }
 
@@ -94,13 +130,22 @@ private:
         Bool,
         Int,
         Uint,
+        Double,
         String,
+        Callback,
     } m_type;
+
+    struct Callback {
+        const void* data;
+        void (*fn)(std::ostream&, const void*);
+    };
 
     union {
         uintmax_t m_uint;
         intmax_t m_int;
-        const char* m_string;
+        double m_double;
+        std::string_view m_string;
+        Callback m_callback;
     };
 };
 
@@ -111,15 +156,26 @@ std::string to_string(const T& v)
     return Printable(v).str();
 }
 
-
+void format(std::ostream&, const char* fmt, std::initializer_list<Printable>);
 std::string format(const char* fmt, std::initializer_list<Printable>);
 
-template<typename... Args>
+// format string format:
+//  "%%" - literal '%'
+//  "%1" - substitutes Nth argument, 1-indexed
+//
+// format("Hello %1, meet %2. %3%% complete.", "Alice", "Bob", 97)
+//  -> "Hello Alice, meet Bob. 97% complete."
+template <typename... Args>
 std::string format(const char* fmt, Args&&... args)
 {
     return format(fmt, {Printable(args)...});
 }
 
+template <typename... Args>
+void format(std::ostream& os, const char* fmt, Args&&... args)
+{
+    format(os, fmt, {Printable(args)...});
+}
 
 } // namespace util
 } // namespace realm

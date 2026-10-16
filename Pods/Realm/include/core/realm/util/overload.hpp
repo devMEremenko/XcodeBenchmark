@@ -19,52 +19,13 @@
 #ifndef REALM_UTIL_OVERLOAD_HPP
 #define REALM_UTIL_OVERLOAD_HPP
 
-#include <utility>
-
-namespace realm {
-
-namespace _impl {
-
-template<typename Fn, typename... Fns>
-struct Overloaded;
-
-} // namespace _impl
-
-
-namespace util {
-
-// Declare an overload set using lambdas or other function objects.
-// A minimal version of C++ Library Evolution Working Group proposal P0051R2.
-
-template<typename... Fns>
-_impl::Overloaded<Fns...> overload(Fns&&... f)
-{
-    return _impl::Overloaded<Fns...>(std::forward<Fns>(f)...);
-}
-
-} // namespace util
-
-
-namespace _impl {
-
-template<typename Fn, typename... Fns>
-struct Overloaded : Fn, Overloaded<Fns...> {
-    template<typename U, typename... Rest>
-    Overloaded(U&& fn, Rest&&... rest) : Fn(std::forward<U>(fn)), Overloaded<Fns...>(std::forward<Rest>(rest)...) { }
-
-    using Fn::operator();
-    using Overloaded<Fns...>::operator();
+namespace realm::util {
+template <class... Ts>
+struct overload : Ts... {
+    using Ts::operator()...;
 };
-
-template<typename Fn>
-struct Overloaded<Fn> : Fn {
-    template<typename U>
-    Overloaded(U&& fn) : Fn(std::forward<U>(fn)) { }
-
-    using Fn::operator();
-};
-
-} // namespace _impl
-} // namespace realm
+template <class... Ts>
+overload(Ts...) -> overload<Ts...>;
+} // namespace realm::util
 
 #endif // REALM_UTIL_OVERLOAD_HPP

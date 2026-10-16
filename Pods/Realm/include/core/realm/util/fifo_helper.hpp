@@ -20,24 +20,24 @@
 #define REALM_UTIL_FIFO_HELPER_HPP
 
 #include <string>
+#include <string_view>
 
-namespace realm {
-namespace util {
+namespace realm::util {
 
 // Attempts to create a FIFO file at the location determined by `path`.
 // If creating the FIFO at this location fails, an exception is thrown.
 // If a FIFO already exists at the given location, this method does nothing.
-void create_fifo(std::string path); // throws
+void create_fifo(std::string_view path); // throws
 
-// Same as above, but returns `false` if the FIFO could not be created instead of throwing.
-bool try_create_fifo(const std::string& path);
+// Same as above, but if `has_more_fallbacks` is true then errors return `false`
+// instead of throwing.
+bool try_create_fifo(std::string_view path, bool has_more_fallbacks = true);
 
 // Ensure that a path representing a directory ends with `/`
 inline std::string normalize_dir(const std::string& path) {
     return (!path.empty() && path.back() != '/') ? path + '/' : path;
 }
 
-} // namespace util
-} // namespace realm
+} // namespace realm::util
 
 #endif // REALM_UTIL_FIFO_HELPER_HPP
